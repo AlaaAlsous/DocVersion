@@ -92,4 +92,13 @@ public class FileService
         using var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write);
         await content.CopyToAsync(fileStream);
     }
+
+    public Task<bool> DeleteFileAsync(string username, string filename)
+    {
+        var userPath = Path.Combine(_storagePath, username, filename);
+        if (!File.Exists(userPath))
+            return Task.FromResult(false);
+        File.Delete(userPath);
+        return Task.FromResult(true);
+    }
 }
