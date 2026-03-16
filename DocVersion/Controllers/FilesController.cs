@@ -62,4 +62,12 @@ public class FilesController : ControllerBase
         return CreatedAtAction(nameof(GetFiles), new { filename }, null);
     }
 
+    [HttpPut("{**filename}")]
+    public async Task<IActionResult> UpdateFileAsync(string filename)
+    {
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        await _fileService.SaveFileAsync(username, filename, Request.Body);
+        return NoContent();
+    }
 }
