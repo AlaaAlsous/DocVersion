@@ -41,6 +41,25 @@ public class FileService
         return Task.FromResult(result);
     }
 
+    public Task<FileMetadata?> GetFileMetadataAsync(string username, string filename)
+    {
+        var userPath = Path.Combine(_storagePath, username, filename);
+        if (!File.Exists(userPath))
+            return Task.FromResult<FileMetadata?>(null);
+
+        var fileInfo = new FileInfo(userPath);
+        
+        var metadata = new FileMetadata
+        {
+            Created = fileInfo.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"),
+            Changed = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
+            IsFile = true,
+            Bytes = fileInfo.Length,
+            Extension = fileInfo.Extension
+        };
+        return Task.FromResult<FileMetadata?>(metadata);
+    }
+
     public Task<(Stream, string)> GetFileContentAsync(string username, string filename)
     {
         var userPath = Path.Combine(_storagePath, username, filename);
