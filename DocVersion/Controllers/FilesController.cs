@@ -15,6 +15,7 @@ public class FilesController : ControllerBase
     {
         _fileService = fileService;
     }
+
     [HttpGet]
     public async Task<IActionResult> GetFiles()
     {
@@ -26,4 +27,15 @@ public class FilesController : ControllerBase
         var files = await _fileService.GetAllFilesAsync(username);
         return Ok(files);
     }
+
+    [HttpPost("{**filename}")]
+    public async Task<IActionResult> CreateFileAsync(string filename)
+    {
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        var created = await _fileService.CreateFileAsync(username, filename, Request.Body);
+        if (!created) return Conflict("File already exists.");
+        return CreatedAtAction(nameof(GetFiles), new { filename }, null);
+    }
+
 }
