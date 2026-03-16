@@ -87,8 +87,7 @@ public class FilesController : ControllerBase
     {
         var username = User.FindFirstValue(ClaimTypes.Name);
         if (string.IsNullOrEmpty(username)) return Unauthorized();
-        var deleted = await _fileService.DeleteFileAsync(username, filename);
-        if (!deleted) return NotFound();
+        await _fileService.DeleteFileAsync(username, filename);
         return NoContent();
     }
 }
