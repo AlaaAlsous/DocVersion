@@ -70,4 +70,14 @@ public class FilesController : ControllerBase
         await _fileService.SaveFileAsync(username, filename, Request.Body);
         return NoContent();
     }
+
+    [HttpDelete("{**filename}")]
+    public async Task<IActionResult> DeleteFileAsync(string filename)
+    {
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        var deleted = await _fileService.DeleteFileAsync(username, filename);
+        if (!deleted) return NotFound();
+        return NoContent();
+    }
 }
