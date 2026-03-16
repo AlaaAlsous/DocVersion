@@ -51,7 +51,7 @@ async function getFiles() {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logoutBtn.style.display = "none";
-    loginModal.style.display = "block";
+    loginModal.style.display = "flex";
     return;
   }
 
@@ -68,7 +68,7 @@ async function getFiles() {
       if (response.status === 401) {
         localStorage.removeItem("jwt");
         logoutBtn.style.display = "none";
-        loginModal.style.display = "block";
+        loginModal.style.display = "flex";
         return;
       }
       throw new Error("Failed to fetch files");
@@ -103,7 +103,7 @@ function logout() {
   localStorage.removeItem("jwt");
   document.getElementById("file-list").innerHTML = "";
   logoutBtn.style.display = "none";
-  loginModal.style.display = "block";
+  loginModal.style.display = "flex";
   modalPassword.value = "";
   modalUserName.focus();
 }
