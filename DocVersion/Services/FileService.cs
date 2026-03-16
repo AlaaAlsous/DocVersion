@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.StaticFiles;
 using DocVersion.Models;
+
 
 namespace DocVersion.Services;
 
@@ -19,9 +21,7 @@ public class FileService
     {
         var userPath = Path.Combine(_storagePath, username);
         if (!Directory.Exists(userPath))
-        {
             Directory.CreateDirectory(userPath);
-        }
 
         var result = new Dictionary<string, FileMetadata>();
         var files = Directory.GetFiles(userPath);
@@ -39,6 +39,21 @@ public class FileService
             result[fileInfo.Name] = metadata;
         }
         return Task.FromResult(result);
+    }
+
+    public Task<(Stream, string)> GetFileContentAsync(string username, string filename)
+    {
+        var userPath = Path.Combine(_storagePath, username, filename);
+        if (!File.Exists(userPath))
+            return Task.FromResult<(Stream, string)>((null!, null!));
+
+        var fileStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
+
+        var provider = new FileExtensionContentTypeProvider();
+        if (!provider.TryGetContentType(filename, out var contentType))
+
+            contentType = "application/octet-stream";
+        return Task.FromResult<(Stream, string)>((fileStream, contentType));
     }
 
     public async Task<bool> CreateFileAsync(string username, string filename, Stream content)
