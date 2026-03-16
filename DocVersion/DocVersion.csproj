@@ -11,4 +11,10 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="wwwroot\**\*">
+      <TargetPath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +41,16 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+var fileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
+app.UseDefaultFiles(new DefaultFilesOptions
+{
+    FileProvider = fileProvider
+});
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = fileProvider
+});
+
 
 app.UseAuthentication();
 app.UseAuthorization();
