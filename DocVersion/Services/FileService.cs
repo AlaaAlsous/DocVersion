@@ -51,7 +51,6 @@ public class FileService
 
         var provider = new FileExtensionContentTypeProvider();
         if (!provider.TryGetContentType(filename, out var contentType))
-
             contentType = "application/octet-stream";
         return Task.FromResult<(Stream, string)>((fileStream, contentType));
     }

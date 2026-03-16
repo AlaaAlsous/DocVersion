@@ -20,12 +20,20 @@ public class FilesController : ControllerBase
     public async Task<IActionResult> GetFiles()
     {
         var username = User.FindFirstValue(ClaimTypes.Name);
-        if (string.IsNullOrEmpty(username))
-        {
-            return Unauthorized();
-        }
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
         var files = await _fileService.GetAllFilesAsync(username);
         return Ok(files);
+    }
+
+    [HttpGet("{**filename}")]
+    public async Task<IActionResult> GetFileContent(string filename)
+    {
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        var (fileStram, contentType) = await _fileService.GetFileContentAsync(username, filename);
+        if (fileStram == null) return NotFound();
+        return File(fileStram, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
     }
 
     [HttpPost("{**filename}")]
