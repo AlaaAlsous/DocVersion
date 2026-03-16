@@ -11,8 +11,12 @@ namespace DocVersion.Controllers;
 [Route("api/[controller]")]
 public class LoginController : ControllerBase
 {
-    private const string TestUsername = "test-user";
-    private const string TestPassword = "So Long, and Thanks for All the Fish";
+    private readonly Dictionary<string, string> users = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+{
+    { "Alaa", "1234" },
+    { "admin", "12345678" },
+    { "test-user", "So Long, and Thanks for All the Fish" }
+};
     private readonly IConfiguration _configuration;
 
     public LoginController(IConfiguration configuration)
@@ -21,9 +25,9 @@ public class LoginController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Login([FromBody] LoginRequest request)
+    public IActionResult Login(LoginRequest request)
     {
-        if (request.User != TestUsername || request.Password != TestPassword)
+        if (!users.TryGetValue(request.User, out var password) || password != request.Password)
             return Unauthorized();
 
         var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
