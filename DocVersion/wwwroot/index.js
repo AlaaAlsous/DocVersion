@@ -3,7 +3,7 @@ const loginModal = document.getElementById("loginModal");
 const modalUserName = document.getElementById("modalUserName");
 const modalPassword = document.getElementById("modalPassword");
 const modalSubmit = document.getElementById("modalSubmit");
-
+const logoutBtn = document.getElementById("logoutBtn");
 
 async function login() {
   const username = modalUserName.value.trim();
@@ -99,6 +99,15 @@ function displayFiles(files) {
   });
 }
 
+function logout() {
+  localStorage.removeItem("jwt");
+  document.getElementById("file-list").innerHTML = "";
+  logoutBtn.style.display = "none";
+  loginModal.style.display = "block";
+  modalPassword.value = "";
+  modalUserName.focus();
+}
+
 modalSubmit.addEventListener("click", login);
 
 modalUserName.addEventListener("keydown", (event) => {
@@ -108,5 +117,7 @@ modalUserName.addEventListener("keydown", (event) => {
 modalPassword.addEventListener("keydown", (event) => {
   if (event.key === "Enter") login();
 });
+
+logoutBtn.addEventListener("click", logout);
 
 getFiles();
