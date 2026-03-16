@@ -3,14 +3,17 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
+using DocVersion.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+builder.Services.AddScoped<FileService>();
+
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
-          ?? builder.Configuration["Jwt:Key"]
-          ?? throw new InvalidOperationException("JWT key not found in environment variables or configuration.");
+             ?? builder.Configuration["Jwt:Key"]
+             ?? throw new InvalidOperationException("JWT key not found in environment variables or configuration.");
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
 builder.Services
