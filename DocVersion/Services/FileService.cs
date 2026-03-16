@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DocVersion.Models;
 
 namespace DocVersion.Services;
@@ -38,5 +39,16 @@ public class FileService
             result[fileInfo.Name] = metadata;
         }
         return Task.FromResult(result);
+    }
+
+    public async Task<bool> CreateFileAsync(string username, string filename, Stream content)
+    {
+        var userPath = Path.Combine(_storagePath, username, filename);
+        var directory = Path.GetDirectoryName(userPath);
+        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
+        if (File.Exists(userPath)) return false;
+        using var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write);
+        await content.CopyToAsync(fileStream);
+        return true;
     }
 }
