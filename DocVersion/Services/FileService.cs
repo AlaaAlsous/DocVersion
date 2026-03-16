@@ -12,9 +12,8 @@ public class FileService
     {
         _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
         if (!Directory.Exists(_storagePath))
-        {
             Directory.CreateDirectory(_storagePath);
-        }
+
     }
 
     public Task<Dictionary<string, FileMetadata>> GetAllFilesAsync(string username)
@@ -48,7 +47,7 @@ public class FileService
             return Task.FromResult<FileMetadata?>(null);
 
         var fileInfo = new FileInfo(userPath);
-        
+
         var metadata = new FileMetadata
         {
             Created = fileInfo.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -83,5 +82,14 @@ public class FileService
         using var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write);
         await content.CopyToAsync(fileStream);
         return true;
+    }
+
+    public async Task SaveFileAsync(string username, string filename, Stream content)
+    {
+        var userPath = Path.Combine(_storagePath, username, filename);
+        var directory = Path.GetDirectoryName(userPath);
+        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
+        using var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write);
+        await content.CopyToAsync(fileStream);
     }
 }
