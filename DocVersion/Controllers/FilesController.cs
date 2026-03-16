@@ -36,6 +36,22 @@ public class FilesController : ControllerBase
         return File(fileStram, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
     }
 
+    [HttpHead("{**filename}")]
+    public async Task<IActionResult> HeadFileContent(string filename)
+    {
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        var metadata = await _fileService.GetFileMetadataAsync(username, filename);
+        if (metadata == null) return NotFound();
+        Response.Headers["X-Created-At"] = metadata.Created;
+        Response.Headers["X-Changed-At"] = metadata.Changed;
+        Response.Headers["X-Type"] = metadata.IsFile ? "file" : "folder";
+        Response.Headers["X-Bytes"] = metadata.Bytes.ToString();
+        Response.Headers["X-Extension"] = metadata.Extension ?? "";
+
+        return Ok();
+    }
+
     [HttpPost("{**filename}")]
     public async Task<IActionResult> CreateFileAsync(string filename)
     {
