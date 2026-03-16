@@ -81,6 +81,23 @@ async function getFiles() {
   }
 }
 
+function displayFiles(files) {
+  const fileList = document.getElementById("file-list");
+  fileList.innerHTML = "";
+
+  if (Object.keys(files).length === 0) {
+    const emptyItem = document.createElement("li");
+    emptyItem.textContent = "No files yet for this user.";
+    fileList.appendChild(emptyItem);
+    return;
+  }
+
+  Object.entries(files).forEach(([name, metadata]) => {
+    const listItem = document.createElement("li");
+    listItem.textContent = `${name} (${metadata.bytes} bytes)`;
+    fileList.appendChild(listItem);
+  });
+}
 
 modalSubmit.addEventListener("click", login);
 
