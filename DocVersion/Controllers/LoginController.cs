@@ -11,8 +11,8 @@ namespace DocVersion.Controllers;
 [Route("api/[controller]")]
 public class LoginController : ControllerBase
 {
-    private const string TestUsername = "Alaa";
-    private const string TestPassword = "123456";
+    private const string TestUsername = "test-user";
+    private const string TestPassword = "So Long, and Thanks for All the Fish";
     private readonly IConfiguration _configuration;
 
     public LoginController(IConfiguration configuration)
@@ -23,7 +23,7 @@ public class LoginController : ControllerBase
     [HttpPost]
     public IActionResult Login([FromBody] LoginRequest request)
     {
-        if (request.Username != TestUsername || request.Password != TestPassword)
+        if (request.User != TestUsername || request.Password != TestPassword)
             return Unauthorized();
 
         var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
@@ -31,12 +31,12 @@ public class LoginController : ControllerBase
             ?? throw new InvalidOperationException("JWT key not found in environment variables or configuration.");
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var token = new JwtSecurityToken(
-            claims: new[] { new Claim(ClaimTypes.Name, request.Username) },
+            claims: new[] { new Claim(ClaimTypes.Name, request.User) },
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)
         );
         var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
         return Ok(new { Token = tokenString });
     }
-    public record LoginRequest(string Username, string Password);
+    public record LoginRequest(string User, string Password);
 }

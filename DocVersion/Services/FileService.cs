@@ -29,8 +29,8 @@ public class FileService
             var fileInfo = new FileInfo(file);
             var metadata = new FileMetadata
             {
-                Created = fileInfo.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
                 IsFile = true,
                 Bytes = fileInfo.Length,
                 Extension = fileInfo.Extension
@@ -50,8 +50,8 @@ public class FileService
 
         var metadata = new FileMetadata
         {
-            Created = fileInfo.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"),
-            Changed = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
+            Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+            Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
             IsFile = true,
             Bytes = fileInfo.Length,
             Extension = fileInfo.Extension

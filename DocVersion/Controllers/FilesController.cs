@@ -33,6 +33,17 @@ public class FilesController : ControllerBase
         if (string.IsNullOrEmpty(username)) return Unauthorized();
         var (fileStram, contentType) = await _fileService.GetFileContentAsync(username, filename);
         if (fileStram == null) return NotFound();
+
+        var metadata = await _fileService.GetFileMetadataAsync(username, filename);
+        if (metadata != null)
+        {
+            Response.Headers["X-Created-At"] = metadata.Created;
+            Response.Headers["X-Changed-At"] = metadata.Changed;
+            Response.Headers["X-Type"] = metadata.IsFile ? "file" : "folder";
+            Response.Headers["X-Bytes"] = metadata.Bytes.ToString();
+            Response.Headers["X-Extension"] = metadata.Extension ?? "";
+        }
+
         return File(fileStram, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
     }
 
