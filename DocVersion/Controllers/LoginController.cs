@@ -11,7 +11,7 @@ namespace DocVersion.Controllers;
 [Route("api/[controller]")]
 public class LoginController : ControllerBase
 {
-    private readonly Dictionary<string, string> users = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    private readonly Dictionary<string, string> users = new Dictionary<string, string>()
 {
     { "Alaa", "1234" },
     { "admin", "12345678" },

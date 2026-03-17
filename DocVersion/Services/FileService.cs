@@ -50,16 +50,23 @@ public class FileService
 
         var fileStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
 
-        var provider = new FileExtensionContentTypeProvider();
-        if (!provider.TryGetContentType(filename, out var contentType))
-            contentType = "application/octet-stream";
+        var contentType = "application/octet-stream";
         return Task.FromResult<(Stream, string)>((fileStream, contentType));
     }
 
-    private Dictionary<string, FileMetadata> GetFolderContent(string folderPath)
+    public Task<Dictionary<string, FileMetadata>?> GetFolderContentAsync(string username, string foldername)
+    {
+        var userPath = GetSafePath(username, foldername);
+        if (!Directory.Exists(userPath))
+            return Task.FromResult<Dictionary<string, FileMetadata>?>(null);
+
+        return Task.FromResult<Dictionary<string, FileMetadata>?>(GetFolderContent(userPath));
+    }
+
+    private Dictionary<string, FileMetadata> GetFolderContent(string folderName)
     {
         var result = new Dictionary<string, FileMetadata>();
-        var files = Directory.GetFiles(folderPath);
+        var files = Directory.GetFiles(folderName);
         foreach (var file in files)
         {
             var fileInfo = new FileInfo(file);
@@ -73,7 +80,7 @@ public class FileService
             };
             result[fileInfo.Name] = metadata;
         }
-        var folders = Directory.GetDirectories(folderPath);
+        var folders = Directory.GetDirectories(folderName);
         foreach (var folder in folders)
         {
             var folderInfo = new DirectoryInfo(folder);
