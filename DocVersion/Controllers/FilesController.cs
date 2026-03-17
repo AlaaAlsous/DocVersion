@@ -144,7 +144,17 @@ public class FilesController : ControllerBase
     {
         var username = GetUsername();
         if (string.IsNullOrEmpty(username)) return Unauthorized();
-        await _fileService.DeleteFileAsync(username, filename);
-        return NoContent();
+        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
+
+        try
+        {
+            await _fileService.DeleteFileAsync(username, filename);
+            await _fileService.DeleteFolderAsync(username, filename);
+            return NoContent();
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
     }
 }
