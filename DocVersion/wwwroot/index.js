@@ -38,7 +38,6 @@ async function login() {
   const data = await response.json();
   const token = data.token ?? data.Token;
   if (!token) {
-    alert("Login succeeded but no token was returned");
     return;
   }
   localStorage.setItem("jwt", token);

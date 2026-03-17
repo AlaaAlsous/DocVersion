@@ -70,6 +70,41 @@ public class FileService
         return Task.FromResult<(Stream, string)>((fileStream, contentType));
     }
 
+    private Dictionary<string, FileMetadata> GetFolderContent(string folderPath)
+    {
+        var result = new Dictionary<string, FileMetadata>();
+        var files = Directory.GetFiles(folderPath);
+        foreach (var file in files)
+        {
+            var fileInfo = new FileInfo(file);
+            var metadata = new FileMetadata
+            {
+                Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                IsFile = true,
+                Bytes = fileInfo.Length,
+                Extension = fileInfo.Extension
+            };
+            result[fileInfo.Name] = metadata;
+        }
+        var folders = Directory.GetDirectories(folderPath);
+        foreach (var folder in folders)
+        {
+            var folderInfo = new DirectoryInfo(folder);
+            var metadata = new FileMetadata
+            {
+                Created = folderInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = folderInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                IsFile = false,
+                Bytes = 0,
+                Extension = null,
+                Content = GetFolderContent(folder)
+            };
+            result[folderInfo.Name] = metadata;
+        }
+        return result;
+    }
+
     public async Task<bool> CreateFileAsync(string username, string filename, Stream content)
     {
         var userPath = GetSafePath(username, filename);
