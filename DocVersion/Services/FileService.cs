@@ -19,21 +19,7 @@ public class FileService
         if (!Directory.Exists(userPath))
             Directory.CreateDirectory(userPath);
 
-        var result = new Dictionary<string, FileMetadata>();
-        var files = Directory.GetFiles(userPath);
-        foreach (var file in files)
-        {
-            var fileInfo = new FileInfo(file);
-            var metadata = new FileMetadata
-            {
-                Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                IsFile = true,
-                Bytes = fileInfo.Length,
-                Extension = fileInfo.Extension
-            };
-            result[fileInfo.Name] = metadata;
-        }
+        var result = GetFolderContent(userPath);
         return Task.FromResult(result);
     }
 
@@ -114,6 +100,16 @@ public class FileService
         using var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write);
         await content.CopyToAsync(fileStream);
         return true;
+    }
+
+    public Task<bool> CreateFolderAsync(string username, string foldername)
+    {
+        var userPath = GetSafePath(username, foldername);
+        if (Directory.Exists(userPath) || File.Exists(userPath))
+            return Task.FromResult(false);
+
+        Directory.CreateDirectory(userPath);
+        return Task.FromResult(true);
     }
 
     public async Task SaveFileAsync(string username, string filename, Stream content)
