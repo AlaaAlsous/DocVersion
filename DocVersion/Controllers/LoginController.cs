@@ -3,8 +3,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-
-
+using Microsoft.Extensions.Options;
+using DocVersion.Security;
 namespace DocVersion.Controllers;
 
 [ApiController]
@@ -17,11 +17,11 @@ public class LoginController : ControllerBase
     { "admin", "12345678" },
     { "test-user", "So Long, and Thanks for All the Fish" }
 };
-    private readonly IConfiguration _configuration;
+    private readonly JwtOptions _jwtOptions;
 
-    public LoginController(IConfiguration configuration)
+    public LoginController(IOptions<JwtOptions> jwtOptions)
     {
-        _configuration = configuration;
+        _jwtOptions = jwtOptions.Value;
     }
 
     [HttpPost]
@@ -30,11 +30,12 @@ public class LoginController : ControllerBase
         if (!users.TryGetValue(request.User, out var password) || password != request.Password)
             return Unauthorized();
 
-        var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
-            ?? _configuration["Jwt:Key"]
-            ?? throw new InvalidOperationException("JWT key not found in environment variables or configuration.");
+        var jwtKey = _jwtOptions.Key
+            ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var token = new JwtSecurityToken(
+            issuer: _jwtOptions.Issuer,
+            audience: _jwtOptions.Audience,
             claims: new[] { new Claim(ClaimTypes.Name, request.User) },
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)

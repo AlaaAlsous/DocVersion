@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using DocVersion.Services;
 using System.Security.Claims;
-
 namespace DocVersion.Controllers;
 
 [ApiController]
@@ -31,8 +30,8 @@ public class FilesController : ControllerBase
     {
         var username = User.FindFirstValue(ClaimTypes.Name);
         if (string.IsNullOrEmpty(username)) return Unauthorized();
-        var (fileStram, contentType) = await _fileService.GetFileContentAsync(username, filename);
-        if (fileStram == null) return NotFound();
+        var (fileStream, contentType) = await _fileService.GetFileContentAsync(username, filename);
+        if (fileStream == null) return NotFound();
 
         var metadata = await _fileService.GetFileMetadataAsync(username, filename);
         if (metadata != null)
@@ -44,7 +43,7 @@ public class FilesController : ControllerBase
             Response.Headers["X-Extension"] = metadata.Extension ?? "";
         }
 
-        return File(fileStram, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
+        return File(fileStream, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
     }
 
     [HttpHead("{**filename}")]
@@ -70,7 +69,7 @@ public class FilesController : ControllerBase
         if (string.IsNullOrEmpty(username)) return Unauthorized();
         var created = await _fileService.CreateFileAsync(username, filename, Request.Body);
         if (!created) return Conflict("File already exists.");
-        return CreatedAtAction(nameof(GetFiles), new { filename }, null);
+        return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
     }
 
     [HttpPut("{**filename}")]

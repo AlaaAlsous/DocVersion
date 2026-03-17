@@ -1,8 +1,5 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.StaticFiles;
 using DocVersion.Models;
-
-
 namespace DocVersion.Services;
 
 public class FileService
