@@ -130,6 +130,15 @@ public class FileService
         return Task.FromResult(true);
     }
 
+    public Task<bool> DeleteFolderAsync(string username, string foldername)
+    {
+        var userPath = GetSafePath(username, foldername);
+        if (!Directory.Exists(userPath))
+            return Task.FromResult(false);
+        Directory.Delete(userPath, recursive: true);
+        return Task.FromResult(true);
+    }
+
     private string GetSafePath(string username, string filename)
     {
         var userPath = Path.Combine(_storagePath, username);
