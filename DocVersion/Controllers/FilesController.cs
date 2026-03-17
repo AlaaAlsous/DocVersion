@@ -94,9 +94,25 @@ public class FilesController : ControllerBase
     {
         var username = GetUsername();
         if (string.IsNullOrEmpty(username)) return Unauthorized();
-        var created = await _fileService.CreateFileAsync(username, filename, Request.Body);
-        if (!created) return Conflict("File already exists.");
-        return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
+        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
+
+        try
+        {
+            if (Request.ContentLength.GetValueOrDefault() == 0)
+            {
+                var folderCreated = await _fileService.CreateFolderAsync(username, filename);
+                if (!folderCreated) return Conflict("Folder already exists.");
+                return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
+            }
+
+            var created = await _fileService.CreateFileAsync(username, filename, Request.Body);
+            if (!created) return Conflict("File already exists.");
+            return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpPut("{**filename}")]
@@ -104,8 +120,23 @@ public class FilesController : ControllerBase
     {
         var username = GetUsername();
         if (string.IsNullOrEmpty(username)) return Unauthorized();
-        await _fileService.SaveFileAsync(username, filename, Request.Body);
-        return NoContent();
+        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
+
+        try
+        {
+            if (Request.ContentLength.GetValueOrDefault() == 0)
+            {
+                await _fileService.CreateFolderAsync(username, filename);
+                return NoContent();
+            }
+
+            await _fileService.SaveFileAsync(username, filename, Request.Body);
+            return NoContent();
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpDelete("{**filename}")]
