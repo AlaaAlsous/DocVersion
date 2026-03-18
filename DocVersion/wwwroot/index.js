@@ -86,6 +86,45 @@ async function getFiles(path = "") {
   }
 }
 
+async function downloadFile(file) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+
+  const filePath = currentPath ? `${currentPath}/${file}` : file;
+
+  try {
+    const response = await fetch(`/api/files/${filePath}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem("jwt");
+        logout();
+        return;
+      }
+      throw new Error("Failed to download file");
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = file;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+  }
+}
+
 function displayFiles(files) {
   const fileList = document.getElementById("file-list");
   fileList.innerHTML = "";
