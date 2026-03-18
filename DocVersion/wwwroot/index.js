@@ -9,6 +9,7 @@ const createFolderBtn = document.getElementById("createFolderBtn");
 const folderNameInput = document.getElementById("folderName");
 const uploadBtn = document.getElementById("uploadBtn");
 const fileInput = document.getElementById("fileInput");
+const errorMessage = document.getElementById("errorMessage");
 
 async function login() {
   const username = modalUserName.value.trim();
@@ -163,7 +164,14 @@ function displayFiles(files) {
 
   Object.entries(files).forEach(([name, metadata]) => {
     const listItem = document.createElement("li");
-
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", (event) => {
+      const path = currentPath ? `${currentPath}/${name}` : name;
+      event.preventDefault();
+      event.stopPropagation();
+      deleteItem(path);
+    });
     if (metadata.file) {
       listItem.textContent = `📄 ${name} (${metadata.bytes} bytes)`;
       listItem.style.cursor = "pointer";
@@ -176,6 +184,7 @@ function displayFiles(files) {
         await getFiles(currentPath);
       });
     }
+    listItem.appendChild(delBtn);
     fileList.appendChild(listItem);
   });
 }
@@ -260,7 +269,7 @@ async function uploadFile() {
   const path = currentPath ? `${currentPath}/${file.name}` : file.name;
   try {
     const response = await fetch(`/api/files/${path}`, {
-      method: "post",
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "X-Type": "file",
@@ -277,6 +286,30 @@ async function uploadFile() {
   } catch (error) {
     console.error("Error uploading file:", error);
     errorMessage.textContent = "Error uploading file";
+    errorMessage.style.display = "block";
+  }
+}
+
+async function deleteItem(item) {
+  const token = localStorage.getItem("jwt");
+  if (!token) return;
+  try {
+    const response = await fetch(`/api/files/${item}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      errorMessage.textContent = `Failed to delete item (${response.status})`;
+      errorMessage.style.display = "block";
+      return;
+    }
+    await getFiles(currentPath);
+    errorMessage.style.display = "none";
+  } catch (error) {
+    console.error("Error deleting item:", error);
+    errorMessage.textContent = "Error deleting item";
     errorMessage.style.display = "block";
   }
 }
