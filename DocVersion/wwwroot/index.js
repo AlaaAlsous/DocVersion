@@ -98,7 +98,8 @@ async function getFiles(path = "") {
     clearErrorMessage();
     displayFiles(files);
   } catch (error) {
-    console.error("Error fetching files:", error);
+    errorMessage.textContent = "Error fetching files";
+    errorMessage.style.display = "block";
   }
 }
 
@@ -128,13 +129,6 @@ async function downloadFile(file) {
       throw new Error("Failed to download file");
     }
 
-    const metadata = {
-      bytes: response.headers.get("X-Bytes") ?? "Unknown",
-      created: response.headers.get("X-Created-At") ?? "Unknown",
-      changed: response.headers.get("X-Changed-At") ?? "Unknown",
-      extension: response.headers.get("X-Extension") ?? "",
-    };
-
     const blob = await response.blob();
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -142,12 +136,56 @@ async function downloadFile(file) {
     link.download = file;
     document.body.appendChild(link);
     link.click();
-    showMetadata(file, metadata);
     clearErrorMessage();
     link.remove();
     URL.revokeObjectURL(downloadUrl);
   } catch (error) {
-    console.error("Error downloading file:", error);
+    errorMessage.textContent = "Error downloading file";
+    errorMessage.style.display = "block";
+  }
+}
+
+async function showItemMetadata(itemName) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+
+  const itemPath = currentPath ? `${currentPath}/${itemName}` : itemName;
+  const encodedItemPath = toApiPath(itemPath);
+
+  try {
+    const response = await fetch(`/api/files/${encodedItemPath}`, {
+      method: "HEAD",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem("jwt");
+        logout();
+        return;
+      }
+      throw new Error("Failed to fetch metadata");
+    }
+
+    const itemType = response.headers.get("X-Type") ?? "item";
+    const metadata = {
+      bytes: response.headers.get("X-Bytes") ?? "Unknown",
+      created: response.headers.get("X-Created-At") ?? "Unknown",
+      changed: response.headers.get("X-Changed-At") ?? "Unknown",
+      extension: response.headers.get("X-Extension") ?? "",
+      type: itemType,
+    };
+
+    showMetadata(itemName, metadata);
+    clearErrorMessage();
+  } catch (error) {
+    errorMessage.textContent = "Error fetching metadata";
+    errorMessage.style.display = "block";
   }
 }
 
@@ -177,7 +215,18 @@ function displayFiles(files) {
 
   Object.entries(files).forEach(([name, metadata]) => {
     const listItem = document.createElement("li");
+    const itemLabel = document.createElement("span");
+    const buttonGroup = document.createElement("div");
+    const metadataBtn = document.createElement("button");
     const delBtn = document.createElement("button");
+
+    metadataBtn.textContent = "Info";
+    metadataBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      showItemMetadata(name);
+    });
+
     delBtn.textContent = "Delete";
     delBtn.addEventListener("click", (event) => {
       const path = currentPath ? `${currentPath}/${name}` : name;
@@ -185,19 +234,22 @@ function displayFiles(files) {
       event.stopPropagation();
       deleteItem(path);
     });
+
     if (metadata.file) {
-      listItem.textContent = `📄 ${name} (${metadata.bytes} bytes)`;
+      itemLabel.textContent = `📄 ${name} (${metadata.bytes} bytes)`;
       listItem.style.cursor = "pointer";
       listItem.addEventListener("click", () => downloadFile(name));
     } else {
-      listItem.textContent = `📁 ${name}`;
+      itemLabel.textContent = `📁 ${name}`;
       listItem.style.cursor = "pointer";
       listItem.addEventListener("click", async () => {
         currentPath = currentPath ? `${currentPath}/${name}` : name;
         await getFiles(currentPath);
       });
     }
-    listItem.appendChild(delBtn);
+
+    buttonGroup.append(metadataBtn, delBtn);
+    listItem.append(itemLabel, buttonGroup);
     fileList.appendChild(listItem);
   });
 }
@@ -211,12 +263,13 @@ function showMetadata(file, metadata) {
   }
 
   fileInfoBox.innerHTML = `
-    <h3>File Info</h3>
+    <h3>Metadata</h3>
     <p><strong>Name:</strong> ${file}</p>
+    <p><strong>Type:</strong> ${metadata.type}</p>
     <p><strong>Size:</strong> ${metadata.bytes} bytes</p>
     <p><strong>Created:</strong> ${metadata.created}</p>
     <p><strong>Modified:</strong> ${metadata.changed}</p>
-    <p><strong>Type:</strong> ${metadata.extension}</p>
+    <p><strong>Extension:</strong> ${metadata.extension || "-"}</p>
     <button id="closeMetadataBtn">Close</button>
   `;
   fileInfoBox.style.display = "block";

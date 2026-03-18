@@ -13,13 +13,13 @@
   --gh-row-hover: #f6f8fa;
   --gh-button-hover: #f3f4f6;
   --gh-header-border: #1b1f24;
-  --modal-overlay: rgba(27, 31, 36, 0.55);
+  --modal-overlay: #1b1f248c;
   --modal-card: var(--gh-canvas);
   --modal-card-border: var(--gh-border);
   --modal-title: var(--gh-text);
   --modal-input-bg: var(--gh-canvas);
   --modal-input-border: var(--gh-border);
-  --modal-input-focus-shadow: rgba(9, 105, 218, 0.15);
+  --modal-input-focus-shadow: #0969da26;
   --modal-button-bg: var(--gh-accent);
   --modal-button-bg-hover: var(--gh-accent-hover);
 }
@@ -117,8 +117,19 @@ h1 {
   background: var(--gh-row-hover);
 }
 
-#file-list li button {
+.item-label {
+  min-width: 0;
+  flex: 1;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-left: auto;
+}
+
+#file-list li button {
   border: 1px solid var(--gh-border);
   background: var(--gh-canvas);
   color: var(--gh-text);
@@ -357,5 +368,11 @@ h1 {
   #file-list li {
     flex-wrap: wrap;
     align-items: flex-start;
+  }
+
+  .item-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
   }
 }
