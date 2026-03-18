@@ -156,7 +156,8 @@ h1 {
 #modalSubmit:active {
   transform: translateY(1px);
 }
-#modalError {
+#modalError,
+#errorMessage {
   margin-top: 1rem;
   font-size: 0.9rem;
   color: red;

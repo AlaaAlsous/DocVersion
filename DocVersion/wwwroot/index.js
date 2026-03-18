@@ -7,6 +7,8 @@ const logoutBtn = document.getElementById("logoutBtn");
 const modalError = document.getElementById("modalError");
 const createFolderBtn = document.getElementById("createFolderBtn");
 const folderNameInput = document.getElementById("folderName");
+const uploadBtn = document.getElementById("uploadBtn");
+const fileInput = document.getElementById("fileInput");
 
 async function login() {
   const username = modalUserName.value.trim();
@@ -218,7 +220,11 @@ function logout() {
 async function createFolder() {
   const token = localStorage.getItem("jwt");
   const folderName = folderNameInput.value.trim();
-  if (!folderName) return;
+  if (!folderName) {
+    errorMessage.textContent = "Folder name cannot be empty";
+    errorMessage.style.display = "block";
+    return;
+  }
   const path = currentPath ? `${currentPath}/${folderName}` : folderName;
   try {
     const respone = await fetch(`/api/files/${path}`, {
@@ -229,14 +235,53 @@ async function createFolder() {
       },
     });
     if (!respone.ok) {
+      errorMessage.textContent = "Failed to create folder";
+      errorMessage.style.display = "block";
       return;
     }
     folderNameInput.value = "";
+    errorMessage.style.display = "none";
     await getFiles(currentPath);
   } catch (error) {
     console.error("Error creating folder:", error);
+    errorMessage.textContent = "Error creating folder";
+    errorMessage.style.display = "block";
   }
 }
+
+async function uploadFile() {
+  const token = localStorage.getItem("jwt");
+  const file = fileInput.files[0];
+  if (!file) {
+    errorMessage.textContent = "No file selected";
+    errorMessage.style.display = "block";
+    return;
+  }
+  const path = currentPath ? `${currentPath}/${file.name}` : file.name;
+  try {
+    const response = await fetch(`/api/files/${path}`, {
+      method: "post",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Type": "file",
+      },
+      body: file,
+    });
+    if (!response.ok) {
+      errorMessage.textContent = "Failed to upload file";
+      errorMessage.style.display = "block";
+      return;
+    }
+    fileInput.value = "";
+    await getFiles(currentPath);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    errorMessage.textContent = "Error uploading file";
+    errorMessage.style.display = "block";
+  }
+}
+
+uploadBtn.addEventListener("click", uploadFile);
 
 createFolderBtn.addEventListener("click", createFolder);
 
