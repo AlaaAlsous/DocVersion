@@ -99,9 +99,33 @@ function displayFiles(files) {
 
   Object.entries(files).forEach(([name, metadata]) => {
     const listItem = document.createElement("li");
-    listItem.textContent = `${name} (${metadata.bytes} bytes)`;
+
+    if (metadata.file) {
+      listItem.textContent = `📄 ${name} (${metadata.bytes} bytes)`;
+      listItem.style.cursor = "pointer";
+      listItem.addEventListener("click", () => downloadFile(name));
+    } else {
+      listItem.textContent = `📁 ${name}`;
+      listItem.style.cursor = "pointer";
+      listItem.addEventListener("click", async () => {
+        currentPath = currentPath ? `${currentPath}/${name}` : name;
+        await getFiles(currentPath);
+      });
+    }
     fileList.appendChild(listItem);
   });
+  if (currentPath) {
+    const backItem = document.createElement("li");
+    backItem.textContent = "🔙 Back";
+    backItem.style.cursor = "pointer";
+    backItem.addEventListener("click", async () => {
+      const pathParts = currentPath.split("/");
+      if (pathParts.length > 0) pathParts.pop();
+      currentPath = pathParts.join("/");
+      await getFiles(currentPath);
+    });
+    fileList.insertBefore(backItem, fileList.firstChild);
+  }
 }
 
 function logout() {
