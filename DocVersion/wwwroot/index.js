@@ -95,6 +95,7 @@ async function getFiles(path = "") {
     }
 
     const files = await response.json();
+    clearErrorMessage();
     displayFiles(files);
   } catch (error) {
     console.error("Error fetching files:", error);
@@ -142,6 +143,7 @@ async function downloadFile(file) {
     document.body.appendChild(link);
     link.click();
     showMetadata(file, metadata);
+    clearErrorMessage();
     link.remove();
     URL.revokeObjectURL(downloadUrl);
   } catch (error) {
@@ -261,7 +263,7 @@ async function createFolder() {
       return;
     }
     folderNameInput.value = "";
-    errorMessage.style.display = "none";
+    clearErrorMessage();
     await getFiles(currentPath);
   } catch (error) {
     console.error("Error creating folder:", error);
@@ -295,6 +297,7 @@ async function uploadFile() {
       return;
     }
     fileInput.value = "";
+    clearErrorMessage();
     await getFiles(currentPath);
   } catch (error) {
     console.error("Error uploading file:", error);
@@ -326,6 +329,11 @@ async function deleteItem(item) {
     errorMessage.textContent = "Error deleting item";
     errorMessage.style.display = "block";
   }
+}
+
+function clearErrorMessage() {
+  errorMessage.textContent = "";
+  errorMessage.style.display = "none";
 }
 
 uploadBtn.addEventListener("click", uploadFile);
