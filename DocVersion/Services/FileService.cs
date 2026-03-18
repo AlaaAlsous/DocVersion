@@ -49,7 +49,7 @@ public class FileService
                 Created = dirInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
                 Changed = dirInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
                 IsFile = false,
-                Bytes = 0,
+                Bytes = CalculateDirectorySize(userPath),
                 Extension = null
             };
             return Task.FromResult<FileMetadata?>(metadata);
@@ -105,13 +105,29 @@ public class FileService
                 Created = folderInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
                 Changed = folderInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
                 IsFile = false,
-                Bytes = 0,
+                Bytes = CalculateDirectorySize(folder),
                 Extension = null,
                 Content = GetFolderContent(folder)
             };
             result[folderInfo.Name] = metadata;
         }
         return result;
+    }
+
+    private static long CalculateDirectorySize(string folder)
+    {
+        long totalBytes = 0;
+
+        foreach (var file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
+        {
+            try
+            {
+                totalBytes += new FileInfo(file).Length;
+            }
+            catch { }
+        }
+
+        return totalBytes;
     }
 
     public async Task<bool> CreateFileAsync(string username, string filename, Stream content)
@@ -164,9 +180,9 @@ public class FileService
         return Task.FromResult(true);
     }
 
-    private static void PrepareDirectoryForDelete(string folderPath)
+    private static void PrepareDirectoryForDelete(string folder)
     {
-        foreach (var path in Directory.EnumerateFileSystemEntries(folderPath, "*", SearchOption.AllDirectories))
+        foreach (var path in Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.AllDirectories))
         {
             try
             {
@@ -177,7 +193,7 @@ public class FileService
 
         try
         {
-            File.SetAttributes(folderPath, FileAttributes.Normal);
+            File.SetAttributes(folder, FileAttributes.Normal);
         }
         catch { }
     }
