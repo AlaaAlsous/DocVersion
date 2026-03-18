@@ -26,20 +26,36 @@ public class FileService
     public Task<FileMetadata?> GetFileMetadataAsync(string username, string filename)
     {
         var userPath = GetSafePath(username, filename);
-        if (!File.Exists(userPath))
-            return Task.FromResult<FileMetadata?>(null);
 
-        var fileInfo = new FileInfo(userPath);
-
-        var metadata = new FileMetadata
+        if (File.Exists(userPath))
         {
-            Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-            Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-            IsFile = true,
-            Bytes = fileInfo.Length,
-            Extension = fileInfo.Extension
-        };
-        return Task.FromResult<FileMetadata?>(metadata);
+            var fileInfo = new FileInfo(userPath);
+            var metadata = new FileMetadata
+            {
+                Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                IsFile = true,
+                Bytes = fileInfo.Length,
+                Extension = fileInfo.Extension
+            };
+            return Task.FromResult<FileMetadata?>(metadata);
+        }
+
+        if (Directory.Exists(userPath))
+        {
+            var dirInfo = new DirectoryInfo(userPath);
+            var metadata = new FileMetadata
+            {
+                Created = dirInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = dirInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                IsFile = false,
+                Bytes = 0,
+                Extension = null
+            };
+            return Task.FromResult<FileMetadata?>(metadata);
+        }
+
+        return Task.FromResult<FileMetadata?>(null);
     }
 
     public Task<(Stream, string)> GetFileContentAsync(string username, string filename)
@@ -171,7 +187,7 @@ public class FileService
         var userPath = Path.Combine(_storagePath, username);
         var fullPath = Path.GetFullPath(Path.Combine(userPath, filename));
         var fullUserPath = Path.GetFullPath(userPath);
-        if (!fullPath.StartsWith(fullUserPath))
+        if (fullPath != fullUserPath && !fullPath.StartsWith(fullUserPath + Path.DirectorySeparatorChar))
             throw new InvalidOperationException("Invalid file path.");
         return fullPath;
     }
