@@ -132,6 +132,120 @@ h1 {
   background: var(--gh-button-hover);
 }
 
+#actions {
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+#actions h3 {
+  margin: 0.4rem 0 0.6rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--gh-muted);
+}
+
+#actions input[type="text"],
+#actions input[type="file"] {
+  width: 100%;
+  margin-bottom: 0.7rem;
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  padding: 0.48rem 0.68rem;
+  background: var(--gh-canvas);
+  color: var(--gh-text);
+}
+
+#actions input[type="text"]:focus,
+#actions input[type="file"]:focus {
+  outline: none;
+  border-color: var(--gh-accent);
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+}
+
+#createFolderBtn,
+#uploadBtn {
+  border: 1px solid rgba(27, 31, 36, 0.15);
+  background: var(--gh-success);
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 0.42rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 0.55rem;
+}
+
+#createFolderBtn:hover,
+#uploadBtn:hover {
+  filter: brightness(0.95);
+}
+
+#file-info-box {
+  margin-top: 1rem;
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+#file-info-box h3 {
+  margin: 0 0 0.5rem;
+}
+
+#closeMetadataBtn {
+  border: 1px solid var(--gh-border);
+  background: var(--gh-row-hover);
+  color: var(--gh-text);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gh-bg: #0d1117;
+    --gh-canvas: #161b22;
+    --gh-text: #c9d1d9;
+    --gh-muted: #8b949e;
+    --gh-border: #30363d;
+    --gh-accent: #2f81f7;
+    --gh-accent-hover: #58a6ff;
+    --gh-success: #238636;
+    --gh-header: #161b22;
+    --gh-header-text: #f0f6fc;
+    --gh-danger: #f85149;
+    --gh-row-hover: #1f2630;
+    --gh-button-hover: #212830;
+    --gh-header-border: #30363d;
+    --modal-overlay: rgba(1, 4, 9, 0.7);
+    --modal-card: #161b22;
+    --modal-card-border: #30363d;
+    --modal-title: #e6edf3;
+    --modal-input-bg: #0d1117;
+    --modal-input-border: #30363d;
+    --modal-input-focus-shadow: rgba(47, 129, 247, 0.25);
+    --modal-button-bg: #1f6feb;
+    --modal-button-bg-hover: #388bfd;
+  }
+
+  body {
+    color-scheme: dark;
+  }
+
+  #actions input[type="text"],
+  #actions input[type="file"],
+  #file-list li button,
+  #closeMetadataBtn {
+    background: #0d1117;
+  }
+
+  #createFolderBtn,
+  #uploadBtn {
+    border-color: rgba(240, 246, 252, 0.12);
+  }
+}
+
 #loginModal {
   display: none;
   position: fixed;
