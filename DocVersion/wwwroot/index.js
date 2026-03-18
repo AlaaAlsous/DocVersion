@@ -111,6 +111,13 @@ async function downloadFile(file) {
       throw new Error("Failed to download file");
     }
 
+    const metadata = {
+      bytes: response.headers.get("X-Bytes") ?? "Unknown",
+      created: response.headers.get("X-Created-At") ?? "Unknown",
+      changed: response.headers.get("X-Changed-At") ?? "Unknown",
+      extension: response.headers.get("X-Extension") ?? "",
+    };
+
     const blob = await response.blob();
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -118,6 +125,7 @@ async function downloadFile(file) {
     link.download = file;
     document.body.appendChild(link);
     link.click();
+    showMetadata(file, metadata);
     link.remove();
     URL.revokeObjectURL(downloadUrl);
   } catch (error) {
@@ -129,9 +137,22 @@ function displayFiles(files) {
   const fileList = document.getElementById("file-list");
   fileList.innerHTML = "";
 
+  if (currentPath) {
+    const backItem = document.createElement("li");
+    backItem.textContent = "🔙 Back";
+    backItem.style.cursor = "pointer";
+    backItem.addEventListener("click", async () => {
+      const pathParts = currentPath.split("/");
+      if (pathParts.length > 0) pathParts.pop();
+      currentPath = pathParts.join("/");
+      await getFiles(currentPath);
+    });
+    fileList.appendChild(backItem);
+  }
+
   if (Object.keys(files).length === 0) {
     const emptyItem = document.createElement("li");
-    emptyItem.textContent = "No files yet for this user.";
+    emptyItem.textContent = "No files found";
     fileList.appendChild(emptyItem);
     return;
   }
@@ -153,17 +174,32 @@ function displayFiles(files) {
     }
     fileList.appendChild(listItem);
   });
-  if (currentPath) {
-    const backItem = document.createElement("li");
-    backItem.textContent = "🔙 Back";
-    backItem.style.cursor = "pointer";
-    backItem.addEventListener("click", async () => {
-      const pathParts = currentPath.split("/");
-      if (pathParts.length > 0) pathParts.pop();
-      currentPath = pathParts.join("/");
-      await getFiles(currentPath);
+}
+
+function showMetadata(file, metadata) {
+  let fileInfoBox = document.getElementById("file-info-box");
+  if (!fileInfoBox) {
+    fileInfoBox = document.createElement("div");
+    fileInfoBox.id = "file-info-box";
+    document.body.appendChild(fileInfoBox);
+  }
+
+  fileInfoBox.innerHTML = `
+    <h3>File Info</h3>
+    <p><strong>Name:</strong> ${file}</p>
+    <p><strong>Size:</strong> ${metadata.bytes} bytes</p>
+    <p><strong>Created:</strong> ${metadata.created}</p>
+    <p><strong>Modified:</strong> ${metadata.changed}</p>
+    <p><strong>Type:</strong> ${metadata.extension}</p>
+    <button id="closeMetadataBtn">Close</button>
+  `;
+  fileInfoBox.style.display = "block";
+
+  const closeBtn = document.getElementById("closeMetadataBtn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      fileInfoBox.style.display = "none";
     });
-    fileList.insertBefore(backItem, fileList.firstChild);
   }
 }
 
