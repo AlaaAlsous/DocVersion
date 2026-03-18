@@ -81,6 +81,57 @@ h1 {
   background: rgba(240, 246, 252, 0.16);
 }
 
+#file-list,
+#actions,
+#file-info-box {
+  width: min(920px, 100%);
+  margin-inline: auto;
+}
+
+#file-list {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding: 0;
+  list-style: none;
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#file-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.72rem 1rem;
+  border-bottom: 1px solid var(--gh-border);
+  line-height: 1.35;
+}
+
+#file-list li:last-child {
+  border-bottom: 0;
+}
+
+#file-list li:hover {
+  background: var(--gh-row-hover);
+}
+
+#file-list li button {
+  margin-left: auto;
+  border: 1px solid var(--gh-border);
+  background: var(--gh-canvas);
+  color: var(--gh-text);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+#file-list li button:hover {
+  background: var(--gh-button-hover);
+}
+
 #loginModal {
   display: none;
   position: fixed;
