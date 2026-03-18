@@ -98,7 +98,9 @@ public class FilesController : ControllerBase
 
         try
         {
-            if (Request.ContentLength.GetValueOrDefault() == 0)
+            var xTypePost = Request.Headers["X-Type"].FirstOrDefault();
+            bool isFolderPost = xTypePost == "folder" || (xTypePost != "file" && Request.ContentLength.GetValueOrDefault() == 0);
+            if (isFolderPost)
             {
                 var folderCreated = await _fileService.CreateFolderAsync(username, filename);
                 if (!folderCreated) return Conflict("Folder already exists.");
@@ -124,7 +126,9 @@ public class FilesController : ControllerBase
 
         try
         {
-            if (Request.ContentLength.GetValueOrDefault() == 0)
+            var xTypePut = Request.Headers["X-Type"].FirstOrDefault();
+            bool isFolderPut = xTypePut == "folder" || (xTypePut != "file" && Request.ContentLength.GetValueOrDefault() == 0);
+            if (isFolderPut)
             {
                 await _fileService.CreateFolderAsync(username, filename);
                 return NoContent();
