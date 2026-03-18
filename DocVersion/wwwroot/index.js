@@ -58,6 +58,15 @@ async function login() {
 
 let currentPath = "";
 
+function toApiPath(path = "") {
+  if (!path) return "";
+  return path
+    .split("/")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
 async function getFiles(path = "") {
   const token = localStorage.getItem("jwt");
   if (!token) {
@@ -68,7 +77,8 @@ async function getFiles(path = "") {
   logoutBtn.style.display = "inline-block";
 
   try {
-    const url = path ? `/api/files/${path}` : "/api/files";
+    const encodedPath = toApiPath(path);
+    const url = encodedPath ? `/api/files/${encodedPath}` : "/api/files";
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -99,9 +109,10 @@ async function downloadFile(file) {
   }
 
   const filePath = currentPath ? `${currentPath}/${file}` : file;
+  const encodedFilePath = toApiPath(filePath);
 
   try {
-    const response = await fetch(`/api/files/${filePath}`, {
+    const response = await fetch(`/api/files/${encodedFilePath}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -235,8 +246,9 @@ async function createFolder() {
     return;
   }
   const path = currentPath ? `${currentPath}/${folderName}` : folderName;
+  const encodedPath = toApiPath(path);
   try {
-    const respone = await fetch(`/api/files/${path}`, {
+    const respone = await fetch(`/api/files/${encodedPath}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -267,8 +279,9 @@ async function uploadFile() {
     return;
   }
   const path = currentPath ? `${currentPath}/${file.name}` : file.name;
+  const encodedPath = toApiPath(path);
   try {
-    const response = await fetch(`/api/files/${path}`, {
+    const response = await fetch(`/api/files/${encodedPath}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -293,8 +306,9 @@ async function uploadFile() {
 async function deleteItem(item) {
   const token = localStorage.getItem("jwt");
   if (!token) return;
+  const encodedPath = toApiPath(item);
   try {
-    const response = await fetch(`/api/files/${item}`, {
+    const response = await fetch(`/api/files/${encodedPath}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
