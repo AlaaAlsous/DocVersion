@@ -1,11 +1,27 @@
 :root {
-  --bg: #f3f6ff;
-  --panel: #ffffff;
-  --text: #1c2340;
-  --muted: #6470a8;
-  --bubble: #e8edff;
-  --bubble-border: #cdd8ff;
-  --accent: #4a63ff;
+  --gh-bg: #f6f8fa;
+  --gh-canvas: #ffffff;
+  --gh-text: #24292f;
+  --gh-muted: #57606a;
+  --gh-border: #d0d7de;
+  --gh-accent: #0969da;
+  --gh-accent-hover: #0550ae;
+  --gh-success: #2da44e;
+  --gh-header: #24292f;
+  --gh-header-text: #f0f6fc;
+  --gh-danger: #cf222e;
+  --gh-row-hover: #f6f8fa;
+  --gh-button-hover: #f3f4f6;
+  --gh-header-border: #1b1f24;
+  --modal-overlay: rgba(27, 31, 36, 0.55);
+  --modal-card: var(--gh-canvas);
+  --modal-card-border: var(--gh-border);
+  --modal-title: var(--gh-text);
+  --modal-input-bg: var(--gh-canvas);
+  --modal-input-border: var(--gh-border);
+  --modal-input-focus-shadow: rgba(9, 105, 218, 0.15);
+  --modal-button-bg: var(--gh-accent);
+  --modal-button-bg-hover: var(--gh-accent-hover);
 }
 
 * {
@@ -15,26 +31,33 @@
 body {
   margin: 0;
   min-height: 100vh;
-  padding: 2rem 1rem 11rem;
-  background: radial-gradient(circle at 0 0, #dde6ff, var(--bg) 45%);
-  color: var(--text);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 0 1rem 3rem;
+  background: var(--gh-bg);
+  color: var(--gh-text);
+  color-scheme: light;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 h1 {
-  margin: 0 auto 1rem;
-  width: min(760px, 100%);
-  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
-  letter-spacing: 0.03em;
+  margin: 0;
+  font-size: clamp(1.15rem, 1rem + 0.5vw, 1.5rem);
+  letter-spacing: 0;
+  font-weight: 600;
 }
 
 #topBar {
-  width: min(760px, 100%);
-  margin: 0 auto 1rem;
+  width: calc(100% + 2rem);
+  margin: 0 -1rem 1.25rem;
+  padding: 0.8rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  background: var(--gh-header);
+  color: var(--gh-header-text);
+  border-bottom: 1px solid var(--gh-header-border);
 }
 
 #topBar h1 {
@@ -42,44 +65,27 @@ h1 {
   width: auto;
 }
 
-#file-info {
-  margin-top: 20px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  background-color: #f9f9f9;
-}
-
 #logoutBtn {
   display: none;
-  border: 1px solid #cdd8ff;
-  background: #ffffff;
-  color: #1c2340;
-  padding: 0.55rem 0.9rem;
-  border-radius: 10px;
+  border: 1px solid rgba(240, 246, 252, 0.2);
+  background: rgba(240, 246, 252, 0.08);
+  color: var(--gh-header-text);
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 #logoutBtn:hover {
-  background: #f2f5ff;
+  background: rgba(240, 246, 252, 0.16);
 }
 
 #loginModal {
   display: none;
   position: fixed;
   inset: 0;
-  background:
-    radial-gradient(
-      circle at 20% 20%,
-      rgba(122, 149, 255, 0.32),
-      transparent 45%
-    ),
-    radial-gradient(
-      circle at 80% 70%,
-      rgba(74, 99, 255, 0.24),
-      transparent 40%
-    ),
-    rgba(12, 18, 40, 0.62);
+  background: var(--modal-overlay);
   backdrop-filter: blur(6px);
   align-items: center;
   justify-content: center;
@@ -88,22 +94,20 @@ h1 {
 }
 #loginModal > div {
   width: min(430px, 100%);
-  background: linear-gradient(170deg, #ffffff 0%, #f7f9ff 100%);
+  background: var(--modal-card);
   padding: 2.2rem 1.8rem 1.8rem;
-  border-radius: 20px;
-  box-shadow:
-    0 28px 60px rgba(12, 18, 40, 0.34),
-    0 8px 24px rgba(74, 99, 255, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(1, 4, 9, 0.35);
   text-align: left;
-  border: 1px solid #d6e0ff;
+  border: 1px solid var(--modal-card-border);
   animation: modal-pop 0.28s ease-out;
 }
 
 #loginModal h2 {
   margin: 0 0 1.2rem;
-  font-size: 1.45rem;
-  letter-spacing: 0.02em;
-  color: #1c2340;
+  font-size: 1.3rem;
+  letter-spacing: 0;
+  color: var(--modal-title);
 }
 #modalUserName,
 #modalPassword {
@@ -111,11 +115,10 @@ h1 {
   margin-bottom: 0.8rem;
   padding: 0.78rem 0.85rem;
   font-size: 1rem;
-  border: 1px solid #cdd8ff;
-  border-radius: 12px;
-  background: #fbfcff;
-  color: #1c2340;
-  box-shadow: inset 0 1px 0 #ffffff;
+  border: 1px solid var(--modal-input-border);
+  border-radius: 6px;
+  background: var(--modal-input-bg);
+  color: var(--gh-text);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -124,43 +127,44 @@ h1 {
 #modalUserName:focus,
 #modalPassword:focus {
   outline: none;
-  border-color: #7f96ff;
-  background: #ffffff;
-  box-shadow:
-    0 0 0 3px rgba(127, 150, 255, 0.22),
-    0 8px 20px rgba(74, 99, 255, 0.15);
+  border-color: var(--gh-accent);
+  box-shadow: 0 0 0 3px var(--modal-input-focus-shadow);
 }
 #modalSubmit {
   width: 100%;
   margin-top: 0.2rem;
   padding: 0.72rem 1.2rem;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  background: linear-gradient(135deg, #5f78ff 0%, #3e57e8 100%);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  background: var(--modal-button-bg);
   color: white;
-  border: none;
-  border-radius: 12px;
+  border: 1px solid rgba(27, 31, 36, 0.15);
+  border-radius: 6px;
   cursor: pointer;
-  box-shadow: 0 12px 24px rgba(62, 87, 232, 0.3);
+  box-shadow: none;
   transition:
     transform 0.15s ease,
-    box-shadow 0.2s ease,
+    background 0.2s ease,
     filter 0.2s ease;
 }
 #modalSubmit:hover {
-  filter: brightness(1.06);
-  box-shadow: 0 16px 28px rgba(62, 87, 232, 0.34);
+  background: var(--modal-button-bg-hover);
 }
 
 #modalSubmit:active {
   transform: translateY(1px);
 }
-#modalError,
-#errorMessage {
+#modalError {
   margin-top: 1rem;
   font-size: 0.9rem;
   color: red;
+}
+
+#errorMessage {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--gh-danger);
 }
 
 @keyframes modal-pop {
