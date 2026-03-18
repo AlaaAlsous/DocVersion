@@ -5,6 +5,8 @@ const modalPassword = document.getElementById("modalPassword");
 const modalSubmit = document.getElementById("modalSubmit");
 const logoutBtn = document.getElementById("logoutBtn");
 const modalError = document.getElementById("modalError");
+const createFolderBtn = document.getElementById("createFolderBtn");
+const folderNameInput = document.getElementById("folderName");
 
 async function login() {
   const username = modalUserName.value.trim();
@@ -212,6 +214,31 @@ function logout() {
   modalPassword.value = "";
   modalUserName.focus();
 }
+
+async function createFolder() {
+  const token = localStorage.getItem("jwt");
+  const folderName = folderNameInput.value.trim();
+  if (!folderName) return;
+  const path = currentPath ? `${currentPath}/${folderName}` : folderName;
+  try {
+    const respone = await fetch(`/api/files/${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Type": "folder",
+      },
+    });
+    if (!respone.ok) {
+      return;
+    }
+    folderNameInput.value = "";
+    await getFiles(currentPath);
+  } catch (error) {
+    console.error("Error creating folder:", error);
+  }
+}
+
+createFolderBtn.addEventListener("click", createFolder);
 
 modalSubmit.addEventListener("click", login);
 
