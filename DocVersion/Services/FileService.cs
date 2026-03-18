@@ -133,6 +133,7 @@ public class FileService
         var userPath = GetSafePath(username, filename);
         if (!File.Exists(userPath))
             return Task.FromResult(false);
+        File.SetAttributes(userPath, FileAttributes.Normal);
         File.Delete(userPath);
         return Task.FromResult(true);
     }
@@ -142,8 +143,27 @@ public class FileService
         var userPath = GetSafePath(username, foldername);
         if (!Directory.Exists(userPath))
             return Task.FromResult(false);
+        PrepareDirectoryForDelete(userPath);
         Directory.Delete(userPath, recursive: true);
         return Task.FromResult(true);
+    }
+
+    private static void PrepareDirectoryForDelete(string folderPath)
+    {
+        foreach (var path in Directory.EnumerateFileSystemEntries(folderPath, "*", SearchOption.AllDirectories))
+        {
+            try
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+            }
+            catch { }
+        }
+
+        try
+        {
+            File.SetAttributes(folderPath, FileAttributes.Normal);
+        }
+        catch { }
     }
 
     private string GetSafePath(string username, string filename)
