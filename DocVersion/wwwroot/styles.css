@@ -67,8 +67,8 @@ h1 {
 
 #logoutBtn {
   display: none;
-  border: 1px solid rgba(240, 246, 252, 0.2);
-  background: rgba(240, 246, 252, 0.08);
+  border: 1px solid #f0f6fc33;
+  background: #f0f6fc14;
   color: var(--gh-header-text);
   padding: 0.35rem 0.8rem;
   border-radius: 6px;
@@ -78,7 +78,7 @@ h1 {
 }
 
 #logoutBtn:hover {
-  background: rgba(240, 246, 252, 0.16);
+  background: #f0f6fc29;
 }
 
 #file-list,
@@ -172,12 +172,12 @@ h1 {
 #actions input[type="file"]:focus {
   outline: none;
   border-color: var(--gh-accent);
-  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+  box-shadow: 0 0 0 3px #0969da26;
 }
 
 #createFolderBtn,
 #uploadBtn {
-  border: 1px solid rgba(27, 31, 36, 0.15);
+  border: 1px solid #1b1f2426;
   background: var(--gh-success);
   color: #ffffff;
   border-radius: 6px;
@@ -229,13 +229,13 @@ h1 {
     --gh-row-hover: #1f2630;
     --gh-button-hover: #212830;
     --gh-header-border: #30363d;
-    --modal-overlay: rgba(1, 4, 9, 0.7);
+    --modal-overlay: #010409b3;
     --modal-card: #161b22;
     --modal-card-border: #30363d;
     --modal-title: #e6edf3;
     --modal-input-bg: #0d1117;
     --modal-input-border: #30363d;
-    --modal-input-focus-shadow: rgba(47, 129, 247, 0.25);
+    --modal-input-focus-shadow: #2f81f740;
     --modal-button-bg: #1f6feb;
     --modal-button-bg-hover: #388bfd;
   }
@@ -253,7 +253,7 @@ h1 {
 
   #createFolderBtn,
   #uploadBtn {
-    border-color: rgba(240, 246, 252, 0.12);
+    border-color: #f0f6fc1f;
   }
 }
 
@@ -273,7 +273,7 @@ h1 {
   background: var(--modal-card);
   padding: 2.2rem 1.8rem 1.8rem;
   border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(1, 4, 9, 0.35);
+  box-shadow: 0 16px 40px #01040959;
   text-align: left;
   border: 1px solid var(--modal-card-border);
   animation: modal-pop 0.28s ease-out;
@@ -315,7 +315,7 @@ h1 {
   letter-spacing: 0;
   background: var(--modal-button-bg);
   color: white;
-  border: 1px solid rgba(27, 31, 36, 0.15);
+  border: 1px solid #1b1f2426;
   border-radius: 6px;
   cursor: pointer;
   box-shadow: none;
@@ -346,7 +346,7 @@ h1 {
 @keyframes modal-pop {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.98);
+    transform: translateY(14px) scale(0.95);
   }
   to {
     opacity: 1;
