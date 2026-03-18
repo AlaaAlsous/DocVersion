@@ -4,13 +4,15 @@ const modalUserName = document.getElementById("modalUserName");
 const modalPassword = document.getElementById("modalPassword");
 const modalSubmit = document.getElementById("modalSubmit");
 const logoutBtn = document.getElementById("logoutBtn");
+const modalError = document.getElementById("modalError");
 
 async function login() {
   const username = modalUserName.value.trim();
   const password = modalPassword.value.trim();
 
   if (!username || !password) {
-    alert("Username and password are required");
+    modalError.textContent = "Username and password are required";
+    modalError.style.display = "block";
     return;
   }
 
@@ -26,12 +28,14 @@ async function login() {
     });
 
     if (!response.ok) {
-      alert("Wrong username or password");
+      modalError.textContent = "Wrong username or password";
+      modalError.style.display = "block";
       return;
     }
   } catch (error) {
     console.error("Login error:", error);
-    alert("Could not reach server");
+    modalError.textContent = "Could not reach server";
+    modalError.style.display = "block";
     return;
   }
 
@@ -43,21 +47,24 @@ async function login() {
   localStorage.setItem("jwt", token);
 
   loginModal.style.display = "none";
+  modalError.style.display = "none";
   await getFiles();
 }
 
-async function getFiles() {
+let currentPath = "";
+
+async function getFiles(path = "") {
   const token = localStorage.getItem("jwt");
   if (!token) {
-    logoutBtn.style.display = "none";
-    loginModal.style.display = "flex";
+    logout();
     return;
   }
 
   logoutBtn.style.display = "inline-block";
 
   try {
-    const response = await fetch("/api/files", {
+    const url = path ? `/api/files/${path}` : "/api/files";
+    const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -66,8 +73,7 @@ async function getFiles() {
     if (!response.ok) {
       if (response.status === 401) {
         localStorage.removeItem("jwt");
-        logoutBtn.style.display = "none";
-        loginModal.style.display = "flex";
+        logout();
         return;
       }
       throw new Error("Failed to fetch files");
@@ -100,6 +106,7 @@ function displayFiles(files) {
 
 function logout() {
   localStorage.removeItem("jwt");
+  currentPath = "";
   document.getElementById("file-list").innerHTML = "";
   logoutBtn.style.display = "none";
   loginModal.style.display = "flex";

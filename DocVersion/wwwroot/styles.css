@@ -149,6 +149,11 @@ h1 {
 #modalSubmit:active {
   transform: translateY(1px);
 }
+#modalError {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: red;
+}
 
 @keyframes modal-pop {
   from {
