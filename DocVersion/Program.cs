@@ -5,10 +5,13 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 using DocVersion.Services;
 using DocVersion.Security;
+using DocVersion.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 builder.Services.AddScoped<FileService>();
 
@@ -74,5 +77,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
+app.MapHub<EventHub>("/api/events/signalr");
 app.Run("http://localhost:3000/");
