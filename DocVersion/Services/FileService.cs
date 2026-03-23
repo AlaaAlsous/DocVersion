@@ -191,7 +191,7 @@ public class FileService
             Directory.CreateDirectory(versionDirectory);
 
         var versionFilePath = Path.Combine(versionDirectory, $"{nextVersion}.bin");
-       
+        await CopyFileAsync(sourceFilePath, versionFilePath);
 
         var versionFileInfo = new FileInfo(versionFilePath);
 
@@ -285,5 +285,11 @@ public class FileService
         if (fullPath != fullHistoryPath && !fullPath.StartsWith(fullHistoryPath + Path.DirectorySeparatorChar))
             throw new InvalidOperationException("Invalid history path.");
         return fullPath;
+    }
+    private static async Task CopyFileAsync(string sourcePath, string destinationPath)
+    {
+        using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        await sourceStream.CopyToAsync(destinationStream);
     }
 }
