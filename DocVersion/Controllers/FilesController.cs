@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using DocVersion.Services;
 using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
+using DocVersion.Services;
+using DocVersion.Hubs;
+using DocVersion.Models;
 
 namespace DocVersion.Controllers;
 
@@ -11,10 +14,11 @@ namespace DocVersion.Controllers;
 public class FilesController : ControllerBase
 {
     private readonly FileService _fileService;
-
-    public FilesController(FileService fileService)
+    private readonly IHubContext<EventsHub> _eventsHub;
+    public FilesController(FileService fileService, IHubContext<EventsHub> eventsHub)
     {
         _fileService = fileService;
+        _eventsHub = eventsHub;
     }
 
     private string? GetUsername()
@@ -104,11 +108,13 @@ public class FilesController : ControllerBase
             {
                 var folderCreated = await _fileService.CreateFolderAsync(username, filename);
                 if (!folderCreated) return Conflict("Folder already exists.");
+                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderCreated, filename);
                 return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
             }
 
             var created = await _fileService.CreateFileAsync(username, filename, Request.Body);
             if (!created) return Conflict("File already exists.");
+            await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileCreated, filename);
             return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
         }
         catch (InvalidOperationException)
@@ -130,11 +136,14 @@ public class FilesController : ControllerBase
             bool isFolderPut = xTypePut == "folder" || (xTypePut != "file" && Request.ContentLength.GetValueOrDefault() == 0);
             if (isFolderPut)
             {
-                await _fileService.CreateFolderAsync(username, filename);
+                var created = await _fileService.CreateFolderAsync(username, filename);
+                if (created)
+                    await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderCreated, filename);
                 return NoContent();
             }
-
+            bool fileExists = await _fileService.FileExistsAsync(username, filename);
             await _fileService.SaveFileAsync(username, filename, Request.Body);
+            await _eventsHub.Clients.All.SendAsync("Event", fileExists ? (int)EventsType.FileUpdated : (int)EventsType.FileCreated, filename);
             return NoContent();
         }
         catch (InvalidOperationException)
@@ -152,8 +161,19 @@ public class FilesController : ControllerBase
 
         try
         {
-            await _fileService.DeleteFileAsync(username, filename);
-            await _fileService.DeleteFolderAsync(username, filename);
+            bool isFile = await _fileService.FileExistsAsync(username, filename);
+            bool isFolder = await _fileService.FolderExistsAsync(username, filename);
+            if (!isFile && !isFolder) return NotFound();
+            if (isFile)
+            {
+                await _fileService.DeleteFileAsync(username, filename);
+                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileDeleted, filename);
+            }
+            if (isFolder)
+            {
+                await _fileService.DeleteFolderAsync(username, filename);
+                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderDeleted, filename);
+            }
             return NoContent();
         }
         catch (InvalidOperationException)
