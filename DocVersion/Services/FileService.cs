@@ -139,8 +139,12 @@ public class FileService
         var directory = Path.GetDirectoryName(userPath);
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
         if (File.Exists(userPath)) return false;
+
         using var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write);
         await content.CopyToAsync(fileStream);
+
+        var newContent = await File.ReadAllBytesAsync(userPath);
+        await SaveFileVersionAsync(username, filename, newContent);
         return true;
     }
 
@@ -159,6 +163,12 @@ public class FileService
         var userPath = GetSafePath(username, filename);
         var directory = Path.GetDirectoryName(userPath);
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
+
+        if (File.Exists(userPath))
+        {
+            var oldContent = await File.ReadAllBytesAsync(userPath);
+            await SaveFileVersionAsync(username, filename, oldContent);
+        }
         using var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write);
         await content.CopyToAsync(fileStream);
     }
@@ -182,6 +192,14 @@ public class FileService
 
         _dbContext.FileHistories.Add(newVersion);
         await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<FileHistory>> GetFileHistoryAsync(string username, string filename)
+    {
+        return await _dbContext.FileHistories
+            .Where(f => f.Username == username && f.FilePath == filename)
+            .OrderByDescending(f => f.Version)
+            .ToListAsync();
     }
 
     public Task<bool> DeleteFileAsync(string username, string filename)
