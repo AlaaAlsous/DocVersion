@@ -217,6 +217,31 @@ public class FileService
             .ToListAsync();
     }
 
+    public async Task RestoreFileVersionAsync(string username, string filename, int version)
+    {
+        var fileVersion = await _dbContext.FileHistories
+            .Where(f => f.Username == username && f.FilePath == filename && f.Version == version)
+            .FirstOrDefaultAsync();
+
+        if (fileVersion == null)
+            throw new InvalidOperationException("File version not found.");
+
+        var userPath = GetSafePath(username, filename);
+        var directory = Path.GetDirectoryName(userPath);
+        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
+
+        var versionFilePath = GetAbsoluteHistoryPath(fileVersion.StoragePath);
+        if (!File.Exists(versionFilePath))
+            throw new InvalidOperationException("Stored file version not found.");
+
+        if (File.Exists(userPath))
+        {
+            await SaveFileVersionAsync(username, filename, userPath);
+        }
+
+        await CopyFileAsync(versionFilePath, userPath);
+    }
+
     public Task<bool> DeleteFileAsync(string username, string filename)
     {
         var userPath = GetSafePath(username, filename);
