@@ -8,6 +8,9 @@ DocVersion/bin/
 DocVersion/obj/
 DocVersion/TestResults/
 DocVersion/coverage/
+DocVersion/Data/*.db
+DocVersion/Data/*.db-wal
+DocVersion/Data/*.db-shm
 
 # Local secrets and env files
 .env.local

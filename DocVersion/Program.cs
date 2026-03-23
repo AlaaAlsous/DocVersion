@@ -12,7 +12,9 @@ using DocVersion.Data;
 
 
 var builder = WebApplication.CreateBuilder(args);
-var dbPath = Path.Combine(builder.Environment.ContentRootPath, "DocVersion.db");
+var dataDirectory = Path.Combine(builder.Environment.ContentRootPath, "Data");
+Directory.CreateDirectory(dataDirectory);
+var dbPath = Path.Combine(dataDirectory, "DocVersion.db");
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
