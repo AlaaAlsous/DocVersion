@@ -144,8 +144,10 @@ public class FileService
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
         if (File.Exists(userPath)) return false;
 
-        using var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write);
-        await content.CopyToAsync(fileStream);
+        using (var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write))
+        {
+            await content.CopyToAsync(fileStream);
+        }
 
         await SaveFileVersionAsync(username, filename, userPath);
         return true;
