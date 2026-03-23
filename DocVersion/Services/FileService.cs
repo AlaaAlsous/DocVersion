@@ -13,7 +13,7 @@ public class FileService
     {
         _dbContext = dbContext;
         _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-        _versionStoragePath = Path.Combine(_storagePath, ".history");
+        _versionStoragePath = Path.Combine(_storagePath, ".versions");
         if (!Directory.Exists(_storagePath))
             Directory.CreateDirectory(_storagePath);
         if (!Directory.Exists(_versionStoragePath))
@@ -200,7 +200,7 @@ public class FileService
             Username = username,
             FilePath = filename,
             Version = nextVersion,
-            StoragePath = versionFilePath,
+            StoragePath = GetRelativeHistoryPath(versionFilePath),
             SizeBytes = versionFileInfo.Length,
             CreatedAt = DateTime.UtcNow
         };
@@ -286,6 +286,21 @@ public class FileService
             throw new InvalidOperationException("Invalid history path.");
         return fullPath;
     }
+
+    private string GetRelativeHistoryPath(string absoluteHistoryPath)
+    {
+        return Path.GetRelativePath(_versionStoragePath, absoluteHistoryPath);
+    }
+
+    private string GetAbsoluteHistoryPath(string relativeHistoryPath)
+    {
+        var fullPath = Path.GetFullPath(Path.Combine(_versionStoragePath, relativeHistoryPath));
+        var fullHistoryPath = Path.GetFullPath(_versionStoragePath);
+        if (!fullPath.StartsWith(fullHistoryPath + Path.DirectorySeparatorChar) && fullPath != fullHistoryPath)
+            throw new InvalidOperationException("Invalid history path.");
+        return fullPath;
+    }
+
     private static async Task CopyFileAsync(string sourcePath, string destinationPath)
     {
         using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
