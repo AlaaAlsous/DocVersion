@@ -93,6 +93,33 @@ public class FilesController : ControllerBase
         }
     }
 
+    [HttpGet("history/{**filename}")]
+    public async Task<IActionResult> GetFileHistoryAsync(string filename)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
+
+        try
+        {
+            var history = await _fileService.GetFileHistoryAsync(username, filename);
+            if (history == null || history.Count == 0) return NotFound();
+            var result = history
+            .OrderByDescending(h => h.Version)
+            .Select(h => new
+            {
+                h.Version,
+                h.CreatedAt
+            }).ToList();
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpPost("{**filename}")]
     public async Task<IActionResult> CreateFileAsync(string filename)
     {
