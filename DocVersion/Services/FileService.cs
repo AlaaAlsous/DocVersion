@@ -7,17 +7,17 @@ namespace DocVersion.Services;
 public class FileService
 {
     private readonly string _storagePath;
-    private readonly string _versionStoragePath;
+    private readonly string _historyStoragePath;
     private readonly AppDbContext _dbContext;
     public FileService(AppDbContext dbContext)
     {
         _dbContext = dbContext;
         _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-        _versionStoragePath = Path.Combine(_storagePath, ".versions");
+        _historyStoragePath = Path.Combine(_storagePath, ".history");
         if (!Directory.Exists(_storagePath))
             Directory.CreateDirectory(_storagePath);
-        if (!Directory.Exists(_versionStoragePath))
-            Directory.CreateDirectory(_versionStoragePath);
+        if (!Directory.Exists(_historyStoragePath))
+            Directory.CreateDirectory(_historyStoragePath);
     }
 
     public Task<Dictionary<string, FileMetadata>> GetAllFilesAsync(string username)
@@ -186,7 +186,7 @@ public class FileService
             .FirstOrDefaultAsync();
 
         var nextVersion = lastVersion + 1;
-        var versionDirectory = GetSafeVersionDirectoryPath(username, filename);
+        var versionDirectory = GetSafeHistoryDirectoryPath(username, filename);
         if (!Directory.Exists(versionDirectory))
             Directory.CreateDirectory(versionDirectory);
 
@@ -217,7 +217,7 @@ public class FileService
             .ToListAsync();
     }
 
-    public async Task RestoreFileVersionAsync(string username, string filename, int version)
+    public async Task RestoreFileHistoryAsync(string username, string filename, int version)
     {
         var fileVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename && f.Version == version)
@@ -302,9 +302,9 @@ public class FileService
         return fullPath;
     }
 
-    private string GetSafeVersionDirectoryPath(string username, string filename)
+    private string GetSafeHistoryDirectoryPath(string username, string filename)
     {
-        var historyPath = Path.Combine(_versionStoragePath, username);
+        var historyPath = Path.Combine(_historyStoragePath, username);
         var fullPath = Path.GetFullPath(Path.Combine(historyPath, filename));
         var fullHistoryPath = Path.GetFullPath(historyPath);
         if (fullPath != fullHistoryPath && !fullPath.StartsWith(fullHistoryPath + Path.DirectorySeparatorChar))
@@ -314,13 +314,13 @@ public class FileService
 
     private string GetRelativeHistoryPath(string absoluteHistoryPath)
     {
-        return Path.GetRelativePath(_versionStoragePath, absoluteHistoryPath);
+        return Path.GetRelativePath(_historyStoragePath, absoluteHistoryPath);
     }
 
     private string GetAbsoluteHistoryPath(string relativeHistoryPath)
     {
-        var fullPath = Path.GetFullPath(Path.Combine(_versionStoragePath, relativeHistoryPath));
-        var fullHistoryPath = Path.GetFullPath(_versionStoragePath);
+        var fullPath = Path.GetFullPath(Path.Combine(_historyStoragePath, relativeHistoryPath));
+        var fullHistoryPath = Path.GetFullPath(_historyStoragePath);
         if (!fullPath.StartsWith(fullHistoryPath + Path.DirectorySeparatorChar) && fullPath != fullHistoryPath)
             throw new InvalidOperationException("Invalid history path.");
         return fullPath;
