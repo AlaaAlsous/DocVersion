@@ -3,16 +3,19 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using DocVersion.Services;
 using DocVersion.Security;
 using DocVersion.Hubs;
-using Microsoft.AspNetCore.SignalR;
+using DocVersion.Data;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
-
+builder.Services.AddDbContext<AppDbContext>(Options => Options.UseSqlite("Data Source=DocVersion.db"));
 builder.Services.AddScoped<FileService>();
 
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
