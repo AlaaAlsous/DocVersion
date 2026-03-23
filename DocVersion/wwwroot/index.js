@@ -84,6 +84,7 @@ async function login() {
 
   loginModal.style.display = "none";
   modalError.style.display = "none";
+  startSignalR();
   await getFiles();
 }
 
