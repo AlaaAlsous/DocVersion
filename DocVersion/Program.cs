@@ -90,5 +90,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<EventHub>("/api/events/signalr");
+app.MapHub<EventsHub>("/api/events/signalr");
 app.Run("http://localhost:3000/");
