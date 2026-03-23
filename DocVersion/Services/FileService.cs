@@ -198,6 +198,12 @@ public class FileService
         catch { }
     }
 
+    public Task<bool> FileExistsAsync(string username, string filename)
+    {
+        var userPath = GetSafePath(username, filename);
+        return Task.FromResult(File.Exists(userPath));
+    }
+
     private string GetSafePath(string username, string filename)
     {
         var userPath = Path.Combine(_storagePath, username);
