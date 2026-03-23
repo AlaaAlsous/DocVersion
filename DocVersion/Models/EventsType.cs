@@ -1,3 +1,5 @@
+namespace DocVersion.Models;
+
 public enum EventsType
 {
     FileCreated = 0,

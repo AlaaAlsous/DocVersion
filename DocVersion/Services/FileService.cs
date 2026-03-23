@@ -204,6 +204,12 @@ public class FileService
         return Task.FromResult(File.Exists(userPath));
     }
 
+    public Task<bool> FolderExistsAsync(string username, string foldername)
+    {
+        var userPath = GetSafePath(username, foldername);
+        return Task.FromResult(Directory.Exists(userPath));
+    }
+
     private string GetSafePath(string username, string filename)
     {
         var userPath = Path.Combine(_storagePath, username);
