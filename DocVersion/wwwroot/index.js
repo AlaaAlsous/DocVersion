@@ -11,6 +11,37 @@ const uploadBtn = document.getElementById("uploadBtn");
 const fileInput = document.getElementById("fileInput");
 const errorMessage = document.getElementById("errorMessage");
 
+let connection;
+let currentPath = "";
+
+function startSignalR() {
+  const token = localStorage.getItem("jwt");
+  if (!token) return;
+
+  connection = new signalR.HubConnectionBuilder()
+    .withUrl("api/events/signalr", { accessTokenFactory: () => token })
+    .withAutomaticReconnect()
+    .build();
+
+  connection.on("Event", (type, path) => {
+    switch (type) {
+      case 0:
+      case 1:
+      case 2:
+      case 5:
+      case 7:
+        if (path.startsWith(currentPath)) {
+          getFiles(currentPath);
+        }
+        break;
+      default:
+        console.log("Unknown event type:", type);
+    }
+  });
+
+  connection.start();
+}
+
 async function login() {
   const username = modalUserName.value.trim();
   const password = modalPassword.value.trim();
@@ -55,8 +86,6 @@ async function login() {
   modalError.style.display = "none";
   await getFiles();
 }
-
-let currentPath = "";
 
 function toApiPath(path = "") {
   if (!path) return "";

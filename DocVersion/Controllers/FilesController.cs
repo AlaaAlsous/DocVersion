@@ -163,7 +163,7 @@ public class FilesController : ControllerBase
         {
             bool isFile = await _fileService.FileExistsAsync(username, filename);
             bool isFolder = await _fileService.FolderExistsAsync(username, filename);
-            if (!isFile && !isFolder) return NotFound();
+            if (!isFile && !isFolder) return NoContent();
             if (isFile)
             {
                 await _fileService.DeleteFileAsync(username, filename);
