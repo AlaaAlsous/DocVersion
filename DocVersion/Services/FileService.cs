@@ -188,11 +188,11 @@ public class FileService
             .FirstOrDefaultAsync();
 
         var nextVersion = lastVersion + 1;
-        var versionDirectory = GetSafeHistoryDirectoryPath(username, filename);
-        if (!Directory.Exists(versionDirectory))
-            Directory.CreateDirectory(versionDirectory);
+        var historyDirectory = GetSafeHistoryDirectoryPath(username, filename);
+        if (!Directory.Exists(historyDirectory))
+            Directory.CreateDirectory(historyDirectory);
 
-        var versionFilePath = Path.Combine(versionDirectory, $"{nextVersion}.bin");
+        var versionFilePath = Path.Combine(historyDirectory, $"{nextVersion}.bin");
         await CopyFileAsync(sourceFilePath, versionFilePath);
 
         var versionFileInfo = new FileInfo(versionFilePath);

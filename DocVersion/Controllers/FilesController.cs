@@ -123,6 +123,26 @@ public class FilesController : ControllerBase
         }
     }
 
+    [HttpPost("restore/{**filename}")]
+    public async Task<IActionResult> RestoreFileVersionAsync(string filename, [FromQuery] int version)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
+        if (version <= 0) return BadRequest("Invalid version.");
+        try
+        {
+            await _fileService.RestoreFileHistoryAsync(username, filename, version);
+
+            await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FileUpdated, filename);
+            return Ok(new { Message = "File restored to version ", version, filename });
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpPut("{**filename}")]
     public async Task<IActionResult> UpdateFileAsync(string filename)
     {
@@ -138,12 +158,12 @@ public class FilesController : ControllerBase
             {
                 var created = await _fileService.CreateFolderAsync(username, filename);
                 if (created)
-                    await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderCreated, filename);
+                    await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderCreated, filename);
                 return NoContent();
             }
             bool fileExists = await _fileService.FileExistsAsync(username, filename);
             await _fileService.SaveFileAsync(username, filename, Request.Body);
-            await _eventsHub.Clients.All.SendAsync("Event", fileExists ? (int)EventsType.FileUpdated : (int)EventsType.FileCreated, filename);
+            await _eventsHub.Clients.User(username).SendAsync("Event", fileExists ? (int)EventsType.FileUpdated : (int)EventsType.FileCreated, filename);
             return NoContent();
         }
         catch (InvalidOperationException)
@@ -167,12 +187,12 @@ public class FilesController : ControllerBase
             if (isFile)
             {
                 await _fileService.DeleteFileAsync(username, filename);
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileDeleted, filename);
+                await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FileDeleted, filename);
             }
             if (isFolder)
             {
                 await _fileService.DeleteFolderAsync(username, filename);
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderDeleted, filename);
+                await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderDeleted, filename);
             }
             return NoContent();
         }
