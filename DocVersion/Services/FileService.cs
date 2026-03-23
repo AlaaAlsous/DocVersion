@@ -7,13 +7,17 @@ namespace DocVersion.Services;
 public class FileService
 {
     private readonly string _storagePath;
+    private readonly string _versionStoragePath;
     private readonly AppDbContext _dbContext;
     public FileService(AppDbContext dbContext)
     {
         _dbContext = dbContext;
         _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+        _versionStoragePath = Path.Combine(_storagePath, ".history");
         if (!Directory.Exists(_storagePath))
             Directory.CreateDirectory(_storagePath);
+        if (!Directory.Exists(_versionStoragePath))
+            Directory.CreateDirectory(_versionStoragePath);
     }
 
     public Task<Dictionary<string, FileMetadata>> GetAllFilesAsync(string username)
@@ -143,8 +147,7 @@ public class FileService
         using var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write);
         await content.CopyToAsync(fileStream);
 
-        var newContent = await File.ReadAllBytesAsync(userPath);
-        await SaveFileVersionAsync(username, filename, newContent);
+        await SaveFileVersionAsync(username, filename, userPath);
         return true;
     }
 
@@ -166,27 +169,39 @@ public class FileService
 
         if (File.Exists(userPath))
         {
-            var oldContent = await File.ReadAllBytesAsync(userPath);
-            await SaveFileVersionAsync(username, filename, oldContent);
+            await SaveFileVersionAsync(username, filename, userPath);
         }
         using var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write);
         await content.CopyToAsync(fileStream);
     }
 
-    private async Task SaveFileVersionAsync(string username, string filename, byte[] content)
+    private async Task SaveFileVersionAsync(string username, string filename, string sourceFilePath)
     {
+        if (!File.Exists(sourceFilePath)) return;
+
         var lastVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename)
             .OrderByDescending(f => f.Version)
             .Select(f => f.Version)
             .FirstOrDefaultAsync();
 
+        var nextVersion = lastVersion + 1;
+        var versionDirectory = GetSafeVersionDirectoryPath(username, filename);
+        if (!Directory.Exists(versionDirectory))
+            Directory.CreateDirectory(versionDirectory);
+
+        var versionFilePath = Path.Combine(versionDirectory, $"{nextVersion}.bin");
+       
+
+        var versionFileInfo = new FileInfo(versionFilePath);
+
         var newVersion = new FileHistory
         {
             Username = username,
             FilePath = filename,
-            Version = lastVersion + 1,
-            Content = content,
+            Version = nextVersion,
+            StoragePath = versionFilePath,
+            SizeBytes = versionFileInfo.Length,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -259,6 +274,16 @@ public class FileService
         var fullUserPath = Path.GetFullPath(userPath);
         if (fullPath != fullUserPath && !fullPath.StartsWith(fullUserPath + Path.DirectorySeparatorChar))
             throw new InvalidOperationException("Invalid file path.");
+        return fullPath;
+    }
+
+    private string GetSafeVersionDirectoryPath(string username, string filename)
+    {
+        var historyPath = Path.Combine(_versionStoragePath, username);
+        var fullPath = Path.GetFullPath(Path.Combine(historyPath, filename));
+        var fullHistoryPath = Path.GetFullPath(historyPath);
+        if (fullPath != fullHistoryPath && !fullPath.StartsWith(fullHistoryPath + Path.DirectorySeparatorChar))
+            throw new InvalidOperationException("Invalid history path.");
         return fullPath;
     }
 }

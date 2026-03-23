@@ -10,7 +10,8 @@ public class FileHistory
     public required string Username { get; set; }
     public required string FilePath { get; set; }
     public int Version { get; set; }
-    public required byte[] Content { get; set; }
+    public required string StoragePath { get; set; }
+    public long SizeBytes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 }

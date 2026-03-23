@@ -12,10 +12,11 @@ using DocVersion.Data;
 
 
 var builder = WebApplication.CreateBuilder(args);
+var dbPath = Path.Combine(builder.Environment.ContentRootPath, "DocVersion.db");
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
-builder.Services.AddDbContext<AppDbContext>(Options => Options.UseSqlite("Data Source=DocVersion.db"));
+builder.Services.AddDbContext<AppDbContext>(Options => Options.UseSqlite($"Data Source={dbPath}"));
 builder.Services.AddScoped<FileService>();
 
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
