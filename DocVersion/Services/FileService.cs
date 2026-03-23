@@ -1,16 +1,19 @@
 using Microsoft.AspNetCore.StaticFiles;
 using DocVersion.Models;
+using DocVersion.Data;
+using Microsoft.EntityFrameworkCore;
 namespace DocVersion.Services;
 
 public class FileService
 {
     private readonly string _storagePath;
-    public FileService()
+    private readonly AppDbContext _dbContext;
+    public FileService(AppDbContext dbContext)
     {
+        _dbContext = dbContext;
         _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
         if (!Directory.Exists(_storagePath))
             Directory.CreateDirectory(_storagePath);
-
     }
 
     public Task<Dictionary<string, FileMetadata>> GetAllFilesAsync(string username)
@@ -158,6 +161,27 @@ public class FileService
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
         using var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write);
         await content.CopyToAsync(fileStream);
+    }
+
+    private async Task SaveFileVersionAsync(string username, string filename, byte[] content)
+    {
+        var lastVersion = await _dbContext.FileHistories
+            .Where(f => f.Username == username && f.FilePath == filename)
+            .OrderByDescending(f => f.Version)
+            .Select(f => f.Version)
+            .FirstOrDefaultAsync();
+
+        var newVersion = new FileHistory
+        {
+            Username = username,
+            FilePath = filename,
+            Version = lastVersion + 1,
+            Content = content,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _dbContext.FileHistories.Add(newVersion);
+        await _dbContext.SaveChangesAsync();
     }
 
     public Task<bool> DeleteFileAsync(string username, string filename)
