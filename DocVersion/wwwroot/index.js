@@ -143,7 +143,7 @@ async function getFilesHistory(filename) {
   const encodedFilePath = toApiPath(filePath);
 
   try {
-    const response = await fetch(`/api/files/${encodedFilePath}/history`, {
+    const response = await fetch(`/api/files/history/${encodedFilePath}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -165,29 +165,23 @@ async function getFilesHistory(filename) {
 }
 
 function displayFileHistory(filename, history) {
-  let historyBox = document.getElementById("file-history-box");
-  if (!historyBox) {
-    historyBox = document.createElement("div");
-    historyBox.id = "file-history-box";
-    document.getElementById("fileView").appendChild(historyBox);
-  }
+  const historyBox = document.getElementById("file-history-box");
   historyBox.innerHTML = `
-    <h3>History for ${filename}</h3>
-    <ul>
+    <h3>History: ${filename}</h3>
+    <ul class="history-list">
       ${history
         .map(
           (h) => `
-        <li>
-          Version ${h.version} - ${new Date(h.createdAt).toLocaleString()}
-          <button onclick="restoreFileVersion('${filename}', ${h.version})">
-            Restore
-          </button>
+        <li class="history-item">
+          <span class="history-version">v${h.version}</span>
+          <span class="history-date">${new Date(h.createdAt).toLocaleString()}</span>
+          <button class="history-restore-btn" onclick="restoreFileVersion('${filename}', ${h.version})">Restore</button>
         </li>
       `,
         )
         .join("")}
     </ul>
-    <button onclick="closeFileHistory()">Close</button>
+    <button class="history-close-btn" onclick="closeFileHistory()">Close</button>
   `;
   historyBox.style.display = "block";
 }
@@ -205,7 +199,7 @@ async function restoreFileVersion(filename, version) {
   const filePath = currentPath ? `${currentPath}/${filename}` : filename;
   const encodedFilePath = toApiPath(filePath);
   try {
-    const response = await fetch(`/api/files/${encodedFilePath}/restore`, {
+    const response = await fetch(`/api/files/restore/${encodedFilePath}?version=${version}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

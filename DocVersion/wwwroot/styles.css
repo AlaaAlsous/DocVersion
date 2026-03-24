@@ -150,7 +150,6 @@ h1 {
 #file-list li {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.6rem;
   padding: 0.38rem 0.6rem;
   border-bottom: 1px solid #2c2c2c;
@@ -253,32 +252,85 @@ h1 {
 }
 
 #file-history-box {
+  margin-top: 0.8rem;
   background: #1f1f1f;
   border: 1px solid var(--gh-border);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.75rem;
+  font-size: 0.84rem;
 }
 
 #file-history-box h3 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gh-muted);
 }
 
-#file-history-box ul {
-  margin: 0 0 0.8rem;
-  padding-left: 1.2rem;
+.history-list {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
 }
 
-#file-history-box button {
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #2c2c2c;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-version {
+  font-weight: 600;
+  color: var(--gh-accent);
+  min-width: 2rem;
+}
+
+.history-date {
+  flex: 1;
+  color: var(--gh-muted);
+  font-size: 0.8rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.history-restore-btn {
   border: 1px solid var(--gh-border);
   background: var(--gh-canvas);
   color: var(--gh-text);
   border-radius: 6px;
-  padding: 0.32rem 0.72rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.78rem;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-#file-history-box button:hover {
+.history-restore-btn:hover {
   background: var(--gh-button-hover);
+}
+
+.history-close-btn {
+  margin-top: 0.4rem;
+  border: 1px solid var(--gh-border);
+  background: var(--gh-canvas);
+  color: var(--gh-muted);
+  border-radius: 6px;
+  padding: 0.25rem 0.72rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.history-close-btn:hover {
+  background: var(--gh-button-hover);
+  color: var(--gh-text);
 }
 
 #file-info-box h3 {
