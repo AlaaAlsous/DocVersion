@@ -116,12 +116,9 @@ async function getFiles(path = "") {
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem("jwt");
-        logout();
-        return;
-      }
-      throw new Error("Failed to fetch files");
+      errorMessage.textContent = "Failed to fetch files";
+      errorMessage.style.display = "block";
+      return;
     }
 
     const files = await response.json();
@@ -151,12 +148,9 @@ async function getFilesHistory(filename) {
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem("jwt");
-        logout();
-        return;
-      }
-      throw new Error("Failed to fetch file history");
+      errorMessage.textContent = "Failed to fetch file history";
+      errorMessage.style.display = "block";
+      return;
     }
 
     const history = await response.json();
@@ -191,6 +185,36 @@ function displayFileHistory(filename, history) {
   historyBox.appendChild(closeBtn);
 }
 
+async function restoreFileVersion(filename, version) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+  const filePath = currentPath ? `${currentPath}/${filename}` : filename;
+  const encodedFilePath = toApiPath(filePath);
+  try {
+    const response = await fetch(`/api/files/${encodedFilePath}/restore`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      errorMessage.textContent = "Failed to restore file version";
+      errorMessage.style.display = "block";
+      return;
+    }
+
+    await getFiles(currentPath);
+    clearErrorMessage();
+  } catch (error) {
+    errorMessage.textContent = "Error restoring file version";
+    errorMessage.style.display = "block";
+  }
+}
+
 async function downloadFile(file) {
   const token = localStorage.getItem("jwt");
   if (!token) {
@@ -209,12 +233,9 @@ async function downloadFile(file) {
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem("jwt");
-        logout();
-        return;
-      }
-      throw new Error("Failed to download file");
+      errorMessage.textContent = "Failed to download file";
+      errorMessage.style.display = "block";
+      return;
     }
 
     const blob = await response.blob();
@@ -252,12 +273,9 @@ async function showItemMetadata(itemName) {
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem("jwt");
-        logout();
-        return;
-      }
-      throw new Error("Failed to fetch metadata");
+      errorMessage.textContent = "Failed to fetch metadata";
+      errorMessage.style.display = "block";
+      return;
     }
 
     const itemType = response.headers.get("X-Type") ?? "item";
