@@ -133,6 +133,41 @@ async function getFiles(path = "") {
   }
 }
 
+async function getFilesHistory(filename) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+
+  const filePath = currentPath ? `${currentPath}/${filename}` : filename;
+  const encodedFilePath = toApiPath(filePath);
+
+  try {
+    const response = await fetch(`/api/files/${encodedFilePath}/history`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem("jwt");
+        logout();
+        return;
+      }
+      throw new Error("Failed to fetch file history");
+    }
+
+    const history = await response.json();
+    displayFileHistory(filename, history);
+    clearErrorMessage();
+  } catch (error) {
+    errorMessage.textContent = "Error fetching file history";
+    errorMessage.style.display = "block";
+  }
+}
+
 async function downloadFile(file) {
   const token = localStorage.getItem("jwt");
   if (!token) {
@@ -225,7 +260,7 @@ function displayFiles(files) {
 
   if (currentPath) {
     const backItem = document.createElement("li");
-    backItem.textContent = "🔙 Back";
+    backItem.textContent = "Back";
     backItem.style.cursor = "pointer";
     backItem.addEventListener("click", async () => {
       const pathParts = currentPath.split("/");
