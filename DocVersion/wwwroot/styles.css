@@ -91,6 +91,18 @@ h1 {
   width: auto;
 }
 
+#sessionControls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+#currentUser {
+  color: var(--gh-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 #logoutBtn {
   display: none;
   border: 1px solid var(--gh-border);

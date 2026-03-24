@@ -4,6 +4,7 @@ const modalUserName = document.getElementById("modalUserName");
 const modalPassword = document.getElementById("modalPassword");
 const modalSubmit = document.getElementById("modalSubmit");
 const logoutBtn = document.getElementById("logoutBtn");
+const currentUser = document.getElementById("currentUser");
 const modalError = document.getElementById("modalError");
 const createFolderBtn = document.getElementById("createFolderBtn");
 const folderNameInput = document.getElementById("folderName");
@@ -17,6 +18,17 @@ let connection;
 let currentPath = "";
 let currentFileName = "";
 let isEditMode = false;
+
+function setCurrentUser(username) {
+  if (!username) {
+    currentUser.textContent = "";
+    currentUser.style.display = "none";
+    return;
+  }
+
+  currentUser.textContent = username;
+  currentUser.style.display = "inline-block";
+}
 
 function startSignalR() {
   const token = localStorage.getItem("jwt");
@@ -85,6 +97,8 @@ async function login() {
     return;
   }
   localStorage.setItem("jwt", token);
+  localStorage.setItem("username", username);
+  setCurrentUser(username);
 
   loginModal.style.display = "none";
   modalError.style.display = "none";
@@ -533,9 +547,12 @@ function showMetadata(file, metadata) {
 
 function logout() {
   localStorage.removeItem("jwt");
+  localStorage.removeItem("username");
   currentPath = "";
+  currentFileName = "";
   document.getElementById("file-list").innerHTML = "";
   logoutBtn.style.display = "none";
+  setCurrentUser("");
   loginModal.style.display = "flex";
   modalPassword.value = "";
   modalUserName.focus();
@@ -653,5 +670,7 @@ modalPassword.addEventListener("keydown", (event) => {
 });
 
 logoutBtn.addEventListener("click", logout);
+
+setCurrentUser(localStorage.getItem("username") ?? "");
 
 getFiles();
