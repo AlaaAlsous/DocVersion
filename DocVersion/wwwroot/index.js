@@ -169,20 +169,29 @@ function displayFileHistory(filename, history) {
     historyBox.id = "file-history-box";
     document.body.appendChild(historyBox);
   }
-  historyBox.innerHTML = `<h3>History for ${filename}</h3>`;
-  history.map((h) => {
-    const item = document.createElement("div");
-    item.textContent = `Version: ${h.version}, Date: ${h.date}`;
-    historyBox.appendChild(item);
-  });
+  historyBox.innerHTML = `
+    <h3>History for ${filename}</h3>
+    <ul>
+      ${history
+        .map(
+          (h) => `
+        <li>
+          Version ${h.version} - ${new Date(h.createdAt).toLocaleString()}
+          <button onclick="restoreFileVersion('${filename}', ${h.version})">
+            Restore
+          </button>
+        </li>
+      `,
+        )
+        .join("")}
+    </ul>
+    <button onclick="closeFileHistory()">Close</button>
+  `;
   historyBox.style.display = "block";
+}
 
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent = "Close";
-  closeBtn.addEventListener("click", () => {
-    historyBox.style.display = "none";
-  });
-  historyBox.appendChild(closeBtn);
+function closeFileHistory() {
+  document.getElementById("file-history-box").style.display = "none";
 }
 
 async function restoreFileVersion(filename, version) {
@@ -208,6 +217,7 @@ async function restoreFileVersion(filename, version) {
     }
 
     await getFiles(currentPath);
+    closeFileHistory();
     clearErrorMessage();
   } catch (error) {
     errorMessage.textContent = "Error restoring file version";
@@ -341,6 +351,14 @@ function displayFiles(files) {
       deleteItem(path);
     });
 
+    const historyBtn = document.createElement("button");
+    historyBtn.textContent = "History";
+
+    historyBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      getFileHistory(name);
+    });
+
     if (metadata.file) {
       itemLabel.textContent = `📄 ${name} (${metadata.bytes} bytes)`;
       listItem.style.cursor = "pointer";
@@ -354,7 +372,7 @@ function displayFiles(files) {
       });
     }
 
-    buttonGroup.append(metadataBtn, delBtn);
+    buttonGroup.append(metadataBtn, delBtn, historyBtn);
     listItem.append(itemLabel, buttonGroup);
     fileList.appendChild(listItem);
   });
