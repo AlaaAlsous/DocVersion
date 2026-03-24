@@ -168,6 +168,29 @@ async function getFilesHistory(filename) {
   }
 }
 
+function displayFileHistory(filename, history) {
+  let historyBox = document.getElementById("file-history-box");
+  if (!historyBox) {
+    historyBox = document.createElement("div");
+    historyBox.id = "file-history-box";
+    document.body.appendChild(historyBox);
+  }
+  historyBox.innerHTML = `<h3>History for ${filename}</h3>`;
+  history.map((h) => {
+    const item = document.createElement("div");
+    item.textContent = `Version: ${h.version}, Date: ${h.date}`;
+    historyBox.appendChild(item);
+  });
+  historyBox.style.display = "block";
+
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.addEventListener("click", () => {
+    historyBox.style.display = "none";
+  });
+  historyBox.appendChild(closeBtn);
+}
+
 async function downloadFile(file) {
   const token = localStorage.getItem("jwt");
   if (!token) {
