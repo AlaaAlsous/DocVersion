@@ -11,6 +11,7 @@ const folderNameInput = document.getElementById("folderName");
 const uploadBtn = document.getElementById("uploadBtn");
 const fileInput = document.getElementById("fileInput");
 const errorMessage = document.getElementById("errorMessage");
+const explorerPath = document.getElementById("explorerPath");
 const fileContentTitle = document.getElementById("fileContentTitle");
 const fileContentBody = document.getElementById("fileContentBody");
 const fileContentPath = document.getElementById("fileContentPath");
@@ -48,6 +49,11 @@ function setFileContentHeader(fileName = "", restoredVersion = null) {
     ? `${fullPath} (Restored v${restoredVersion})`
     : fullPath;
   fileContentPath.style.display = "inline-block";
+}
+
+function setExplorerPath(path = "") {
+  if (!explorerPath) return;
+  explorerPath.textContent = path ? `/${path}` : "/";
 }
 
 function showModalError(message) {
@@ -222,6 +228,9 @@ async function getFiles(path = "") {
     logout();
     return;
   }
+
+  currentPath = path || "";
+  setExplorerPath(currentPath);
 
   logoutBtn.style.display = "inline-block";
 
@@ -687,6 +696,7 @@ function logout() {
   localStorage.removeItem("jwt");
   localStorage.removeItem("username");
   currentPath = "";
+  setExplorerPath();
   currentFileName = "";
   activeHistoryFileName = "";
   folderNameInput.value = "";
