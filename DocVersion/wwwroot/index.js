@@ -10,6 +10,8 @@ const folderNameInput = document.getElementById("folderName");
 const uploadBtn = document.getElementById("uploadBtn");
 const fileInput = document.getElementById("fileInput");
 const errorMessage = document.getElementById("errorMessage");
+const fileContentTitle = document.getElementById("fileContentTitle");
+const fileContentBody = document.getElementById("fileContentBody");
 
 let connection;
 let currentPath = "";
@@ -167,7 +169,7 @@ function displayFileHistory(filename, history) {
   if (!historyBox) {
     historyBox = document.createElement("div");
     historyBox.id = "file-history-box";
-    document.body.appendChild(historyBox);
+    document.getElementById("fileView").appendChild(historyBox);
   }
   historyBox.innerHTML = `
     <h3>History for ${filename}</h3>
@@ -264,6 +266,39 @@ async function downloadFile(file) {
   }
 }
 
+async function showFileContent(fileName) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+
+  const filePath = currentPath ? `${currentPath}/${fileName}` : fileName;
+  const encodedFilePath = toApiPath(filePath);
+
+  try {
+    const response = await fetch(`/api/files/${encodedFilePath}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      errorMessage.textContent = "Failed to load file content";
+      errorMessage.style.display = "block";
+      return;
+    }
+
+    const text = await response.text();
+    fileContentTitle.textContent = `File Content - ${fileName}`;
+    fileContentBody.textContent = text || "This file is empty.";
+    clearErrorMessage();
+  } catch (error) {
+    errorMessage.textContent = "Error loading file content";
+    errorMessage.style.display = "block";
+  }
+}
+
 async function showItemMetadata(itemName) {
   const token = localStorage.getItem("jwt");
   if (!token) {
@@ -311,13 +346,19 @@ function displayFiles(files) {
 
   if (currentPath) {
     const backItem = document.createElement("li");
-    backItem.textContent = "Back";
+    backItem.classList.add("folder");
+    const backLabel = document.createElement("span");
+    backLabel.classList.add("item-label");
+    backLabel.textContent = "..";
+    backItem.append(backLabel);
     backItem.style.cursor = "pointer";
     backItem.addEventListener("click", async () => {
       const pathParts = currentPath.split("/");
       if (pathParts.length > 0) pathParts.pop();
       currentPath = pathParts.join("/");
       await getFiles(currentPath);
+      fileContentTitle.textContent = "File Content";
+      fileContentBody.textContent = "Select a file to preview its content.";
     });
     fileList.appendChild(backItem);
   }
@@ -329,12 +370,23 @@ function displayFiles(files) {
     return;
   }
 
-  Object.entries(files).forEach(([name, metadata]) => {
+  const sortedItems = Object.entries(files).sort((a, b) => {
+    const aIsFile = a[1].file;
+    const bIsFile = b[1].file;
+    if (aIsFile !== bIsFile) return aIsFile ? 1 : -1;
+    return a[0].localeCompare(b[0], "sv");
+  });
+
+  sortedItems.forEach(([name, metadata]) => {
     const listItem = document.createElement("li");
     const itemLabel = document.createElement("span");
     const buttonGroup = document.createElement("div");
     const metadataBtn = document.createElement("button");
     const delBtn = document.createElement("button");
+    const itemPath = currentPath ? `${currentPath}/${name}` : name;
+
+    itemLabel.classList.add("item-label");
+    buttonGroup.classList.add("item-actions");
 
     metadataBtn.textContent = "Info";
     metadataBtn.addEventListener("click", (event) => {
@@ -345,10 +397,9 @@ function displayFiles(files) {
 
     delBtn.textContent = "Delete";
     delBtn.addEventListener("click", (event) => {
-      const path = currentPath ? `${currentPath}/${name}` : name;
       event.preventDefault();
       event.stopPropagation();
-      deleteItem(path);
+      deleteItem(itemPath);
     });
 
     const historyBtn = document.createElement("button");
@@ -356,35 +407,42 @@ function displayFiles(files) {
 
     historyBtn.addEventListener("click", (event) => {
       event.stopPropagation();
-      getFileHistory(name);
+      getFilesHistory(name);
     });
 
     if (metadata.file) {
-      itemLabel.textContent = `📄 ${name} (${metadata.bytes} bytes)`;
-      listItem.style.cursor = "pointer";
-      listItem.addEventListener("click", () => downloadFile(name));
-    } else {
-      itemLabel.textContent = `📁 ${name}`;
+      listItem.classList.add("file");
+      itemLabel.textContent = name;
       listItem.style.cursor = "pointer";
       listItem.addEventListener("click", async () => {
+        await showItemMetadata(name);
+        await showFileContent(name);
+      });
+    } else {
+      listItem.classList.add("folder");
+      itemLabel.textContent = name;
+      listItem.style.cursor = "pointer";
+      listItem.addEventListener("click", async () => {
+        await showItemMetadata(name);
         currentPath = currentPath ? `${currentPath}/${name}` : name;
         await getFiles(currentPath);
+        fileContentTitle.textContent = "File Content";
+        fileContentBody.textContent = "Select a file to preview its content.";
       });
     }
 
-    buttonGroup.append(metadataBtn, delBtn, historyBtn);
+    if (metadata.file) {
+      buttonGroup.append(metadataBtn, delBtn, historyBtn);
+    } else {
+      buttonGroup.append(metadataBtn, delBtn);
+    }
     listItem.append(itemLabel, buttonGroup);
     fileList.appendChild(listItem);
   });
 }
 
 function showMetadata(file, metadata) {
-  let fileInfoBox = document.getElementById("file-info-box");
-  if (!fileInfoBox) {
-    fileInfoBox = document.createElement("div");
-    fileInfoBox.id = "file-info-box";
-    document.body.appendChild(fileInfoBox);
-  }
+  const fileInfoBox = document.getElementById("file-info-box");
 
   fileInfoBox.innerHTML = `
     <h3>Metadata</h3>
@@ -394,16 +452,7 @@ function showMetadata(file, metadata) {
     <p><strong>Created:</strong> ${metadata.created}</p>
     <p><strong>Modified:</strong> ${metadata.changed}</p>
     <p><strong>Extension:</strong> ${metadata.extension || "-"}</p>
-    <button id="closeMetadataBtn">Close</button>
   `;
-  fileInfoBox.style.display = "block";
-
-  const closeBtn = document.getElementById("closeMetadataBtn");
-  if (closeBtn) {
-    closeBtn.addEventListener("click", () => {
-      fileInfoBox.style.display = "none";
-    });
-  }
 }
 
 function logout() {
