@@ -523,12 +523,32 @@ h1 {
   background: var(--gh-subtle-bg);
 }
 
+#file-content-meta {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  flex: 1;
+}
+
 #fileContentTitle {
   margin: 0;
   color: var(--gh-muted);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+#fileContentPath {
+  min-width: 0;
+  color: var(--gh-muted);
+  font-size: 0.76rem;
+  font-family: Consolas, "Courier New", monospace;
+  opacity: 0.95;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 #file-content-actions {

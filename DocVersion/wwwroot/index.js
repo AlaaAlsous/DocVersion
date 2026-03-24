@@ -13,6 +13,7 @@ const fileInput = document.getElementById("fileInput");
 const errorMessage = document.getElementById("errorMessage");
 const fileContentTitle = document.getElementById("fileContentTitle");
 const fileContentBody = document.getElementById("fileContentBody");
+const fileContentPath = document.getElementById("fileContentPath");
 
 let connection;
 let currentPath = "";
@@ -22,7 +23,7 @@ let isEditMode = false;
 let errorMessageTimeoutId = null;
 let modalErrorTimeoutId = null;
 
-const MESSAGE_TIMEOUT_MS = 3000;
+const MESSAGE_TIMEOUT_MS = 5000;
 
 function clearModalError() {
   if (modalErrorTimeoutId) {
@@ -31,6 +32,22 @@ function clearModalError() {
   }
   modalError.textContent = "";
   modalError.style.display = "none";
+}
+
+function setFileContentHeader(fileName = "", restoredVersion = null) {
+  fileContentTitle.textContent = "File Content";
+
+  if (!fileName) {
+    fileContentPath.textContent = "";
+    fileContentPath.style.display = "none";
+    return;
+  }
+
+  const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
+  fileContentPath.textContent = restoredVersion
+    ? `${fullPath} (Restored v${restoredVersion})`
+    : fullPath;
+  fileContentPath.style.display = "inline-block";
 }
 
 function showModalError(message) {
@@ -86,7 +103,6 @@ function showDeleteConfirmation(itemName, itemPath) {
 
   const actions = document.createElement("div");
   actions.className = "confirm-actions";
-
   const yesBtn = document.createElement("button");
   yesBtn.type = "button";
   yesBtn.className = "confirm-yes-btn";
@@ -353,9 +369,9 @@ async function downloadFile(file) {
     link.download = file;
     document.body.appendChild(link);
     link.click();
-    clearErrorMessage();
     link.remove();
     URL.revokeObjectURL(downloadUrl);
+    showSuccessMessage(`Download started: ${file}`);
   } catch (error) {
     showErrorMessage("Error downloading file");
   }
@@ -385,9 +401,7 @@ async function showFileContent(fileName, restoredVersion = null) {
 
     const text = await response.text();
     currentFileName = fileName;
-    fileContentTitle.textContent = restoredVersion
-      ? `File Content - ${fileName} (Restored v${restoredVersion})`
-      : `File Content - ${fileName}`;
+    setFileContentHeader(fileName, restoredVersion);
     fileContentBody.textContent = text || "This file is empty.";
     document.getElementById("fileContentTextarea").value = text || "";
     document.getElementById("editBtn").style.display = "inline-block";
@@ -519,7 +533,7 @@ function displayFiles(files) {
       if (pathParts.length > 0) pathParts.pop();
       currentPath = pathParts.join("/");
       await getFiles(currentPath);
-      fileContentTitle.textContent = "File Content";
+      setFileContentHeader();
       fileContentBody.textContent = "Select a file to preview its content.";
     });
     fileList.appendChild(backItem);
@@ -601,7 +615,7 @@ function displayFiles(files) {
         await showItemMetadata(name);
         currentPath = currentPath ? `${currentPath}/${name}` : name;
         await getFiles(currentPath);
-        fileContentTitle.textContent = "File Content";
+        setFileContentHeader();
         fileContentBody.textContent = "Select a file to preview its content.";
       });
     }
@@ -649,7 +663,7 @@ function resetDetailsPanels() {
   historyBox.style.display = "none";
   metadataBox.style.display = "none";
 
-  fileContentTitle.textContent = "File Content";
+  setFileContentHeader();
   fileContentBody.textContent = "Select a file to preview its content.";
   fileContentBody.style.display = "block";
 
@@ -666,10 +680,18 @@ function resetDetailsPanels() {
 }
 
 function logout() {
+  clearErrorMessage();
+  clearModalError();
+  resetDetailsPanels();
+
   localStorage.removeItem("jwt");
   localStorage.removeItem("username");
   currentPath = "";
   currentFileName = "";
+  activeHistoryFileName = "";
+  folderNameInput.value = "";
+  fileInput.value = "";
+
   document.getElementById("file-list").innerHTML = "";
   logoutBtn.style.display = "none";
   setCurrentUser("");
@@ -696,12 +718,16 @@ async function createFolder() {
       },
     });
     if (!respone.ok) {
-      showErrorMessage("Failed to create folder");
+      if (respone.status === 409) {
+        showErrorMessage("A folder with that name already exists");
+      } else {
+        showErrorMessage("Failed to create folder");
+      }
       return;
     }
     folderNameInput.value = "";
-    clearErrorMessage();
     await getFiles(currentPath);
+    showSuccessMessage(`Folder created: ${folderName}`);
   } catch (error) {
     console.error("Error creating folder:", error);
     showErrorMessage("Error creating folder");
@@ -727,12 +753,16 @@ async function uploadFile() {
       body: file,
     });
     if (!response.ok) {
-      showErrorMessage("Failed to upload file");
+      if (response.status === 409) {
+        showErrorMessage("A file with that name already exists");
+      } else {
+        showErrorMessage("Failed to upload file");
+      }
       return;
     }
     fileInput.value = "";
-    clearErrorMessage();
     await getFiles(currentPath);
+    showSuccessMessage(`File uploaded: ${file.name}`);
   } catch (error) {
     console.error("Error uploading file:", error);
     showErrorMessage("Error uploading file");
@@ -756,7 +786,7 @@ async function deleteItem(item) {
     }
     resetDetailsPanels();
     await getFiles(currentPath);
-    clearErrorMessage();
+    showSuccessMessage(`File Deleted: ${item}`);
   } catch (error) {
     console.error("Error deleting item:", error);
     showErrorMessage("Error deleting item");
