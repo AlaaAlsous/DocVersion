@@ -17,7 +17,61 @@ const fileContentBody = document.getElementById("fileContentBody");
 let connection;
 let currentPath = "";
 let currentFileName = "";
+let activeHistoryFileName = "";
 let isEditMode = false;
+let errorMessageTimeoutId = null;
+let modalErrorTimeoutId = null;
+
+const MESSAGE_TIMEOUT_MS = 3000;
+
+function clearModalError() {
+  if (modalErrorTimeoutId) {
+    clearTimeout(modalErrorTimeoutId);
+    modalErrorTimeoutId = null;
+  }
+  modalError.textContent = "";
+  modalError.style.display = "none";
+}
+
+function showModalError(message) {
+  clearModalError();
+  modalError.textContent = message;
+  modalError.style.display = "block";
+  modalErrorTimeoutId = setTimeout(() => {
+    clearModalError();
+  }, MESSAGE_TIMEOUT_MS);
+}
+
+function clearErrorMessage() {
+  if (errorMessageTimeoutId) {
+    clearTimeout(errorMessageTimeoutId);
+    errorMessageTimeoutId = null;
+  }
+  errorMessage.textContent = "";
+  errorMessage.style.display = "none";
+  errorMessage.style.color = "";
+  errorMessage.style.backgroundColor = "";
+}
+
+function showErrorMessage(message) {
+  clearErrorMessage();
+  errorMessage.textContent = message;
+  errorMessage.style.display = "block";
+  errorMessageTimeoutId = setTimeout(() => {
+    clearErrorMessage();
+  }, MESSAGE_TIMEOUT_MS);
+}
+
+function showSuccessMessage(message) {
+  clearErrorMessage();
+  errorMessage.textContent = message;
+  errorMessage.style.color = "var(--gh-success-text)";
+  errorMessage.style.backgroundColor = "var(--gh-success-bg)";
+  errorMessage.style.display = "block";
+  errorMessageTimeoutId = setTimeout(() => {
+    clearErrorMessage();
+  }, MESSAGE_TIMEOUT_MS);
+}
 
 function setCurrentUser(username) {
   if (!username) {
@@ -63,8 +117,7 @@ async function login() {
   const password = modalPassword.value.trim();
 
   if (!username || !password) {
-    modalError.textContent = "Username and password are required";
-    modalError.style.display = "block";
+    showModalError("Username and password are required");
     return;
   }
 
@@ -80,14 +133,12 @@ async function login() {
     });
 
     if (!response.ok) {
-      modalError.textContent = "Wrong username or password";
-      modalError.style.display = "block";
+      showModalError("Wrong username or password");
       return;
     }
   } catch (error) {
     console.error("Login error:", error);
-    modalError.textContent = "Could not reach server";
-    modalError.style.display = "block";
+    showModalError("Could not reach server");
     return;
   }
 
@@ -101,7 +152,7 @@ async function login() {
   setCurrentUser(username);
 
   loginModal.style.display = "none";
-  modalError.style.display = "none";
+  clearModalError();
   startSignalR();
   await getFiles();
 }
@@ -134,8 +185,7 @@ async function getFiles(path = "") {
     });
 
     if (!response.ok) {
-      errorMessage.textContent = "Failed to fetch files";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to fetch files");
       return;
     }
 
@@ -143,8 +193,7 @@ async function getFiles(path = "") {
     clearErrorMessage();
     displayFiles(files);
   } catch (error) {
-    errorMessage.textContent = "Error fetching files";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error fetching files");
   }
 }
 
@@ -166,8 +215,7 @@ async function getFilesHistory(filename) {
     });
 
     if (!response.ok) {
-      errorMessage.textContent = "Failed to fetch file history";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to fetch file history");
       return;
     }
 
@@ -175,13 +223,13 @@ async function getFilesHistory(filename) {
     displayFileHistory(filename, history);
     clearErrorMessage();
   } catch (error) {
-    errorMessage.textContent = "Error fetching file history";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error fetching file history");
   }
 }
 
 function displayFileHistory(filename, history) {
   const historyBox = document.getElementById("file-history-box");
+  activeHistoryFileName = filename;
   historyBox.innerHTML = `
     <div class="history-header">
       <h3>History: ${filename}</h3>
@@ -192,7 +240,7 @@ function displayFileHistory(filename, history) {
         .map(
           (h) => `
         <li class="history-item">
-          <span class="history-version">v${h.version}</span>
+          <span class="history-version">V.${h.version}</span>
           <span class="history-date">${new Date(h.createdAt).toLocaleString()}</span>
           <button class="history-restore-btn" onclick="restoreFileVersion('${filename}', ${h.version})">Restore</button>
         </li>
@@ -205,6 +253,7 @@ function displayFileHistory(filename, history) {
 }
 
 function closeFileHistory() {
+  activeHistoryFileName = "";
   document.getElementById("file-history-box").style.display = "none";
 }
 
@@ -228,8 +277,7 @@ async function restoreFileVersion(filename, version) {
     );
 
     if (!response.ok) {
-      errorMessage.textContent = "Failed to restore file version";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to restore file version");
       return;
     }
 
@@ -237,8 +285,7 @@ async function restoreFileVersion(filename, version) {
     closeFileHistory();
     clearErrorMessage();
   } catch (error) {
-    errorMessage.textContent = "Error restoring file version";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error restoring file version");
   }
 }
 
@@ -260,8 +307,7 @@ async function downloadFile(file) {
     });
 
     if (!response.ok) {
-      errorMessage.textContent = "Failed to download file";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to download file");
       return;
     }
 
@@ -276,8 +322,7 @@ async function downloadFile(file) {
     link.remove();
     URL.revokeObjectURL(downloadUrl);
   } catch (error) {
-    errorMessage.textContent = "Error downloading file";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error downloading file");
   }
 }
 
@@ -299,8 +344,7 @@ async function showFileContent(fileName) {
     });
 
     if (!response.ok) {
-      errorMessage.textContent = "Failed to load file content";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to load file content");
       return;
     }
 
@@ -317,8 +361,7 @@ async function showFileContent(fileName) {
     document.getElementById("fileContentTextarea").style.display = "none";
     clearErrorMessage();
   } catch (error) {
-    errorMessage.textContent = "Error loading file content";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error loading file content");
   }
 }
 
@@ -368,26 +411,18 @@ async function saveFile() {
     });
 
     if (!response.ok) {
-      errorMessage.textContent = "Failed to save file";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to save file");
       return;
     }
 
     fileContentBody.textContent = content || "This file is empty.";
     cancelEdit();
-    clearErrorMessage();
-    errorMessage.textContent = "File saved successfully";
-    errorMessage.style.color = "var(--gh-success-text)";
-    errorMessage.style.backgroundColor = "var(--gh-success-bg)";
-    errorMessage.style.display = "block";
-    setTimeout(() => {
-      errorMessage.style.display = "none";
-      errorMessage.style.color = "initial";
-      errorMessage.style.backgroundColor = "initial";
-    }, 3000);
+    if (activeHistoryFileName === currentFileName) {
+      await getFilesHistory(currentFileName);
+    }
+    showSuccessMessage("File saved successfully");
   } catch (error) {
-    errorMessage.textContent = "Error saving file";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error saving file");
   }
 }
 
@@ -410,8 +445,7 @@ async function showItemMetadata(itemName) {
     });
 
     if (!response.ok) {
-      errorMessage.textContent = "Failed to fetch metadata";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to fetch metadata");
       return;
     }
 
@@ -427,8 +461,7 @@ async function showItemMetadata(itemName) {
     showMetadata(itemName, metadata);
     clearErrorMessage();
   } catch (error) {
-    errorMessage.textContent = "Error fetching metadata";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error fetching metadata");
   }
 }
 
@@ -509,6 +542,7 @@ function displayFiles(files) {
       event.preventDefault();
       event.stopPropagation();
       if (metadata.file) {
+        await showItemMetadata(name);
         await showFileContent(name);
       }
       await getFilesHistory(name);
@@ -590,6 +624,7 @@ function resetDetailsPanels() {
   cancelBtn.style.display = "none";
 
   currentFileName = "";
+  activeHistoryFileName = "";
   isEditMode = false;
 }
 
@@ -610,8 +645,7 @@ async function createFolder() {
   const token = localStorage.getItem("jwt");
   const folderName = folderNameInput.value.trim();
   if (!folderName) {
-    errorMessage.textContent = "Folder name cannot be empty";
-    errorMessage.style.display = "block";
+    showErrorMessage("Folder name cannot be empty");
     return;
   }
   const path = currentPath ? `${currentPath}/${folderName}` : folderName;
@@ -625,8 +659,7 @@ async function createFolder() {
       },
     });
     if (!respone.ok) {
-      errorMessage.textContent = "Failed to create folder";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to create folder");
       return;
     }
     folderNameInput.value = "";
@@ -634,8 +667,7 @@ async function createFolder() {
     await getFiles(currentPath);
   } catch (error) {
     console.error("Error creating folder:", error);
-    errorMessage.textContent = "Error creating folder";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error creating folder");
   }
 }
 
@@ -643,8 +675,7 @@ async function uploadFile() {
   const token = localStorage.getItem("jwt");
   const file = fileInput.files[0];
   if (!file) {
-    errorMessage.textContent = "No file selected";
-    errorMessage.style.display = "block";
+    showErrorMessage("No file selected");
     return;
   }
   const path = currentPath ? `${currentPath}/${file.name}` : file.name;
@@ -659,8 +690,7 @@ async function uploadFile() {
       body: file,
     });
     if (!response.ok) {
-      errorMessage.textContent = "Failed to upload file";
-      errorMessage.style.display = "block";
+      showErrorMessage("Failed to upload file");
       return;
     }
     fileInput.value = "";
@@ -668,8 +698,7 @@ async function uploadFile() {
     await getFiles(currentPath);
   } catch (error) {
     console.error("Error uploading file:", error);
-    errorMessage.textContent = "Error uploading file";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error uploading file");
   }
 }
 
@@ -685,23 +714,16 @@ async function deleteItem(item) {
       },
     });
     if (!response.ok) {
-      errorMessage.textContent = `Failed to delete item (${response.status})`;
-      errorMessage.style.display = "block";
+      showErrorMessage(`Failed to delete item (${response.status})`);
       return;
     }
     resetDetailsPanels();
     await getFiles(currentPath);
-    errorMessage.style.display = "none";
+    clearErrorMessage();
   } catch (error) {
     console.error("Error deleting item:", error);
-    errorMessage.textContent = "Error deleting item";
-    errorMessage.style.display = "block";
+    showErrorMessage("Error deleting item");
   }
-}
-
-function clearErrorMessage() {
-  errorMessage.textContent = "";
-  errorMessage.style.display = "none";
 }
 
 uploadBtn.addEventListener("click", uploadFile);

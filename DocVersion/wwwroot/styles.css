@@ -1,4 +1,5 @@
 :root {
+  --file-content-height: clamp(700px, 74vh, 860px);
   --gh-bg: #f6f8fa;
   --gh-canvas: #ffffff;
   --gh-text: #1f2328;
@@ -45,6 +46,7 @@
 html {
   scrollbar-gutter: stable;
 }
+
 
 body {
   margin: 0;
@@ -116,10 +118,10 @@ h1 {
 }
 
 #workspaceLayout {
-  width: min(1200px, 100%);
+  width: min(1300px, 100%);
   margin-inline: auto;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr);
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 3fr);
   gap: 0.9rem;
   align-items: start;
 }
@@ -187,7 +189,6 @@ h1 {
   cursor: pointer;
 }
 
-#logoutBtn:hover,
 #file-list li button:hover,
 .metadata-close-btn:hover,
 .history-restore-btn:hover,
@@ -198,14 +199,27 @@ h1 {
 
 #logoutBtn {
   display: none;
-  color: var(--gh-header-text);
-  padding: 0.35rem 0.8rem;
+  min-width: 72px;
+  color: var(--gh-accent);
+  border-color: color-mix(in srgb, var(--gh-accent) 20%, var(--gh-border));
+  background: color-mix(in srgb, var(--gh-accent) 6%, var(--gh-btn-bg));
+  padding: 0.32rem 0.7rem;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+#logoutBtn:hover {
+  background: color-mix(in srgb, var(--gh-accent) 11%, var(--gh-btn-bg));
+  border-color: color-mix(in srgb, var(--gh-accent) 34%, var(--gh-border));
 }
 
 #quickActions {
-  width: min(1200px, 100%);
+  width: min(1300px, 100%);
   margin: 0 auto 0.9rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -238,6 +252,10 @@ h1 {
   list-style: none;
   border-radius: 0 0 8px 8px;
   overflow: hidden;
+  max-height: calc(var(--file-content-height) * 0.5);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 #file-list li {
@@ -488,7 +506,7 @@ h1 {
 }
 
 #file-content-box {
-  height: clamp(420px, 68vh, 760px);
+  height: var(--file-content-height);
   border-radius: 8px;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -518,10 +536,44 @@ h1 {
 }
 
 #file-content-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
   color: var(--gh-text);
-  padding: 0.25rem 0.55rem;
+  padding: 0.32rem 0.7rem;
   font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   white-space: nowrap;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+#file-content-actions button:focus-visible {
+  outline: 2px solid var(--gh-accent);
+  outline-offset: 2px;
+}
+
+#editBtn {
+  color: var(--gh-accent);
+  border-color: color-mix(in srgb, var(--gh-accent) 20%, var(--gh-border));
+  background: color-mix(in srgb, var(--gh-accent) 6%, var(--gh-btn-bg));
+}
+
+#editBtn:hover {
+  background: color-mix(in srgb, var(--gh-accent) 11%, var(--gh-btn-bg));
+  border-color: color-mix(in srgb, var(--gh-accent) 34%, var(--gh-border));
+}
+
+#cancelBtn {
+  color: var(--gh-muted);
+}
+
+#cancelBtn:hover {
+  color: var(--gh-text);
 }
 
 #saveBtn {
@@ -674,6 +726,10 @@ h1 {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --file-content-height: clamp(420px, 70vh, 700px);
+  }
+
   body {
     padding: 0 0.75rem 2rem;
   }
