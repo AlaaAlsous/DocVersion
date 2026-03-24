@@ -42,8 +42,26 @@
 
       <section id="fileView">
         <div id="file-content-box">
-          <h3 id="fileContentTitle">File Content</h3>
+          <div id="file-content-header">
+            <h3 id="fileContentTitle">File Content</h3>
+            <div id="file-content-actions">
+              <button id="editBtn" style="display: none" onclick="editFile()">
+                Edit
+              </button>
+              <button id="saveBtn" style="display: none" onclick="saveFile()">
+                Save
+              </button>
+              <button
+                id="cancelBtn"
+                style="display: none"
+                onclick="cancelEdit()"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
           <pre id="fileContentBody">Select a file to preview its content.</pre>
+          <textarea id="fileContentTextarea" style="display: none"></textarea>
         </div>
       </section>
     </main>

@@ -15,6 +15,8 @@ const fileContentBody = document.getElementById("fileContentBody");
 
 let connection;
 let currentPath = "";
+let currentFileName = "";
+let isEditMode = false;
 
 function startSignalR() {
   const token = localStorage.getItem("jwt");
@@ -199,12 +201,15 @@ async function restoreFileVersion(filename, version) {
   const filePath = currentPath ? `${currentPath}/${filename}` : filename;
   const encodedFilePath = toApiPath(filePath);
   try {
-    const response = await fetch(`/api/files/restore/${encodedFilePath}?version=${version}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      `/api/files/restore/${encodedFilePath}?version=${version}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       errorMessage.textContent = "Failed to restore file version";
@@ -284,13 +289,41 @@ async function showFileContent(fileName) {
     }
 
     const text = await response.text();
+    currentFileName = fileName;
     fileContentTitle.textContent = `File Content - ${fileName}`;
     fileContentBody.textContent = text || "This file is empty.";
+    document.getElementById("fileContentTextarea").value = text || "";
+    document.getElementById("editBtn").style.display = "inline-block";
+    document.getElementById("saveBtn").style.display = "none";
+    document.getElementById("cancelBtn").style.display = "none";
+    isEditMode = false;
+    fileContentBody.style.display = "block";
+    document.getElementById("fileContentTextarea").style.display = "none";
     clearErrorMessage();
   } catch (error) {
     errorMessage.textContent = "Error loading file content";
     errorMessage.style.display = "block";
   }
+}
+
+function editFile() {
+  if (!currentFileName) return;
+  isEditMode = true;
+  fileContentBody.style.display = "none";
+  document.getElementById("fileContentTextarea").style.display = "block";
+  document.getElementById("editBtn").style.display = "none";
+  document.getElementById("saveBtn").style.display = "inline-block";
+  document.getElementById("cancelBtn").style.display = "inline-block";
+  document.getElementById("fileContentTextarea").focus();
+}
+
+function cancelEdit() {
+  isEditMode = false;
+  fileContentBody.style.display = "block";
+  document.getElementById("fileContentTextarea").style.display = "none";
+  document.getElementById("editBtn").style.display = "inline-block";
+  document.getElementById("saveBtn").style.display = "none";
+  document.getElementById("cancelBtn").style.display = "none";
 }
 
 async function showItemMetadata(itemName) {
