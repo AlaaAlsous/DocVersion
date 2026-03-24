@@ -27,6 +27,7 @@
   --gh-danger-bg: #ffebe9;
   --gh-danger-border: #ff818266;
   --gh-success-bg: #dafbe1;
+  --gh-success-border: #1f883d66;
   --gh-success-text: #1f883d;
   --gh-shadow: #1f23281f;
   --modal-overlay: #24292f33;
@@ -46,7 +47,6 @@
 html {
   scrollbar-gutter: stable;
 }
-
 
 body {
   margin: 0;
@@ -87,6 +87,7 @@ body {
     --gh-danger-bg: #3a1f1f;
     --gh-danger-border: #6e2f2f;
     --gh-success-bg: #0f3d2e;
+    --gh-success-border: #3fb95066;
     --gh-success-text: #7ee787;
     --gh-shadow: #01040959;
     --modal-overlay: #01040999;
@@ -704,7 +705,7 @@ h1 {
 }
 
 #errorMessage {
-  width: min(1200px, 100%);
+  width: min(1300px, 100%);
   margin: 0 auto 0.9rem;
   padding: 0.55rem 0.7rem;
   border-radius: 6px;
@@ -712,6 +713,42 @@ h1 {
   background: var(--gh-danger-bg);
   font-size: 0.9rem;
   color: var(--gh-danger);
+}
+
+.confirm-actions {
+  display: inline-flex;
+  gap: 0.7rem;
+  margin-left: 0.7rem;
+  vertical-align: middle;
+}
+
+.confirm-actions button {
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 3rem;
+}
+
+.confirm-yes-btn {
+  background: var(--gh-success);
+  color: #ffffff;
+  border-color: #1a7f37;
+}
+
+.confirm-yes-btn:hover {
+  filter: brightness(0.95);
+}
+
+.confirm-no-btn {
+  background: var(--gh-btn-bg);
+  color: var(--gh-text);
+}
+
+.confirm-no-btn:hover {
+  background: var(--gh-button-hover);
 }
 
 @keyframes modal-pop {

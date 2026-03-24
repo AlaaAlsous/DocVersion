@@ -51,6 +51,7 @@ function clearErrorMessage() {
   errorMessage.style.display = "none";
   errorMessage.style.color = "";
   errorMessage.style.backgroundColor = "";
+  errorMessage.style.borderColor = "";
 }
 
 function showErrorMessage(message) {
@@ -67,10 +68,43 @@ function showSuccessMessage(message) {
   errorMessage.textContent = message;
   errorMessage.style.color = "var(--gh-success-text)";
   errorMessage.style.backgroundColor = "var(--gh-success-bg)";
+  errorMessage.style.borderColor = "var(--gh-success-border)";
   errorMessage.style.display = "block";
   errorMessageTimeoutId = setTimeout(() => {
     clearErrorMessage();
   }, MESSAGE_TIMEOUT_MS);
+}
+
+function showDeleteConfirmation(itemName, itemPath) {
+  clearErrorMessage();
+
+  errorMessage.style.display = "block";
+  errorMessage.style.color = "var(--gh-text)";
+  errorMessage.style.backgroundColor = "var(--gh-canvas)";
+  errorMessage.style.borderColor = "var(--gh-border)";
+  errorMessage.textContent = `Delete \"${itemName}\"?`;
+
+  const actions = document.createElement("div");
+  actions.className = "confirm-actions";
+
+  const yesBtn = document.createElement("button");
+  yesBtn.type = "button";
+  yesBtn.className = "confirm-yes-btn";
+  yesBtn.textContent = "Yes";
+  yesBtn.addEventListener("click", async () => {
+    await deleteItem(itemPath);
+  });
+
+  const noBtn = document.createElement("button");
+  noBtn.type = "button";
+  noBtn.className = "confirm-no-btn";
+  noBtn.textContent = "No";
+  noBtn.addEventListener("click", () => {
+    clearErrorMessage();
+  });
+
+  actions.append(yesBtn, noBtn);
+  errorMessage.appendChild(actions);
 }
 
 function setCurrentUser(username) {
@@ -281,9 +315,10 @@ async function restoreFileVersion(filename, version) {
       return;
     }
 
+    await showFileContent(filename, version);
     await getFiles(currentPath);
-    closeFileHistory();
-    clearErrorMessage();
+    await getFilesHistory(filename);
+    showSuccessMessage(`File restored successfully (v${version})`);
   } catch (error) {
     showErrorMessage("Error restoring file version");
   }
@@ -326,7 +361,7 @@ async function downloadFile(file) {
   }
 }
 
-async function showFileContent(fileName) {
+async function showFileContent(fileName, restoredVersion = null) {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -350,7 +385,9 @@ async function showFileContent(fileName) {
 
     const text = await response.text();
     currentFileName = fileName;
-    fileContentTitle.textContent = `File Content - ${fileName}`;
+    fileContentTitle.textContent = restoredVersion
+      ? `File Content - ${fileName} (Restored v${restoredVersion})`
+      : `File Content - ${fileName}`;
     fileContentBody.textContent = text || "This file is empty.";
     document.getElementById("fileContentTextarea").value = text || "";
     document.getElementById("editBtn").style.display = "inline-block";
@@ -520,7 +557,7 @@ function displayFiles(files) {
     delBtn.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      deleteItem(itemPath);
+      showDeleteConfirmation(name, itemPath);
     });
 
     downloadBtn.textContent = "";
