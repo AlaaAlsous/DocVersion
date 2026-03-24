@@ -473,33 +473,38 @@ function displayFiles(files) {
     const listItem = document.createElement("li");
     const itemLabel = document.createElement("span");
     const buttonGroup = document.createElement("div");
-    const metadataBtn = document.createElement("button");
+    const downloadBtn = document.createElement("button");
     const delBtn = document.createElement("button");
     const itemPath = currentPath ? `${currentPath}/${name}` : name;
 
     itemLabel.classList.add("item-label");
     buttonGroup.classList.add("item-actions");
 
-    metadataBtn.textContent = "Info";
-    metadataBtn.addEventListener("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      await showItemMetadata(name);
-      if (metadata.file) {
-        await showFileContent(name);
-      }
-    });
-
-    delBtn.textContent = "Delete";
+    delBtn.textContent = "";
+    delBtn.classList.add("icon-btn", "icon-btn-delete");
+    delBtn.title = "Delete";
+    delBtn.setAttribute("aria-label", "Delete");
     delBtn.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       deleteItem(itemPath);
     });
 
-    const historyBtn = document.createElement("button");
-    historyBtn.textContent = "History";
+    downloadBtn.textContent = "";
+    downloadBtn.classList.add("icon-btn", "icon-btn-download");
+    downloadBtn.title = "Download";
+    downloadBtn.setAttribute("aria-label", "Download");
+    downloadBtn.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      await downloadFile(name);
+    });
 
+    const historyBtn = document.createElement("button");
+    historyBtn.textContent = "";
+    historyBtn.classList.add("icon-btn", "icon-btn-history");
+    historyBtn.title = "View history";
+    historyBtn.setAttribute("aria-label", "View file history");
     historyBtn.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -531,9 +536,9 @@ function displayFiles(files) {
     }
 
     if (metadata.file) {
-      buttonGroup.append(metadataBtn, delBtn, historyBtn);
+      buttonGroup.append(downloadBtn, delBtn, historyBtn);
     } else {
-      buttonGroup.append(metadataBtn, delBtn);
+      buttonGroup.append(delBtn);
     }
     listItem.append(itemLabel, buttonGroup);
     fileList.appendChild(listItem);

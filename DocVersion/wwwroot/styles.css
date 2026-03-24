@@ -235,6 +235,32 @@ h1 {
   background: var(--gh-button-hover);
 }
 
+#file-list li button.icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+}
+
+#file-list li button.icon-btn-delete {
+  background-image: url("Assets/Delete.png");
+}
+
+#file-list li button.icon-btn-download {
+  background-image: url("Assets/Download.png");
+}
+
+#file-list li button.icon-btn-history {
+  background-image: url("Assets/History.png");
+}
+
+#file-list li button.icon-btn:focus-visible {
+  outline: 2px solid var(--gh-accent);
+  outline-offset: 1px;
+}
+
 #fileView {
   display: grid;
   gap: 1rem;
