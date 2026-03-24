@@ -183,7 +183,10 @@ async function getFilesHistory(filename) {
 function displayFileHistory(filename, history) {
   const historyBox = document.getElementById("file-history-box");
   historyBox.innerHTML = `
-    <h3>History: ${filename}</h3>
+    <div class="history-header">
+      <h3>History: ${filename}</h3>
+      <button class="metadata-close-btn" type="button" onclick="closeFileHistory()" aria-label="Close history">X</button>
+    </div>
     <ul class="history-list">
       ${history
         .map(
@@ -197,7 +200,6 @@ function displayFileHistory(filename, history) {
         )
         .join("")}
     </ul>
-    <button class="history-close-btn" onclick="closeFileHistory()">Close</button>
   `;
   historyBox.style.display = "block";
 }
@@ -479,10 +481,13 @@ function displayFiles(files) {
     buttonGroup.classList.add("item-actions");
 
     metadataBtn.textContent = "Info";
-    metadataBtn.addEventListener("click", (event) => {
+    metadataBtn.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
-      showItemMetadata(name);
+      await showItemMetadata(name);
+      if (metadata.file) {
+        await showFileContent(name);
+      }
     });
 
     delBtn.textContent = "Delete";
@@ -495,9 +500,13 @@ function displayFiles(files) {
     const historyBtn = document.createElement("button");
     historyBtn.textContent = "History";
 
-    historyBtn.addEventListener("click", (event) => {
+    historyBtn.addEventListener("click", async (event) => {
+      event.preventDefault();
       event.stopPropagation();
-      getFilesHistory(name);
+      if (metadata.file) {
+        await showFileContent(name);
+      }
+      await getFilesHistory(name);
     });
 
     if (metadata.file) {
@@ -533,9 +542,13 @@ function displayFiles(files) {
 
 function showMetadata(file, metadata) {
   const fileInfoBox = document.getElementById("file-info-box");
+  fileInfoBox.style.display = "block";
 
   fileInfoBox.innerHTML = `
-    <h3>Metadata</h3>
+    <div class="metadata-header">
+      <h3>Metadata</h3>
+      <button class="metadata-close-btn" type="button" onclick="closeMetadata()" aria-label="Close metadata">X</button>
+    </div>
     <p><strong>Name:</strong> ${file}</p>
     <p><strong>Type:</strong> ${metadata.type}</p>
     <p><strong>Size:</strong> ${metadata.bytes} bytes</p>
@@ -543,6 +556,36 @@ function showMetadata(file, metadata) {
     <p><strong>Modified:</strong> ${metadata.changed}</p>
     <p><strong>Extension:</strong> ${metadata.extension || "-"}</p>
   `;
+}
+
+function closeMetadata() {
+  document.getElementById("file-info-box").style.display = "none";
+}
+
+function resetDetailsPanels() {
+  const historyBox = document.getElementById("file-history-box");
+  const metadataBox = document.getElementById("file-info-box");
+  const textarea = document.getElementById("fileContentTextarea");
+  const editBtn = document.getElementById("editBtn");
+  const saveBtn = document.getElementById("saveBtn");
+  const cancelBtn = document.getElementById("cancelBtn");
+
+  historyBox.style.display = "none";
+  metadataBox.style.display = "none";
+
+  fileContentTitle.textContent = "File Content";
+  fileContentBody.textContent = "Select a file to preview its content.";
+  fileContentBody.style.display = "block";
+
+  textarea.value = "";
+  textarea.style.display = "none";
+
+  editBtn.style.display = "none";
+  saveBtn.style.display = "none";
+  cancelBtn.style.display = "none";
+
+  currentFileName = "";
+  isEditMode = false;
 }
 
 function logout() {
@@ -641,6 +684,7 @@ async function deleteItem(item) {
       errorMessage.style.display = "block";
       return;
     }
+    resetDetailsPanels();
     await getFiles(currentPath);
     errorMessage.style.display = "none";
   } catch (error) {

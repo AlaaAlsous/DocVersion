@@ -277,6 +277,34 @@ h1 {
   margin: 0.32rem 0;
 }
 
+.metadata-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.metadata-header h3 {
+  margin: 0;
+}
+
+.metadata-close-btn {
+  border: 1px solid var(--gh-border);
+  background: #2d2d2d;
+  color: var(--gh-muted);
+  border-radius: 6px;
+  padding: 0.05rem 0.42rem;
+  line-height: 1.2;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.metadata-close-btn:hover {
+  background: var(--gh-button-hover);
+  color: var(--gh-text);
+}
+
 #file-history-box {
   margin-top: 0.8rem;
   background: #1f1f1f;
@@ -291,11 +319,19 @@ h1 {
 }
 
 #file-history-box h3 {
-  margin: 0 0 0.6rem;
+  margin: 0;
   font-size: 0.84rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--gh-muted);
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
 .history-list {
