@@ -377,8 +377,8 @@ async function saveFile() {
     cancelEdit();
     clearErrorMessage();
     errorMessage.textContent = "File saved successfully";
-    errorMessage.style.color = "#0e639c";
-    errorMessage.style.backgroundColor = "#8ce19eba";
+    errorMessage.style.color = "var(--gh-success-text)";
+    errorMessage.style.backgroundColor = "var(--gh-success-bg)";
     errorMessage.style.display = "block";
     setTimeout(() => {
       errorMessage.style.display = "none";

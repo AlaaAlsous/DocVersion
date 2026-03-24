@@ -1,23 +1,38 @@
 :root {
-  --gh-bg: #1e1e1e;
-  --gh-canvas: #252526;
-  --gh-text: #d4d4d4;
-  --gh-muted: #9da3ad;
-  --gh-border: #3c3c3c;
-  --gh-accent: #007acc;
-  --gh-accent-hover: #1093f5;
-  --gh-success: #0e639c;
-  --gh-header: #181818;
-  --gh-header-text: #f3f3f3;
-  --gh-danger: #f48771;
-  --gh-row-hover: #2a2d2e;
-  --gh-button-hover: #313131;
-  --gh-header-border: #2b2b2b;
-  --modal-overlay: #1b1f248c;
+  --gh-bg: #f6f8fa;
+  --gh-canvas: #ffffff;
+  --gh-text: #1f2328;
+  --gh-muted: #57606a;
+  --gh-border: #d0d7de;
+  --gh-accent: #0969da;
+  --gh-accent-hover: #0860ca;
+  --gh-success: #1f883d;
+  --gh-header: #ffffff;
+  --gh-header-text: #1f2328;
+  --gh-danger: #cf222e;
+  --gh-row-hover: #f3f4f6;
+  --gh-button-hover: #f3f4f6;
+  --gh-header-border: #d8dee4;
+  --gh-subtle-bg: #f6f8fa;
+  --gh-divider-soft: #d8dee4;
+  --gh-btn-bg: #f6f8fa;
+  --gh-input-bg: #ffffff;
+  --gh-user-pill-bg: #ddf4ff;
+  --gh-user-pill-border: #a5d6ff;
+  --gh-user-pill-text: #0969da;
+  --gh-icon-color: #57606a;
+  --gh-editor-bg: #ffffff;
+  --gh-editor-text: #1f2328;
+  --gh-danger-bg: #ffebe9;
+  --gh-danger-border: #ff818266;
+  --gh-success-bg: #dafbe1;
+  --gh-success-text: #1f883d;
+  --gh-shadow: #1f23281f;
+  --modal-overlay: #24292f33;
   --modal-card: var(--gh-canvas);
   --modal-card-border: var(--gh-border);
   --modal-title: var(--gh-text);
-  --modal-input-bg: var(--gh-canvas);
+  --modal-input-bg: var(--gh-input-bg);
   --modal-input-border: var(--gh-border);
   --modal-input-focus-shadow: #0969da26;
   --modal-button-bg: var(--gh-accent);
@@ -37,8 +52,47 @@ body {
   padding: 0 1rem 3rem;
   background: var(--gh-bg);
   color: var(--gh-text);
-  color-scheme: dark;
+  color-scheme: light;
   font-family: "Segoe UI", "Noto Sans", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gh-bg: #0d1117;
+    --gh-canvas: #161b22;
+    --gh-text: #c9d1d9;
+    --gh-muted: #8b949e;
+    --gh-border: #30363d;
+    --gh-accent: #2f81f7;
+    --gh-accent-hover: #58a6ff;
+    --gh-success: #238636;
+    --gh-header: #161b22;
+    --gh-header-text: #f0f6fc;
+    --gh-danger: #f85149;
+    --gh-row-hover: #21262d;
+    --gh-button-hover: #30363d;
+    --gh-header-border: #21262d;
+    --gh-subtle-bg: #1f242d;
+    --gh-divider-soft: #30363d;
+    --gh-btn-bg: #21262d;
+    --gh-input-bg: #0d1117;
+    --gh-user-pill-bg: #1f2a3a;
+    --gh-user-pill-border: #303f52;
+    --gh-user-pill-text: #c9d1d9;
+    --gh-icon-color: #f0f6fc;
+    --gh-editor-bg: #0d1117;
+    --gh-editor-text: #c9d1d9;
+    --gh-danger-bg: #3a1f1f;
+    --gh-danger-border: #6e2f2f;
+    --gh-success-bg: #0f3d2e;
+    --gh-success-text: #7ee787;
+    --gh-shadow: #01040959;
+    --modal-overlay: #01040999;
+  }
+
+  body {
+    color-scheme: dark;
+  }
 }
 
 h1 {
@@ -83,15 +137,10 @@ h1 {
   letter-spacing: 0.08em;
   color: var(--gh-muted);
   text-transform: uppercase;
-  background: #202020;
+  background: var(--gh-subtle-bg);
   border: 1px solid var(--gh-border);
   border-bottom: 0;
   border-radius: 8px 8px 0 0;
-}
-
-#topBar h1 {
-  margin: 0;
-  width: auto;
 }
 
 #sessionControls {
@@ -105,10 +154,10 @@ h1 {
   align-items: center;
   max-width: 230px;
   padding: 0.25rem 0.65rem;
-  border: 1px solid #2f4f63;
+  border: 1px solid var(--gh-user-pill-border);
   border-radius: 999px;
-  background: #1d2a34;
-  color: #b9dfff;
+  background: var(--gh-user-pill-bg);
+  color: var(--gh-user-pill-text);
   font-size: 0.84rem;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -117,20 +166,42 @@ h1 {
   text-overflow: ellipsis;
 }
 
-#logoutBtn {
-  display: none;
+.action-group,
+#file-list,
+#file-info-box,
+#file-history-box,
+#file-content-box {
+  background: var(--gh-canvas);
   border: 1px solid var(--gh-border);
-  background: #252526;
-  color: var(--gh-header-text);
-  padding: 0.35rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 0.9rem;
 }
 
-#logoutBtn:hover {
-  background: #2f2f2f;
+#logoutBtn,
+#file-list li button,
+.metadata-close-btn,
+.history-restore-btn,
+.history-close-btn,
+#file-content-actions button {
+  border: 1px solid var(--gh-border);
+  background: var(--gh-btn-bg);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#logoutBtn:hover,
+#file-list li button:hover,
+.metadata-close-btn:hover,
+.history-restore-btn:hover,
+.history-close-btn:hover,
+#file-content-actions button:hover {
+  background: var(--gh-button-hover);
+}
+
+#logoutBtn {
+  display: none;
+  color: var(--gh-header-text);
+  padding: 0.35rem 0.8rem;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 #quickActions {
@@ -145,8 +216,6 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  background: var(--gh-canvas);
-  border: 1px solid var(--gh-border);
   border-radius: 8px;
   padding: 0.6rem;
 }
@@ -158,7 +227,7 @@ h1 {
   border: 1px solid var(--gh-border);
   border-radius: 6px;
   padding: 0.45rem 0.62rem;
-  background: #1f1f1f;
+  background: var(--gh-input-bg);
   color: var(--gh-text);
 }
 
@@ -167,8 +236,6 @@ h1 {
   margin-bottom: 0;
   padding: 0;
   list-style: none;
-  background: #1f1f1f;
-  border: 1px solid var(--gh-border);
   border-radius: 0 0 8px 8px;
   overflow: hidden;
 }
@@ -178,7 +245,7 @@ h1 {
   align-items: center;
   gap: 0.6rem;
   padding: 0.38rem 0.6rem;
-  border-bottom: 1px solid #2c2c2c;
+  border-bottom: 1px solid var(--gh-divider-soft);
   line-height: 1.35;
   font-size: 0.86rem;
 }
@@ -222,38 +289,47 @@ h1 {
 }
 
 #file-list li button {
-  border: 1px solid var(--gh-border);
-  background: #2d2d2d;
   color: var(--gh-text);
-  border-radius: 6px;
   padding: 0.2rem 0.55rem;
   font-size: 0.78rem;
-  cursor: pointer;
-}
-
-#file-list li button:hover {
-  background: var(--gh-button-hover);
 }
 
 #file-list li button.icon-btn {
+  position: relative;
   width: 30px;
   height: 30px;
   padding: 0;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 16px 16px;
+}
+
+#file-list li button.icon-btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  background: var(--gh-icon-color);
+  -webkit-mask-image: var(--icon-url);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-image: var(--icon-url);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
 }
 
 #file-list li button.icon-btn-delete {
-  background-image: url("Assets/Delete.png");
+  --icon-url: url("Assets/Delete.png");
 }
 
 #file-list li button.icon-btn-download {
-  background-image: url("Assets/Download.png");
+  --icon-url: url("Assets/Download.png");
 }
 
 #file-list li button.icon-btn-history {
-  background-image: url("Assets/History.png");
+  --icon-url: url("Assets/History.png");
 }
 
 #file-list li button.icon-btn:focus-visible {
@@ -275,7 +351,7 @@ h1 {
 
 #createFolderBtn,
 #uploadBtn {
-  border: 1px solid #0f3f59;
+  border: 1px solid #1a7f37;
   background: var(--gh-success);
   color: #ffffff;
   border-radius: 6px;
@@ -292,8 +368,6 @@ h1 {
 
 #file-info-box {
   margin-top: 0.8rem;
-  background: #1f1f1f;
-  border: 1px solid var(--gh-border);
   border-radius: 8px;
   padding: 0.75rem;
   font-size: 0.84rem;
@@ -316,25 +390,18 @@ h1 {
 }
 
 .metadata-close-btn {
-  border: 1px solid var(--gh-border);
-  background: #2d2d2d;
   color: var(--gh-muted);
-  border-radius: 6px;
   padding: 0.05rem 0.42rem;
   line-height: 1.2;
   font-size: 0.78rem;
-  cursor: pointer;
 }
 
 .metadata-close-btn:hover {
-  background: var(--gh-button-hover);
   color: var(--gh-text);
 }
 
 #file-history-box {
   margin-top: 0.8rem;
-  background: #1f1f1f;
-  border: 1px solid var(--gh-border);
   border-radius: 8px;
   padding: 0.75rem;
   font-size: 0.84rem;
@@ -371,7 +438,7 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0;
-  border-bottom: 1px solid #2c2c2c;
+  border-bottom: 1px solid var(--gh-divider-soft);
 }
 
 .history-item:last-child {
@@ -394,34 +461,21 @@ h1 {
 }
 
 .history-restore-btn {
-  border: 1px solid var(--gh-border);
-  background: var(--gh-canvas);
   color: var(--gh-text);
-  border-radius: 6px;
   padding: 0.2rem 0.55rem;
   font-size: 0.78rem;
-  cursor: pointer;
   white-space: nowrap;
-}
-
-.history-restore-btn:hover {
-  background: var(--gh-button-hover);
 }
 
 .history-close-btn {
   margin-top: 0.4rem;
-  border: 1px solid var(--gh-border);
-  background: var(--gh-canvas);
   color: var(--gh-muted);
-  border-radius: 6px;
   padding: 0.25rem 0.72rem;
   font-size: 0.8rem;
-  cursor: pointer;
   width: 100%;
 }
 
 .history-close-btn:hover {
-  background: var(--gh-button-hover);
   color: var(--gh-text);
 }
 
@@ -435,8 +489,6 @@ h1 {
 
 #file-content-box {
   height: clamp(420px, 68vh, 760px);
-  background: #1f1f1f;
-  border: 1px solid var(--gh-border);
   border-radius: 8px;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -449,7 +501,7 @@ h1 {
   align-items: center;
   padding: 0.6rem 0.8rem;
   border-bottom: 1px solid var(--gh-border);
-  background: #202020;
+  background: var(--gh-subtle-bg);
 }
 
 #fileContentTitle {
@@ -466,24 +518,16 @@ h1 {
 }
 
 #file-content-actions button {
-  border: 1px solid var(--gh-border);
-  background: var(--gh-canvas);
   color: var(--gh-text);
-  border-radius: 6px;
   padding: 0.25rem 0.55rem;
   font-size: 0.75rem;
-  cursor: pointer;
   white-space: nowrap;
-}
-
-#file-content-actions button:hover {
-  background: var(--gh-button-hover);
 }
 
 #saveBtn {
   background: var(--gh-success) !important;
   color: #ffffff !important;
-  border-color: #0f3f59 !important;
+  border-color: #1a7f37 !important;
 }
 
 #saveBtn:hover {
@@ -501,7 +545,7 @@ h1 {
   scroll-behavior: smooth;
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.88rem;
-  color: #dcdcaa;
+  color: var(--gh-editor-text);
 }
 
 #fileContentTextarea {
@@ -511,8 +555,8 @@ h1 {
   height: 100%;
   padding: 1rem;
   border: none;
-  background: #1f1f1f;
-  color: #dcdcaa;
+  background: var(--gh-editor-bg);
+  color: var(--gh-editor-text);
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.88rem;
   resize: none;
@@ -543,7 +587,7 @@ h1 {
   background: var(--modal-card);
   padding: 2.2rem 1.8rem 1.8rem;
   border-radius: 12px;
-  box-shadow: 0 16px 40px #01040959;
+  box-shadow: 0 16px 40px var(--gh-shadow);
   text-align: left;
   border: 1px solid var(--modal-card-border);
   animation: modal-pop 0.28s ease-out;
@@ -612,8 +656,8 @@ h1 {
   margin: 0 auto 0.9rem;
   padding: 0.55rem 0.7rem;
   border-radius: 6px;
-  border: 1px solid #6e2f2f;
-  background: #3a1f1f;
+  border: 1px solid var(--gh-danger-border);
+  background: var(--gh-danger-bg);
   font-size: 0.9rem;
   color: var(--gh-danger);
 }
