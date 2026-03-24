@@ -326,6 +326,55 @@ function cancelEdit() {
   document.getElementById("cancelBtn").style.display = "none";
 }
 
+async function saveFile() {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+
+  if (!currentFileName) return;
+
+  const filePath = currentPath
+    ? `${currentPath}/${currentFileName}`
+    : currentFileName;
+  const encodedFilePath = toApiPath(filePath);
+  const content = document.getElementById("fileContentTextarea").value;
+
+  try {
+    const response = await fetch(`/api/files/${encodedFilePath}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "text/plain",
+      },
+      body: content,
+    });
+
+    if (!response.ok) {
+      errorMessage.textContent = "Failed to save file";
+      errorMessage.style.display = "block";
+      return;
+    }
+
+    fileContentBody.textContent = content || "This file is empty.";
+    cancelEdit();
+    clearErrorMessage();
+    errorMessage.textContent = "File saved successfully";
+    errorMessage.style.color = "#0e639c";
+    errorMessage.style.backgroundColor = "#8ce19eba";
+    errorMessage.style.display = "block";
+    setTimeout(() => {
+      errorMessage.style.display = "none";
+      errorMessage.style.color = "initial";
+      errorMessage.style.backgroundColor = "initial";
+    }, 3000);
+  } catch (error) {
+    errorMessage.textContent = "Error saving file";
+    errorMessage.style.display = "block";
+  }
+}
+
 async function showItemMetadata(itemName) {
   const token = localStorage.getItem("jwt");
   if (!token) {

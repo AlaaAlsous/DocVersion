@@ -351,15 +351,51 @@ h1 {
   overflow: hidden;
 }
 
-#fileContentTitle {
-  margin: 0;
+#file-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 0.6rem 0.8rem;
   border-bottom: 1px solid var(--gh-border);
   background: #202020;
+}
+
+#fileContentTitle {
+  margin: 0;
   color: var(--gh-muted);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+#file-content-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#file-content-actions button {
+  border: 1px solid var(--gh-border);
+  background: var(--gh-canvas);
+  color: var(--gh-text);
+  border-radius: 6px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#file-content-actions button:hover {
+  background: var(--gh-button-hover);
+}
+
+#saveBtn {
+  background: var(--gh-success) !important;
+  color: #ffffff !important;
+  border-color: #0f3f59 !important;
+}
+
+#saveBtn:hover {
+  filter: brightness(0.95);
 }
 
 #fileContentBody {
@@ -371,6 +407,23 @@ h1 {
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.88rem;
   color: #dcdcaa;
+}
+
+#fileContentTextarea {
+  margin: 0;
+  padding: 1rem;
+  border: none;
+  background: #1f1f1f;
+  color: #dcdcaa;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.88rem;
+  resize: none;
+  outline: none;
+}
+
+#fileContentTextarea:focus {
+  outline: 1px solid var(--gh-accent);
+  outline-offset: -1px;
 }
 
 #loginModal {
