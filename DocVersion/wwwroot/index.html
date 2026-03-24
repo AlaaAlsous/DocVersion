@@ -13,16 +13,38 @@
       <h1>DocVersion</h1>
       <button id="logoutBtn" type="button">Log Out</button>
     </div>
-    <ul id="file-list"></ul>
-    <div id="actions">
-      <p id="errorMessage" style="display: none"></p>
-      <h3>Create Folder</h3>
-      <input id="folderName" type="text" placeholder="Folder name" />
-      <button id="createFolderBtn">Create Folder</button>
-      <h3>Upload File</h3>
-      <input id="fileInput" type="file" />
-      <button id="uploadBtn">Upload File</button>
-    </div>
+
+    <section id="quickActions">
+      <div class="action-group">
+        <input id="folderName" type="text" placeholder="Folder name" />
+        <button id="createFolderBtn">Create Folder</button>
+      </div>
+      <div class="action-group">
+        <input id="fileInput" type="file" />
+        <button id="uploadBtn">Upload File</button>
+      </div>
+    </section>
+
+    <p id="errorMessage" style="display: none"></p>
+
+    <main id="workspaceLayout">
+      <aside id="treePane">
+        <h2>Explorer</h2>
+        <ul id="file-list"></ul>
+
+        <div id="file-info-box">
+          <h3>Metadata</h3>
+          <p>Select a file or folder to view metadata.</p>
+        </div>
+      </aside>
+
+      <section id="fileView">
+        <div id="file-content-box">
+          <h3 id="fileContentTitle">File Content</h3>
+          <pre id="fileContentBody">Select a file to preview its content.</pre>
+        </div>
+      </section>
+    </main>
     <div id="loginModal">
       <div>
         <h2>Sign In</h2>
