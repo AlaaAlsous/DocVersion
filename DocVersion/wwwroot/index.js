@@ -31,6 +31,8 @@ let connection;
 let currentPath = "";
 let currentFileName = "";
 let activeHistoryFileName = "";
+let activeHistoryEntries = [];
+let historyCursor = -1;
 let isEditMode = false;
 let errorMessageTimeoutId = null;
 let modalErrorTimeoutId = null;
@@ -63,7 +65,7 @@ function setExplorerPath(path = "") {
   explorerPath.textContent = path ? `/${path}` : "/";
 }
 
-function setFileContentHeader(fileName = "", restoredVersion = null) {
+function setFileContentHeader(fileName = "", contextLabel = "") {
   fileContentTitle.textContent = "File Content";
 
   if (!fileName) {
@@ -73,8 +75,8 @@ function setFileContentHeader(fileName = "", restoredVersion = null) {
   }
 
   const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
-  fileContentPath.textContent = restoredVersion
-    ? `${fullPath} (Restored v${restoredVersion})`
+  fileContentPath.textContent = contextLabel
+    ? `${fullPath} (${contextLabel})`
     : fullPath;
   fileContentPath.style.display = "inline-block";
 }
@@ -169,7 +171,28 @@ function closeMetadata() {
 
 function closeFileHistory() {
   activeHistoryFileName = "";
+  activeHistoryEntries = [];
+  historyCursor = -1;
   historyBox.style.display = "none";
+}
+
+function updateHistoryNavigationUi() {
+  const statusEl = historyBox.querySelector("#historyNavStatus");
+  const backBtn = historyBox.querySelector("#historyBackBtn");
+  const forwardBtn = historyBox.querySelector("#historyForwardBtn");
+
+  if (!statusEl || !backBtn || !forwardBtn) return;
+
+  const canGoOlder = historyCursor + 1 < activeHistoryEntries.length;
+  const canGoNewer = historyCursor >= 0;
+
+  statusEl.textContent =
+    historyCursor === -1
+      ? "Nuvarande version"
+      : `Version ${activeHistoryEntries[historyCursor].version}`;
+
+  backBtn.disabled = !canGoOlder;
+  forwardBtn.disabled = !canGoNewer;
 }
 
 function showMetadata(file, metadata) {
@@ -190,10 +213,17 @@ function showMetadata(file, metadata) {
 
 function displayFileHistory(filename, history) {
   activeHistoryFileName = filename;
+  activeHistoryEntries = history;
+  historyCursor = -1;
   historyBox.innerHTML = `
     <div class="history-header">
       <h3>History: ${filename}</h3>
       <button class="metadata-close-btn" type="button" onclick="closeFileHistory()" aria-label="Close history">X</button>
+    </div>
+    <div class="history-nav" role="group" aria-label="History navigation">
+      <button id="historyBackBtn" class="history-nav-btn" type="button" onclick="navigateHistory(-1)">← Older</button>
+      <span id="historyNavStatus" class="history-nav-status">Nuvarande version</span>
+      <button id="historyForwardBtn" class="history-nav-btn" type="button" onclick="navigateHistory(1)">Newer →</button>
     </div>
     <ul class="history-list">
       ${history
@@ -210,6 +240,7 @@ function displayFileHistory(filename, history) {
     </ul>
   `;
   historyBox.style.display = "block";
+  updateHistoryNavigationUi();
 }
 
 function editFile() {
@@ -254,6 +285,8 @@ function resetDetailsPanels() {
 
   currentFileName = "";
   activeHistoryFileName = "";
+  activeHistoryEntries = [];
+  historyCursor = -1;
   isEditMode = false;
 }
 
@@ -440,6 +473,8 @@ async function getFilesHistory(filename) {
     }
 
     const history = await response.json();
+    activeHistoryEntries = history;
+    historyCursor = -1;
     displayFileHistory(filename, history);
     clearErrorMessage();
   } catch (error) {
@@ -473,7 +508,7 @@ async function restoreFileVersion(filename, version) {
       return;
     }
 
-    await showFileContent(filename, version);
+    await showFileContent(filename, `Restored v${version}`);
     await getFiles(currentPath);
     await getFilesHistory(filename);
     showSuccessMessage(`File restored successfully (v${version})`);
@@ -482,7 +517,7 @@ async function restoreFileVersion(filename, version) {
   }
 }
 
-async function showFileContent(fileName, restoredVersion = null) {
+async function showFileContent(fileName, contextLabel = "") {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -507,7 +542,7 @@ async function showFileContent(fileName, restoredVersion = null) {
     const text = await response.text();
     currentFileName = fileName;
 
-    setFileContentHeader(fileName, restoredVersion);
+    setFileContentHeader(fileName, contextLabel);
     fileContentBody.textContent = text || "This file is empty.";
     fileContentTextarea.value = text || "";
 
