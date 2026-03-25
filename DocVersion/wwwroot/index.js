@@ -34,11 +34,32 @@ let activeHistoryFileName = "";
 let activeHistoryEntries = [];
 let historyCursor = -1;
 let isEditMode = false;
+let currentFileIsEditable = false;
 let errorMessageTimeoutId = null;
 let modalErrorTimeoutId = null;
+let activePreviewObjectUrl = null;
 
 const MESSAGE_TIMEOUT_MS = 5000;
 const DEFAULT_PREVIEW_TEXT = "Select a file to preview its content.";
+
+function revokePreviewObjectUrl() {
+  if (!activePreviewObjectUrl) return;
+
+  URL.revokeObjectURL(activePreviewObjectUrl);
+  activePreviewObjectUrl = null;
+}
+
+function resetPreviewSurface() {
+  revokePreviewObjectUrl();
+  fileContentBody.classList.remove("media-preview", "binary-preview");
+  fileContentBody.textContent = "";
+}
+
+function updateEditorActions() {
+  editBtn.style.display = currentFileIsEditable ? "inline-block" : "none";
+  saveBtn.style.display = "none";
+  cancelBtn.style.display = "none";
+}
 
 function toApiPath(path = "") {
   if (!path) return "";
@@ -231,20 +252,7 @@ async function showHistoryVersionContent(fileName, version) {
       return;
     }
 
-    const text = await response.text();
-    currentFileName = fileName;
-
-    setFileContentHeader(fileName, `History v${version}`);
-    fileContentBody.textContent = text || "This file is empty.";
-    fileContentTextarea.value = text || "";
-
-    editBtn.style.display = "inline-block";
-    saveBtn.style.display = "none";
-    cancelBtn.style.display = "none";
-
-    isEditMode = false;
-    fileContentBody.style.display = "block";
-    fileContentTextarea.style.display = "none";
+    await renderFilePreview(response, fileName, `History v${version}`);
 
     clearErrorMessage();
   } catch (error) {
@@ -330,7 +338,7 @@ function displayFileHistory(filename, history) {
 }
 
 function editFile() {
-  if (!currentFileName) return;
+  if (!currentFileName || !currentFileIsEditable) return;
 
   isEditMode = true;
   fileContentBody.style.display = "none";
@@ -349,9 +357,7 @@ function cancelEdit() {
   fileContentBody.style.display = "block";
   fileContentTextarea.style.display = "none";
 
-  editBtn.style.display = "inline-block";
-  saveBtn.style.display = "none";
-  cancelBtn.style.display = "none";
+  updateEditorActions();
 }
 
 function resetDetailsPanels() {
@@ -359,15 +365,15 @@ function resetDetailsPanels() {
   metadataBox.style.display = "none";
 
   setFileContentHeader();
+  resetPreviewSurface();
   fileContentBody.textContent = DEFAULT_PREVIEW_TEXT;
   fileContentBody.style.display = "block";
 
   fileContentTextarea.value = "";
   fileContentTextarea.style.display = "none";
 
-  editBtn.style.display = "none";
-  saveBtn.style.display = "none";
-  cancelBtn.style.display = "none";
+  currentFileIsEditable = false;
+  updateEditorActions();
 
   currentFileName = "";
   activeHistoryFileName = "";
@@ -641,20 +647,7 @@ async function showFileContent(fileName, contextLabel = "") {
       return;
     }
 
-    const text = await response.text();
-    currentFileName = fileName;
-
-    setFileContentHeader(fileName, contextLabel);
-    fileContentBody.textContent = text || "This file is empty.";
-    fileContentTextarea.value = text || "";
-
-    editBtn.style.display = "inline-block";
-    saveBtn.style.display = "none";
-    cancelBtn.style.display = "none";
-
-    isEditMode = false;
-    fileContentBody.style.display = "block";
-    fileContentTextarea.style.display = "none";
+    await renderFilePreview(response, fileName, contextLabel);
 
     clearErrorMessage();
   } catch (error) {
@@ -696,8 +689,7 @@ async function saveFile() {
       return;
     }
 
-    fileContentBody.textContent = content || "This file is empty.";
-    cancelEdit();
+    showTextPreview(content);
 
     if (activeHistoryFileName === currentFileName) {
       await getFilesHistory(currentFileName);
@@ -944,7 +936,12 @@ function displayFiles(files) {
       currentPath = pathParts.join("/");
       await getFiles(currentPath);
       setFileContentHeader();
+      resetPreviewSurface();
       fileContentBody.textContent = DEFAULT_PREVIEW_TEXT;
+      fileContentTextarea.style.display = "none";
+      currentFileName = "";
+      currentFileIsEditable = false;
+      updateEditorActions();
     });
 
     fileList.appendChild(backItem);
@@ -1030,7 +1027,12 @@ function displayFiles(files) {
         currentPath = currentPath ? `${currentPath}/${name}` : name;
         await getFiles(currentPath);
         setFileContentHeader();
+        resetPreviewSurface();
         fileContentBody.textContent = DEFAULT_PREVIEW_TEXT;
+        fileContentTextarea.style.display = "none";
+        currentFileName = "";
+        currentFileIsEditable = false;
+        updateEditorActions();
       });
       buttonGroup.append(delBtn);
     }
