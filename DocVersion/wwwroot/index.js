@@ -137,7 +137,36 @@ function isTextContentType(contentType) {
   );
 }
 
+async function renderFilePreview(response, fileName, contextLabel = "") {
+  currentFileName = fileName;
+  setFileContentHeader(fileName, contextLabel);
 
+  const contentType = getResponseContentType(response);
+
+  if (contentType.startsWith("image/")) {
+    const blob = await response.blob();
+    showMediaPreview(blob, "img");
+    return;
+  }
+
+  if (contentType.startsWith("video/")) {
+    const blob = await response.blob();
+    showMediaPreview(blob, "video");
+    return;
+  }
+
+  if (isTextContentType(contentType)) {
+    const text = await response.text();
+    showTextPreview(text);
+    return;
+  }
+
+  showBinaryPreviewMessage(
+    contentType
+      ? `Preview is not available for this file type (${contentType}). Use Download instead.`
+      : "Preview is not available for this file type. Use Download instead.",
+  );
+}
 
 function toApiPath(path = "") {
   if (!path) return "";
