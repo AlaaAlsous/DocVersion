@@ -219,6 +219,23 @@ public class FileService
             .ToListAsync();
     }
 
+    public async Task<(Stream, string)> GetFileHistoryVersionContentAsync(string username, string filename, int version)
+    {
+        var fileVersion = await _dbContext.FileHistories
+            .Where(f => f.Username == username && f.FilePath == filename && f.Version == version)
+            .FirstOrDefaultAsync();
+
+        if (fileVersion == null)
+            return (null!, null!);
+
+        var versionFilePath = GetAbsoluteHistoryPath(fileVersion.StoragePath);
+        if (!File.Exists(versionFilePath))
+            return (null!, null!);
+
+        var fileStream = new FileStream(versionFilePath, FileMode.Open, FileAccess.Read);
+        return (fileStream, "application/octet-stream");
+    }
+
     public async Task RestoreFileHistoryAsync(string username, string filename, int version)
     {
         var fileVersion = await _dbContext.FileHistories
