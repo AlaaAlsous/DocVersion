@@ -120,6 +120,27 @@ public class FilesController : ControllerBase
         }
     }
 
+    [HttpGet("history/{version:int}/{**filename}")]
+    public async Task<IActionResult> GetFileHistoryVersionContentAsync(string filename, int version)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
+        if (version <= 0) return BadRequest("Invalid version.");
+
+        try
+        {
+            var (fileStream, contentType) = await _fileService.GetFileHistoryVersionContentAsync(username, filename, version);
+            if (fileStream == null) return NotFound();
+
+            return File(fileStream, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpPost("{**filename}")]
     public async Task<IActionResult> CreateFileAsync(string filename)
     {
