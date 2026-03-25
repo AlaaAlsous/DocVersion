@@ -133,6 +133,13 @@ function showSuccessMessage(message) {
   }, MESSAGE_TIMEOUT_MS);
 }
 
+function handleUnauthorizedResponse(response) {
+  if (response.status !== 401) return false;
+
+  logout();
+  return true;
+}
+
 function showDeleteConfirmation(itemName, itemPath) {
   clearErrorMessage();
 
@@ -214,6 +221,10 @@ async function showHistoryVersionContent(fileName, version) {
         },
       },
     );
+
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
 
     if (!response.ok) {
       showErrorMessage("Failed to load history version");
@@ -512,6 +523,10 @@ async function getFiles(path = "") {
       },
     });
 
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+
     if (!response.ok) {
       showErrorMessage("Failed to fetch files");
       return;
@@ -541,6 +556,10 @@ async function getFilesHistory(filename) {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
 
     if (!response.ok) {
       showErrorMessage("Failed to fetch file history");
@@ -578,6 +597,10 @@ async function restoreFileVersion(filename, version) {
       },
     );
 
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+
     if (!response.ok) {
       showErrorMessage("Failed to restore file version");
       return;
@@ -608,6 +631,10 @@ async function showFileContent(fileName, contextLabel = "") {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
 
     if (!response.ok) {
       showErrorMessage("Failed to load file content");
@@ -660,6 +687,10 @@ async function saveFile() {
       body: content,
     });
 
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+
     if (!response.ok) {
       showErrorMessage("Failed to save file");
       return;
@@ -695,6 +726,10 @@ async function showItemMetadata(itemName) {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
 
     if (!response.ok) {
       showErrorMessage("Failed to fetch metadata");
@@ -742,6 +777,10 @@ async function createFolder() {
       },
     });
 
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+
     if (!response.ok) {
       if (response.status === 409) {
         showErrorMessage("A folder with that name already exists");
@@ -786,6 +825,10 @@ async function uploadFile() {
       body: file,
     });
 
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+
     if (!response.ok) {
       if (response.status === 409) {
         showErrorMessage("A file with that name already exists");
@@ -820,6 +863,10 @@ async function downloadFile(file) {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
 
     if (!response.ok) {
       showErrorMessage("Failed to download file");
@@ -858,6 +905,10 @@ async function deleteItem(item) {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
 
     if (!response.ok) {
       showErrorMessage(`Failed to delete item (${response.status})`);
