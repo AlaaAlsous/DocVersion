@@ -9,6 +9,8 @@ public class FileService
     private readonly string _storagePath;
     private readonly string _historyStoragePath;
     private readonly AppDbContext _dbContext;
+    private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();
+
     public FileService(AppDbContext dbContext)
     {
         _dbContext = dbContext;
@@ -73,7 +75,7 @@ public class FileService
 
         var fileStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
 
-        var contentType = "application/octet-stream";
+        var contentType = GetContentType(filename);
         return Task.FromResult<(Stream, string)>((fileStream, contentType));
     }
 
@@ -233,7 +235,7 @@ public class FileService
             return (null!, null!);
 
         var fileStream = new FileStream(versionFilePath, FileMode.Open, FileAccess.Read);
-        return (fileStream, "application/octet-stream");
+        return (fileStream, GetContentType(filename));
     }
 
     public async Task RestoreFileHistoryAsync(string username, string filename, int version)
@@ -350,5 +352,13 @@ public class FileService
         using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
         await sourceStream.CopyToAsync(destinationStream);
+    }
+
+    private string GetContentType(string filename)
+    {
+        if (_contentTypeProvider.TryGetContentType(filename, out var contentType))
+            return contentType;
+
+        return "application/octet-stream";
     }
 }
