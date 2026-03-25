@@ -241,6 +241,35 @@ async function showHistoryVersionContent(fileName, version) {
   }
 }
 
+async function navigateHistory(direction) {
+  if (!activeHistoryFileName) return;
+  if (isEditMode) return;
+
+  if (direction < 0) {
+    if (historyCursor + 1 >= activeHistoryEntries.length) return;
+    historyCursor += 1;
+    await showHistoryVersionContent(
+      activeHistoryFileName,
+      activeHistoryEntries[historyCursor].version,
+    );
+  } else if (direction > 0) {
+    if (historyCursor < 0) return;
+
+    if (historyCursor === 0) {
+      historyCursor = -1;
+      await showFileContent(activeHistoryFileName);
+    } else {
+      historyCursor -= 1;
+      await showHistoryVersionContent(
+        activeHistoryFileName,
+        activeHistoryEntries[historyCursor].version,
+      );
+    }
+  }
+
+  updateHistoryNavigationUi();
+}
+
 function showMetadata(file, metadata) {
   metadataBox.style.display = "block";
   metadataBox.innerHTML = `
