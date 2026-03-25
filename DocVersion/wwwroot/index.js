@@ -994,6 +994,28 @@ createFolderBtn.addEventListener("click", createFolder);
 modalSubmit.addEventListener("click", login);
 logoutBtn.addEventListener("click", logout);
 
+document.addEventListener("keydown", (event) => {
+  if (!activeHistoryFileName || historyBox.style.display === "none") return;
+  if (isEditMode) return;
+
+  const key = event.key.toLowerCase();
+  const isOlderShortcut = event.ctrlKey && !event.shiftKey && key === "z";
+  const isNewerShortcut =
+    (event.ctrlKey && !event.shiftKey && key === "y") ||
+    (event.ctrlKey && event.shiftKey && key === "z");
+
+  if (isOlderShortcut) {
+    event.preventDefault();
+    void navigateHistory(-1);
+    return;
+  }
+
+  if (isNewerShortcut) {
+    event.preventDefault();
+    void navigateHistory(1);
+  }
+});
+
 modalUserName.addEventListener("keydown", (event) => {
   if (event.key === "Enter") login();
 });
