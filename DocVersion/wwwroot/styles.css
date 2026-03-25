@@ -644,6 +644,30 @@ h1 {
   color: var(--gh-editor-text);
 }
 
+#fileContentBody.media-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+  font-family: "Segoe UI", "Noto Sans", sans-serif;
+  color: var(--gh-text);
+}
+
+#fileContentBody.binary-preview {
+  font-family: "Segoe UI", "Noto Sans", sans-serif;
+  color: var(--gh-muted);
+}
+
+.file-preview-media {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--gh-editor-bg);
+}
+
 #fileContentTextarea {
   margin: 0;
   min-height: 0;
