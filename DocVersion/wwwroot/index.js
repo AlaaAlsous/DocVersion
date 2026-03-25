@@ -88,6 +88,34 @@ function showBinaryPreviewMessage(message) {
   updateEditorActions();
 }
 
+function showMediaPreview(blob, tagName) {
+  resetPreviewSurface();
+
+  activePreviewObjectUrl = URL.createObjectURL(blob);
+  const mediaElement = document.createElement(tagName);
+  mediaElement.src = activePreviewObjectUrl;
+  mediaElement.className = "file-preview-media";
+
+  if (tagName === "img") {
+    mediaElement.alt = currentFileName || "Image preview";
+  }
+
+  if (tagName === "video") {
+    mediaElement.controls = true;
+    mediaElement.preload = "metadata";
+  }
+
+  fileContentBody.classList.add("media-preview");
+  fileContentBody.appendChild(mediaElement);
+  fileContentTextarea.value = "";
+  currentFileIsEditable = false;
+  isEditMode = false;
+
+  fileContentBody.style.display = "block";
+  fileContentTextarea.style.display = "none";
+  updateEditorActions();
+}
+
 function toApiPath(path = "") {
   if (!path) return "";
   return path
