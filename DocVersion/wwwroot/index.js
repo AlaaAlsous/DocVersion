@@ -116,6 +116,29 @@ function showMediaPreview(blob, tagName) {
   updateEditorActions();
 }
 
+function getResponseContentType(response) {
+  return (response.headers.get("Content-Type") || "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
+}
+
+function isTextContentType(contentType) {
+  if (!contentType) return false;
+  if (contentType.startsWith("text/")) return true;
+
+  return (
+    contentType === "application/json" ||
+    contentType === "application/xml" ||
+    contentType === "application/javascript" ||
+    contentType === "application/x-javascript" ||
+    contentType.endsWith("+json") ||
+    contentType.endsWith("+xml")
+  );
+}
+
+
+
 function toApiPath(path = "") {
   if (!path) return "";
   return path
