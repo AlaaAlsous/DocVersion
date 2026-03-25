@@ -1,5 +1,6 @@
 :root {
-  --file-content-height: clamp(700px, 74vh, 860px);
+  --file-content-height: clamp(1320px, 129vh, 1680px);
+  --scrollbar-size: 11px;
   --gh-bg: #f6f8fa;
   --gh-canvas: #ffffff;
   --gh-text: #1f2328;
@@ -30,6 +31,9 @@
   --gh-success-border: #1f883d66;
   --gh-success-text: #1f883d;
   --gh-shadow: #1f23281f;
+  --gh-scrollbar-track: #eef1f4;
+  --gh-scrollbar-thumb: #c1c9d2;
+  --gh-scrollbar-thumb-hover: #98a6b3;
   --modal-overlay: #24292f33;
   --modal-card: var(--gh-canvas);
   --modal-card-border: var(--gh-border);
@@ -73,6 +77,9 @@
     --gh-success-border: #3fb95066;
     --gh-success-text: #7ee787;
     --gh-shadow: #01040959;
+    --gh-scrollbar-track: #161b22;
+    --gh-scrollbar-thumb: #3d444d;
+    --gh-scrollbar-thumb-hover: #59636e;
     --modal-overlay: #01040999;
   }
 
@@ -97,6 +104,55 @@ body {
   color: var(--gh-text);
   color-scheme: light;
   font-family: "Segoe UI", "Noto Sans", sans-serif;
+}
+
+body,
+#file-list,
+#fileContentBody,
+#fileContentTextarea,
+#file-history-box,
+#file-info-box {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gh-scrollbar-thumb) var(--gh-scrollbar-track);
+}
+
+body::-webkit-scrollbar,
+#file-list::-webkit-scrollbar,
+#fileContentBody::-webkit-scrollbar,
+#fileContentTextarea::-webkit-scrollbar,
+#file-history-box::-webkit-scrollbar,
+#file-info-box::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+body::-webkit-scrollbar-track,
+#file-list::-webkit-scrollbar-track,
+#fileContentBody::-webkit-scrollbar-track,
+#fileContentTextarea::-webkit-scrollbar-track,
+#file-history-box::-webkit-scrollbar-track,
+#file-info-box::-webkit-scrollbar-track {
+  background: var(--gh-scrollbar-track);
+}
+
+body::-webkit-scrollbar-thumb,
+#file-list::-webkit-scrollbar-thumb,
+#fileContentBody::-webkit-scrollbar-thumb,
+#fileContentTextarea::-webkit-scrollbar-thumb,
+#file-history-box::-webkit-scrollbar-thumb,
+#file-info-box::-webkit-scrollbar-thumb {
+  background: var(--gh-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid var(--gh-scrollbar-track);
+}
+
+body::-webkit-scrollbar-thumb:hover,
+#file-list::-webkit-scrollbar-thumb:hover,
+#fileContentBody::-webkit-scrollbar-thumb:hover,
+#fileContentTextarea::-webkit-scrollbar-thumb:hover,
+#file-history-box::-webkit-scrollbar-thumb:hover,
+#file-info-box::-webkit-scrollbar-thumb:hover {
+  background: var(--gh-scrollbar-thumb-hover);
 }
 
 h1 {
@@ -193,6 +249,29 @@ h1 {
   min-width: 0;
 }
 
+#treePane {
+  height: min(var(--file-content-height), calc((100vh - 120px) * 1.5));
+  display: grid;
+  grid-template-rows: 2fr 2fr 2fr;
+  gap: 0.8rem;
+}
+
+#explorerPane,
+#historyPane,
+#metadataPane {
+  min-height: 0;
+}
+
+#explorerPane {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+}
+
+#historyPane,
+#metadataPane {
+  display: flex;
+}
+
 #fileView {
   display: grid;
   gap: 1rem;
@@ -200,7 +279,7 @@ h1 {
 
 #treePane h2 {
   margin: 0;
-  padding: 0.62rem 0.72rem;
+  padding: 0.62rem 0.72rem 0 0.72rem;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -238,7 +317,8 @@ h1 {
   border: 1px solid var(--gh-border);
   border-radius: 0 0 8px 8px;
   overflow: hidden;
-  max-height: calc(var(--file-content-height) * 0.5);
+  max-height: none;
+  height: 100%;
   overflow-y: auto;
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
@@ -416,7 +496,7 @@ h1 {
 }
 
 #file-content-box {
-  height: var(--file-content-height);
+  height: min(var(--file-content-height), calc((100vh - 120px) * 1.5));
   border-radius: 8px;
   background: var(--gh-canvas);
   border: 1px solid var(--gh-border);
@@ -504,17 +584,32 @@ h1 {
 }
 
 #editBtn {
-  color: var(--gh-accent);
-  border-color: color-mix(in srgb, var(--gh-accent) 34%, var(--gh-border));
-  background: color-mix(in srgb, var(--gh-accent) 10%, var(--gh-btn-bg));
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--gh-accent) 78%, #00000022);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--gh-accent) 88%, #ffffff12),
+    color-mix(in srgb, var(--gh-accent) 100%, #00000012)
+  );
   font-weight: 600;
-  box-shadow: 0 1px 2px #00000012;
+  box-shadow:
+    inset 0 1px 0 #ffffff26,
+    0 1px 2px #00000024;
 }
 
 #editBtn:hover {
-  background: color-mix(in srgb, var(--gh-accent) 16%, var(--gh-btn-bg));
-  border-color: color-mix(in srgb, var(--gh-accent) 48%, var(--gh-border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--gh-accent-hover) 82%, #ffffff14),
+    color-mix(in srgb, var(--gh-accent-hover) 100%, #00000012)
+  );
+  border-color: color-mix(in srgb, var(--gh-accent-hover) 84%, #00000022);
   transform: translateY(-1px);
+}
+
+#editBtn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gh-accent) 80%, #ffffff20);
+  outline-offset: 2px;
 }
 
 #saveBtn {
@@ -574,12 +669,15 @@ h1 {
 }
 
 #file-info-box {
-  margin-top: 0.8rem;
+  margin-top: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 8px;
   padding: 0.75rem;
   background: var(--gh-canvas);
   border: 1px solid var(--gh-border);
   font-size: 0.84rem;
+  overflow: auto;
 }
 
 #file-info-box h3 {
@@ -641,13 +739,15 @@ h1 {
 }
 
 #file-history-box {
-  margin-top: 0.8rem;
+  margin-top: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 8px;
   padding: 0.75rem;
   background: var(--gh-canvas);
   border: 1px solid var(--gh-border);
   font-size: 0.84rem;
-  max-height: min(38vh, 360px);
+  max-height: none;
   overflow-y: auto;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
@@ -929,9 +1029,25 @@ h1 {
   }
 }
 
+@media (max-width: 1000px) {
+  :root {
+    --file-content-height: clamp(1110px, 120vh, 1470px);
+    --scrollbar-size: 10px;
+  }
+
+  #treePane {
+    height: min(var(--file-content-height), calc((100vh - 110px) * 1.5));
+  }
+
+  #file-content-box {
+    height: min(var(--file-content-height), calc((100vh - 110px) * 1.5));
+  }
+}
+
 @media (max-width: 640px) {
   :root {
-    --file-content-height: clamp(420px, 70vh, 700px);
+    --file-content-height: clamp(690px, 112vh, 1050px);
+    --scrollbar-size: 8px;
   }
 
   body {
@@ -948,6 +1064,22 @@ h1 {
     grid-template-columns: 1fr;
   }
 
+  #treePane {
+    height: auto;
+    grid-template-rows: auto auto auto;
+  }
+
+  #historyPane,
+  #metadataPane {
+    display: block;
+  }
+
+  #file-history-box {
+    height: auto;
+    max-height: min(34vh, 260px);
+    overflow-y: auto;
+  }
+
   #quickActions {
     grid-template-columns: 1fr;
   }
@@ -957,7 +1089,13 @@ h1 {
   }
 
   #file-content-box {
-    min-height: 400px;
+    height: min(var(--file-content-height), calc((100vh - 125px) * 1.5));
+    min-height: 320px;
+  }
+
+  #file-list {
+    height: auto;
+    max-height: min(34vh, 260px);
   }
 
   #file-content-header {

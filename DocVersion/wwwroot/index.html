@@ -32,16 +32,22 @@
 
     <main id="workspaceLayout">
       <aside id="treePane">
-        <h2>Explorer</h2>
-        <p id="explorerPath">/</p>
-        <ul id="file-list"></ul>
+        <section id="explorerPane">
+          <h2>Explorer</h2>
+          <p id="explorerPath">/</p>
+          <ul id="file-list"></ul>
+        </section>
 
-        <div id="file-history-box" style="display: none"></div>
+        <section id="historyPane">
+          <div id="file-history-box" style="display: none"></div>
+        </section>
 
-        <div id="file-info-box">
-          <h3>Metadata</h3>
-          <p>Select a file or folder to view metadata.</p>
-        </div>
+        <section id="metadataPane">
+          <div id="file-info-box">
+            <h3>Metadata</h3>
+            <p>Select a file or folder to view metadata.</p>
+          </div>
+        </section>
       </aside>
 
       <section id="fileView">
