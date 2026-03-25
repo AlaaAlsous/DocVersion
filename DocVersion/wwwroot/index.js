@@ -163,10 +163,6 @@ function showDeleteConfirmation(itemName, itemPath) {
   errorMessage.appendChild(actions);
 }
 
-// -----------------------------------------------------------------------------
-// Panel and editor helpers
-// -----------------------------------------------------------------------------
-
 function closeMetadata() {
   metadataBox.style.display = "none";
 }
@@ -261,28 +257,38 @@ function resetDetailsPanels() {
   isEditMode = false;
 }
 
-// -----------------------------------------------------------------------------
-// Authentication and session
-// -----------------------------------------------------------------------------
-
-function startSignalR() {
+async function startSignalR() {
   const token = localStorage.getItem("jwt");
-  if (!token) return;
+  if (!token) return false;
 
-  connection = new signalR.HubConnectionBuilder()
+  const shouldRefreshCurrentPath = (path) => {
+    if (!path) return false;
+    if (!currentPath) return !path.includes("/");
+    return path === currentPath || path.startsWith(`${currentPath}/`);
+  };
+
+  if (connection) {
+    try {
+      await connection.stop();
+    } catch (error) {
+      console.error("SignalR reconnect cleanup error:", error);
+    }
+  }
+
+  const nextConnection = new signalR.HubConnectionBuilder()
     .withUrl("api/events/signalr", { accessTokenFactory: () => token })
     .withAutomaticReconnect()
     .build();
 
-  connection.on("Event", (type, path) => {
+  nextConnection.on("Event", (type, path) => {
     switch (type) {
       case 0:
       case 1:
       case 2:
       case 5:
       case 7:
-        if (path.startsWith(currentPath)) {
-          getFiles(currentPath);
+        if (shouldRefreshCurrentPath(path)) {
+          void getFiles(currentPath);
         }
         break;
       default:
@@ -290,7 +296,16 @@ function startSignalR() {
     }
   });
 
-  connection.start();
+  try {
+    await nextConnection.start();
+    connection = nextConnection;
+    return true;
+  } catch (error) {
+    console.error("SignalR connection error:", error);
+    showErrorMessage("Real-time updates are unavailable");
+    connection = null;
+    return false;
+  }
 }
 
 async function login() {
@@ -333,7 +348,7 @@ async function login() {
 
   loginModal.style.display = "none";
   clearModalError();
-  startSignalR();
+  await startSignalR();
   await getFiles();
 }
 
@@ -348,6 +363,13 @@ function logout() {
   currentPath = "";
   currentFileName = "";
   activeHistoryFileName = "";
+
+  if (connection) {
+    connection.stop().catch((error) => {
+      console.error("SignalR disconnect error:", error);
+    });
+    connection = null;
+  }
 
   setExplorerPath();
   folderNameInput.value = "";
