@@ -668,6 +668,42 @@ h1 {
   background: var(--gh-editor-bg);
 }
 
+#fileContentBody.word-preview {
+  display: block;
+  white-space: normal;
+  font-family: "Segoe UI", "Noto Sans", sans-serif;
+  color: var(--gh-text);
+  overflow-y: auto;
+}
+
+.word-preview-content {
+  max-width: 800px;
+  padding: 1.5rem 2rem;
+  line-height: 1.7;
+}
+
+.word-preview-content h1,
+.word-preview-content h2,
+.word-preview-content h3,
+.word-preview-content h4 {
+  margin: 1.2em 0 0.4em;
+}
+
+.word-preview-content p {
+  margin: 0.5em 0;
+}
+
+.word-preview-content table {
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.word-preview-content td,
+.word-preview-content th {
+  border: 1px solid var(--gh-border);
+  padding: 0.35em 0.75em;
+}
+
 #fileContentTextarea {
   margin: 0;
   min-height: 0;

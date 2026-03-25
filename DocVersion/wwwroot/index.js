@@ -51,7 +51,11 @@ function revokePreviewObjectUrl() {
 
 function resetPreviewSurface() {
   revokePreviewObjectUrl();
-  fileContentBody.classList.remove("media-preview", "binary-preview");
+  fileContentBody.classList.remove(
+    "media-preview",
+    "binary-preview",
+    "word-preview",
+  );
   fileContentBody.textContent = "";
 }
 
@@ -116,6 +120,32 @@ function showMediaPreview(blob, tagName) {
   updateEditorActions();
 }
 
+async function showWordPreview(blob) {
+  resetPreviewSurface();
+
+  fileContentBody.classList.add("word-preview");
+  fileContentTextarea.value = "";
+  currentFileIsEditable = false;
+  isEditMode = false;
+  fileContentBody.style.display = "block";
+  fileContentTextarea.style.display = "none";
+  updateEditorActions();
+
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer });
+    const container = document.createElement("div");
+    container.className = "word-preview-content";
+    container.innerHTML = result.value;
+    fileContentBody.appendChild(container);
+  } catch {
+    fileContentBody.classList.remove("word-preview");
+    fileContentBody.classList.add("binary-preview");
+    fileContentBody.textContent =
+      "Could not render this Word document. Use Download instead.";
+  }
+}
+
 function getResponseContentType(response) {
   return (response.headers.get("Content-Type") || "")
     .split(";")[0]
@@ -152,6 +182,16 @@ async function renderFilePreview(response, fileName, contextLabel = "") {
   if (contentType.startsWith("video/")) {
     const blob = await response.blob();
     showMediaPreview(blob, "video");
+    return;
+  }
+
+  const wordTypes = [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+  ];
+  if (wordTypes.includes(contentType)) {
+    const blob = await response.blob();
+    await showWordPreview(blob);
     return;
   }
 
