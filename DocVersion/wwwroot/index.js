@@ -61,6 +61,19 @@ function updateEditorActions() {
   cancelBtn.style.display = "none";
 }
 
+function showTextPreview(text, { editable = true } = {}) {
+  resetPreviewSurface();
+
+  fileContentBody.textContent = text || "This file is empty.";
+  fileContentTextarea.value = text || "";
+  currentFileIsEditable = editable;
+  isEditMode = false;
+
+  fileContentBody.style.display = "block";
+  fileContentTextarea.style.display = "none";
+  updateEditorActions();
+}
+
 function toApiPath(path = "") {
   if (!path) return "";
   return path
