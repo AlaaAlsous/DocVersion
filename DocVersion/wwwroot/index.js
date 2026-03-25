@@ -146,6 +146,26 @@ async function showWordPreview(blob) {
   }
 }
 
+function showPdfPreview(blob) {
+  resetPreviewSurface();
+
+  activePreviewObjectUrl = URL.createObjectURL(blob);
+  const embed = document.createElement("embed");
+  embed.src = activePreviewObjectUrl;
+  embed.type = "application/pdf";
+  embed.className = "file-preview-pdf";
+
+  fileContentBody.classList.add("media-preview");
+  fileContentBody.appendChild(embed);
+  fileContentTextarea.value = "";
+  currentFileIsEditable = false;
+  isEditMode = false;
+
+  fileContentBody.style.display = "block";
+  fileContentTextarea.style.display = "none";
+  updateEditorActions();
+}
+
 function getResponseContentType(response) {
   return (response.headers.get("Content-Type") || "")
     .split(";")[0]
@@ -182,6 +202,12 @@ async function renderFilePreview(response, fileName, contextLabel = "") {
   if (contentType.startsWith("video/")) {
     const blob = await response.blob();
     showMediaPreview(blob, "video");
+    return;
+  }
+
+  if (contentType === "application/pdf") {
+    const blob = await response.blob();
+    showPdfPreview(blob);
     return;
   }
 
