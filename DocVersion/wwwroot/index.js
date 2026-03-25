@@ -74,6 +74,20 @@ function showTextPreview(text, { editable = true } = {}) {
   updateEditorActions();
 }
 
+function showBinaryPreviewMessage(message) {
+  resetPreviewSurface();
+
+  fileContentBody.classList.add("binary-preview");
+  fileContentBody.textContent = message;
+  fileContentTextarea.value = "";
+  currentFileIsEditable = false;
+  isEditMode = false;
+
+  fileContentBody.style.display = "block";
+  fileContentTextarea.style.display = "none";
+  updateEditorActions();
+}
+
 function toApiPath(path = "") {
   if (!path) return "";
   return path
