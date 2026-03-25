@@ -195,6 +195,52 @@ function updateHistoryNavigationUi() {
   forwardBtn.disabled = !canGoNewer;
 }
 
+async function showHistoryVersionContent(fileName, version) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+
+  const filePath = currentPath ? `${currentPath}/${fileName}` : fileName;
+  const encodedFilePath = toApiPath(filePath);
+
+  try {
+    const response = await fetch(
+      `/api/files/history/${version}/${encodedFilePath}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      showErrorMessage("Failed to load history version");
+      return;
+    }
+
+    const text = await response.text();
+    currentFileName = fileName;
+
+    setFileContentHeader(fileName, `History v${version}`);
+    fileContentBody.textContent = text || "This file is empty.";
+    fileContentTextarea.value = text || "";
+
+    editBtn.style.display = "inline-block";
+    saveBtn.style.display = "none";
+    cancelBtn.style.display = "none";
+
+    isEditMode = false;
+    fileContentBody.style.display = "block";
+    fileContentTextarea.style.display = "none";
+
+    clearErrorMessage();
+  } catch (error) {
+    showErrorMessage("Error loading history version");
+  }
+}
+
 function showMetadata(file, metadata) {
   metadataBox.style.display = "block";
   metadataBox.innerHTML = `
