@@ -5,7 +5,8 @@
   "main": "run.js",
   "scripts": {
     "generate": "node tests/generate.js",
-    "test": "node tests/run.js"
+    "test": "node tests/run.js",
+    "build": "tsc -p DocVersion"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +14,8 @@
   "type": "module",
   "dependencies": {
     "@microsoft/signalr": "^10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
   }
 }
