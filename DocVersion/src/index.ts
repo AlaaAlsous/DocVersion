@@ -1,65 +1,62 @@
-"use strict";
-const loginModal = document.getElementById("loginModal");
-const modalUserName = document.getElementById("modalUserName");
-const modalPassword = document.getElementById("modalPassword");
-const modalSubmit = document.getElementById("modalSubmit");
-const logoutBtn = document.getElementById("logoutBtn");
-const currentUser = document.getElementById("currentUser");
-const modalError = document.getElementById("modalError");
+const loginModal: any = document.getElementById("loginModal");
+const modalUserName: any = document.getElementById("modalUserName");
+const modalPassword: any = document.getElementById("modalPassword");
+const modalSubmit: any = document.getElementById("modalSubmit");
+const logoutBtn: any = document.getElementById("logoutBtn");
+const currentUser: any = document.getElementById("currentUser");
+const modalError: any = document.getElementById("modalError");
 
-const createFolderBtn = document.getElementById("createFolderBtn");
-const folderNameInput = document.getElementById("folderName");
+const createFolderBtn: any = document.getElementById("createFolderBtn");
+const folderNameInput: any = document.getElementById("folderName");
 
-const uploadBtn = document.getElementById("uploadBtn");
-const fileInput = document.getElementById("fileInput");
-const fileInputLabel = document.getElementById("fileInputLabel");
-const fileInputName = document.getElementById("fileInputName");
+const uploadBtn: any = document.getElementById("uploadBtn");
+const fileInput: any = document.getElementById("fileInput");
+const fileInputLabel: any = document.getElementById("fileInputLabel");
+const fileInputName: any = document.getElementById("fileInputName");
 
-const errorMessage = document.getElementById("errorMessage");
-const explorerPath = document.getElementById("explorerPath");
-const fileList = document.getElementById("file-list");
+const errorMessage: any = document.getElementById("errorMessage");
+const explorerPath: any = document.getElementById("explorerPath");
+const fileList: any = document.getElementById("file-list");
 
-const fileContentTitle = document.getElementById("fileContentTitle");
-const fileContentBody = document.getElementById("fileContentBody");
-const fileContentPath = document.getElementById("fileContentPath");
-const fileContentTextarea = document.getElementById("fileContentTextarea");
-const editBtn = document.getElementById("editBtn");
-const saveBtn = document.getElementById("saveBtn");
-const cancelBtn = document.getElementById("cancelBtn");
+const fileContentTitle: any = document.getElementById("fileContentTitle");
+const fileContentBody: any = document.getElementById("fileContentBody");
+const fileContentPath: any = document.getElementById("fileContentPath");
+const fileContentTextarea: any = document.getElementById("fileContentTextarea");
+const editBtn: any = document.getElementById("editBtn");
+const saveBtn: any = document.getElementById("saveBtn");
+const cancelBtn: any = document.getElementById("cancelBtn");
 
-const metadataBox = document.getElementById("file-info-box");
-const historyBox = document.getElementById("file-history-box");
+const metadataBox: any = document.getElementById("file-info-box");
+const historyBox: any = document.getElementById("file-history-box");
 
-let connection;
-let currentPath = "";
-let currentFileName = "";
-let activeHistoryFileName = "";
-let activeHistoryEntries = [];
-let historyCursor = -1;
-let isEditMode = false;
-let currentFileIsEditable = false;
-let errorMessageTimeoutId = null;
-let modalErrorTimeoutId = null;
-let activePreviewObjectUrl = null;
+let connection: any;
+let currentPath: string = "";
+let currentFileName: string = "";
+let activeHistoryFileName: string = "";
+let activeHistoryEntries: any[] = [];
+let historyCursor: number = -1;
+let isEditMode: boolean = false;
+let currentFileIsEditable: boolean = false;
+let errorMessageTimeoutId: any = null;
+let modalErrorTimeoutId: any = null;
+let activePreviewObjectUrl: string | null = null;
 
 const MESSAGE_TIMEOUT_MS = 5000;
 const DEFAULT_PREVIEW_TEXT = "Select a file to preview its content.";
 
-function revokePreviewObjectUrl() {
+function revokePreviewObjectUrl(): void {
   if (!activePreviewObjectUrl) return;
-
   URL.revokeObjectURL(activePreviewObjectUrl);
   activePreviewObjectUrl = null;
 }
 
-function resetPreviewSurface() {
+function resetPreviewSurface(): void {
   revokePreviewObjectUrl();
   fileContentBody.classList.remove(
     "media-preview",
     "binary-preview",
     "word-preview",
   );
-  fileContentBody.textContent = "";
 }
 
 function updateEditorActions() {
@@ -68,7 +65,10 @@ function updateEditorActions() {
   cancelBtn.style.display = "none";
 }
 
-function showTextPreview(text, { editable = true } = {}) {
+function showTextPreview(
+  text: string,
+  { editable = true }: { editable?: boolean } = {},
+) {
   resetPreviewSurface();
 
   fileContentBody.textContent = text || "This file is empty.";
@@ -81,7 +81,7 @@ function showTextPreview(text, { editable = true } = {}) {
   updateEditorActions();
 }
 
-function showBinaryPreviewMessage(message) {
+function showBinaryPreviewMessage(message: string) {
   resetPreviewSurface();
 
   fileContentBody.classList.add("binary-preview");
@@ -95,21 +95,26 @@ function showBinaryPreviewMessage(message) {
   updateEditorActions();
 }
 
-function showMediaPreview(blob, tagName) {
+function showMediaPreview(blob: Blob, tagName: string) {
   resetPreviewSurface();
 
   activePreviewObjectUrl = URL.createObjectURL(blob);
-  const mediaElement = document.createElement(tagName);
-  mediaElement.src = activePreviewObjectUrl;
-  mediaElement.className = "file-preview-media";
-
+  let mediaElement: HTMLImageElement | HTMLVideoElement;
   if (tagName === "img") {
+    mediaElement = document.createElement("img");
+    mediaElement.src = activePreviewObjectUrl!;
+    mediaElement.className = "file-preview-media";
     mediaElement.alt = currentFileName || "Image preview";
-  }
-
-  if (tagName === "video") {
+  } else if (tagName === "video") {
+    mediaElement = document.createElement("video");
+    mediaElement.src = activePreviewObjectUrl!;
+    mediaElement.className = "file-preview-media";
     mediaElement.controls = true;
     mediaElement.preload = "metadata";
+  } else {
+    mediaElement = document.createElement(tagName) as any;
+    (mediaElement as any).src = activePreviewObjectUrl!;
+    mediaElement.className = "file-preview-media";
   }
 
   fileContentBody.classList.add("media-preview");
@@ -123,7 +128,7 @@ function showMediaPreview(blob, tagName) {
   updateEditorActions();
 }
 
-async function showWordPreview(blob) {
+async function showWordPreview(blob: Blob) {
   resetPreviewSurface();
 
   fileContentBody.classList.add("word-preview");
@@ -136,7 +141,7 @@ async function showWordPreview(blob) {
 
   try {
     const arrayBuffer = await blob.arrayBuffer();
-    const result = await mammoth.convertToHtml({ arrayBuffer });
+    const result = await (window as any).mammoth.convertToHtml({ arrayBuffer });
     const container = document.createElement("div");
     container.className = "word-preview-content";
     container.innerHTML = result.value;
@@ -149,7 +154,7 @@ async function showWordPreview(blob) {
   }
 }
 
-function showPdfPreview(blob) {
+function showPdfPreview(blob: Blob) {
   resetPreviewSurface();
 
   activePreviewObjectUrl = URL.createObjectURL(blob);
@@ -169,14 +174,19 @@ function showPdfPreview(blob) {
   updateEditorActions();
 }
 
-function getResponseContentType(response) {
-  return (response.headers.get("Content-Type") || "")
-    .split(";")[0]
-    .trim()
-    .toLowerCase();
+function getResponseContentType(response: Response): string {
+  const contentType: string | null = response.headers.get("Content-Type");
+
+  if (contentType === null) {
+    return "";
+  }
+
+  const index = contentType.indexOf(";");
+  const mainType = index === -1 ? contentType : contentType.substring(0, index);
+  return mainType.trim().toLowerCase();
 }
 
-function isTextContentType(contentType) {
+function isTextContentType(contentType: string): boolean {
   if (!contentType) return false;
   if (contentType.startsWith("text/")) return true;
 
@@ -190,7 +200,11 @@ function isTextContentType(contentType) {
   );
 }
 
-async function renderFilePreview(response, fileName, contextLabel = "") {
+async function renderFilePreview(
+  response: Response,
+  fileName: string,
+  contextLabel = "",
+) {
   currentFileName = fileName;
   setFileContentHeader(fileName, contextLabel);
 
@@ -246,7 +260,7 @@ function toApiPath(path = "") {
     .join("/");
 }
 
-function setCurrentUser(username) {
+function setCurrentUser(username: string) {
   if (!username) {
     currentUser.textContent = "";
     currentUser.style.display = "none";
@@ -287,7 +301,7 @@ function clearModalError() {
   modalError.style.display = "none";
 }
 
-function showModalError(message) {
+function showModalError(message: string) {
   clearModalError();
   modalError.textContent = message;
   modalError.style.display = "block";
@@ -309,7 +323,7 @@ function clearErrorMessage() {
   errorMessage.style.borderColor = "";
 }
 
-function showErrorMessage(message) {
+function showErrorMessage(message: string) {
   clearErrorMessage();
   errorMessage.textContent = message;
   errorMessage.style.display = "block";
@@ -318,7 +332,7 @@ function showErrorMessage(message) {
   }, MESSAGE_TIMEOUT_MS);
 }
 
-function showSuccessMessage(message) {
+function showSuccessMessage(message: string) {
   clearErrorMessage();
   errorMessage.textContent = message;
   errorMessage.style.color = "var(--gh-success-text)";
@@ -330,14 +344,14 @@ function showSuccessMessage(message) {
   }, MESSAGE_TIMEOUT_MS);
 }
 
-function handleUnauthorizedResponse(response) {
+function handleUnauthorizedResponse(response: Response): boolean {
   if (response.status !== 401) return false;
 
   logout();
   return true;
 }
 
-function showDeleteConfirmation(itemName, itemPath) {
+function showDeleteConfirmation(itemName: string, itemPath: string) {
   clearErrorMessage();
 
   errorMessage.style.display = "block";
@@ -399,7 +413,7 @@ function updateHistoryNavigationUi() {
   forwardBtn.disabled = !canGoNewer;
 }
 
-async function showHistoryVersionContent(fileName, version) {
+async function showHistoryVersionContent(fileName: string, version: number) {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -436,7 +450,7 @@ async function showHistoryVersionContent(fileName, version) {
   }
 }
 
-async function navigateHistory(direction) {
+async function navigateHistory(direction: number) {
   if (!activeHistoryFileName) return;
   if (isEditMode) return;
 
@@ -465,7 +479,16 @@ async function navigateHistory(direction) {
   updateHistoryNavigationUi();
 }
 
-function showMetadata(file, metadata) {
+function showMetadata(
+  file: string,
+  metadata: {
+    type: string;
+    bytes: number | string;
+    created: string;
+    changed: string;
+    extension?: string;
+  },
+) {
   metadataBox.style.display = "block";
   metadataBox.innerHTML = `
     <div class="metadata-header">
@@ -481,7 +504,10 @@ function showMetadata(file, metadata) {
   `;
 }
 
-function displayFileHistory(filename, history) {
+function displayFileHistory(
+  filename: string,
+  history: { version: number; createdAt: string }[],
+) {
   activeHistoryFileName = filename;
   activeHistoryEntries = history;
   historyCursor = -1;
@@ -562,7 +588,7 @@ async function startSignalR() {
   const token = localStorage.getItem("jwt");
   if (!token) return false;
 
-  const shouldRefreshCurrentPath = (path) => {
+  const shouldRefreshCurrentPath = (path: string) => {
     if (!path) return false;
     if (!currentPath) return !path.includes("/");
     return path === currentPath || path.startsWith(`${currentPath}/`);
@@ -576,12 +602,13 @@ async function startSignalR() {
     }
   }
 
-  const nextConnection = new signalR.HubConnectionBuilder()
+  // @ts-ignore
+  const nextConnection = new (window as any).signalR.HubConnectionBuilder()
     .withUrl("api/events/signalr", { accessTokenFactory: () => token })
     .withAutomaticReconnect()
     .build();
 
-  nextConnection.on("Event", (type, path) => {
+  nextConnection.on("Event", (type: number, path: string) => {
     switch (type) {
       case 0:
       case 1:
@@ -666,7 +693,7 @@ function logout() {
   activeHistoryFileName = "";
 
   if (connection) {
-    connection.stop().catch((error) => {
+    connection.stop().catch((error: any) => {
       console.error("SignalR disconnect error:", error);
     });
     connection = null;
@@ -722,7 +749,7 @@ async function getFiles(path = "") {
   }
 }
 
-async function getFilesHistory(filename) {
+async function getFilesHistory(filename: string) {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -758,7 +785,7 @@ async function getFilesHistory(filename) {
   }
 }
 
-async function restoreFileVersion(filename, version) {
+async function restoreFileVersion(filename: string, version: number) {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -797,7 +824,7 @@ async function restoreFileVersion(filename, version) {
   }
 }
 
-async function showFileContent(fileName, contextLabel = "") {
+async function showFileContent(fileName: string, contextLabel = "") {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -877,7 +904,7 @@ async function saveFile() {
   }
 }
 
-async function showItemMetadata(itemName) {
+async function showItemMetadata(itemName: string) {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -905,8 +932,9 @@ async function showItemMetadata(itemName) {
     }
 
     const itemType = response.headers.get("X-Type") ?? "item";
+    const bytesHeader = response.headers.get("X-Bytes");
     const metadata = {
-      bytes: response.headers.get("X-Bytes") ?? "Unknown",
+      bytes: bytesHeader ? Number(bytesHeader) : "Unknown",
       created: response.headers.get("X-Created-At") ?? "Unknown",
       changed: response.headers.get("X-Changed-At") ?? "Unknown",
       extension: response.headers.get("X-Extension") ?? "",
@@ -1015,7 +1043,7 @@ async function uploadFile() {
   }
 }
 
-async function downloadFile(file) {
+async function downloadFile(file: string) {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -1057,7 +1085,7 @@ async function downloadFile(file) {
   }
 }
 
-async function deleteItem(item) {
+async function deleteItem(item: string) {
   const token = localStorage.getItem("jwt");
   if (!token) {
     logout();
@@ -1092,7 +1120,7 @@ async function deleteItem(item) {
   }
 }
 
-function displayFiles(files) {
+function displayFiles(files: Record<string, { file: boolean }>) {
   fileList.innerHTML = "";
 
   if (currentPath) {
@@ -1253,11 +1281,11 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-modalUserName.addEventListener("keydown", (event) => {
+modalUserName.addEventListener("keydown", (event: KeyboardEvent) => {
   if (event.key === "Enter") login();
 });
 
-modalPassword.addEventListener("keydown", (event) => {
+modalPassword.addEventListener("keydown", (event: KeyboardEvent) => {
   if (event.key === "Enter") login();
 });
 
