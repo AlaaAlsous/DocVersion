@@ -9,8 +9,11 @@ const modalError = document.getElementById("modalError");
 
 const createFolderBtn = document.getElementById("createFolderBtn");
 const folderNameInput = document.getElementById("folderName");
+
 const uploadBtn = document.getElementById("uploadBtn");
 const fileInput = document.getElementById("fileInput");
+const fileInputLabel = document.getElementById("fileInputLabel");
+const fileInputName = document.getElementById("fileInputName");
 
 const errorMessage = document.getElementById("errorMessage");
 const explorerPath = document.getElementById("explorerPath");
@@ -1219,6 +1222,14 @@ uploadBtn.addEventListener("click", uploadFile);
 createFolderBtn.addEventListener("click", createFolder);
 modalSubmit.addEventListener("click", login);
 logoutBtn.addEventListener("click", logout);
+
+fileInput.addEventListener("change", function () {
+  if (fileInput.files && fileInput.files.length > 0) {
+    fileInputName.textContent = fileInput.files[0].name;
+  } else {
+    fileInputName.textContent = "";
+  }
+});
 
 document.addEventListener("keydown", (event) => {
   if (!activeHistoryFileName || historyBox.style.display === "none") return;

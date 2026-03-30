@@ -450,8 +450,7 @@ h1 {
   border: 1px solid var(--gh-border);
 }
 
-.action-group input[type="text"],
-.action-group input[type="file"] {
+.action-group input[type="text"] {
   width: 100%;
   min-width: 0;
   border: 1px solid var(--gh-border);
@@ -462,6 +461,51 @@ h1 {
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
+}
+
+#fileInput {
+  position: relative;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+#fileInputName {
+  min-width: 120px;
+  color: var(--gh-muted);
+  font-size: 0.95em;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+#uploadBtn {
+  position: relative;
+  margin-left: auto;
+  z-index: 1;
+}
+
+#fileInputLabel {
+  display: inline-block;
+  padding: 0.45rem 0.62rem;
+  background: var(--gh-input-bg);
+  color: var(--gh-text);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+#fileInput:focus + #fileInputLabel {
+  border-color: var(--gh-accent);
+  box-shadow: 0 0 0 3px #0969da26;
 }
 
 #folderName:focus,
