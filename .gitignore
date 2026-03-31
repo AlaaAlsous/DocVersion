@@ -4,13 +4,13 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # Project-specific ignores (DocVersion ASP.NET API)
-DocVersion/bin/
-DocVersion/obj/
-DocVersion/TestResults/
-DocVersion/coverage/
-DocVersion/Data/*.db
-DocVersion/Data/*.db-wal
-DocVersion/Data/*.db-shm
+DocVersion.Server/bin/
+DocVersion.Server/obj/
+DocVersion.Server/TestResults/
+DocVersion.Server/coverage/
+DocVersion.Server/Data/*.db
+DocVersion.Server/Data/*.db-wal
+DocVersion.Server/Data/*.db-shm
 
 # Local secrets and env files
 .env.local
