@@ -52,6 +52,7 @@ function revokePreviewObjectUrl(): void {
 
 function resetPreviewSurface(): void {
   revokePreviewObjectUrl();
+  fileContentBody.innerHTML = "";
   fileContentBody.classList.remove(
     "media-preview",
     "binary-preview",
@@ -232,7 +233,7 @@ async function renderFilePreview(
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/msword",
   ];
-  if (wordTypes.includes(contentType)) {
+  if ((wordTypes as string[]).includes(contentType)) {
     const blob = await response.blob();
     await showWordPreview(blob);
     return;
@@ -493,7 +494,7 @@ function showMetadata(
   metadataBox.innerHTML = `
     <div class="metadata-header">
       <h3>Metadata</h3>
-      <button class="metadata-close-btn" type="button" onclick="closeMetadata()" aria-label="Close metadata">X</button>
+      <button id="closeMetadataBtn" class="metadata-close-btn" type="button" aria-label="Close metadata">X</button>
     </div>
     <p><strong>Name:</strong> ${file}</p>
     <p><strong>Type:</strong> ${metadata.type}</p>
@@ -502,6 +503,9 @@ function showMetadata(
     <p><strong>Modified:</strong> ${metadata.changed}</p>
     <p><strong>Extension:</strong> ${metadata.extension || "-"}</p>
   `;
+
+  const closeBtn = metadataBox.querySelector("#closeMetadataBtn");
+  if (closeBtn) closeBtn.addEventListener("click", closeMetadata);
 }
 
 function displayFileHistory(
@@ -514,27 +518,50 @@ function displayFileHistory(
   historyBox.innerHTML = `
     <div class="history-header">
       <h3>History: ${filename}</h3>
-      <button class="metadata-close-btn" type="button" onclick="closeFileHistory()" aria-label="Close history">X</button>
+      <button id="closeHistoryBtn" class="metadata-close-btn" type="button" aria-label="Close history">X</button>
     </div>
     <div class="history-nav" role="group" aria-label="History navigation">
-      <button id="historyBackBtn" class="history-nav-btn" type="button" onclick="navigateHistory(-1)">← Older</button>
+      <button id="historyBackBtn" class="history-nav-btn" type="button">← Older</button>
       <span id="historyNavStatus" class="history-nav-status">Nuvarande version</span>
-      <button id="historyForwardBtn" class="history-nav-btn" type="button" onclick="navigateHistory(1)">Newer →</button>
+      <button id="historyForwardBtn" class="history-nav-btn" type="button">Newer →</button>
     </div>
-    <ul class="history-list">
-      ${history
-        .map(
-          (h) => `
-        <li class="history-item">
-          <span class="history-version">V.${h.version}</span>
-          <span class="history-date">${new Date(h.createdAt).toLocaleString()}</span>
-          <button class="history-restore-btn" onclick="restoreFileVersion('${filename}', ${h.version})">Restore</button>
-        </li>
-      `,
-        )
-        .join("")}
-    </ul>
+    <ul class="history-list"></ul>
   `;
+
+  const closeBtn = historyBox.querySelector("#closeHistoryBtn");
+  if (closeBtn) closeBtn.addEventListener("click", closeFileHistory);
+  const backBtn = historyBox.querySelector("#historyBackBtn");
+  if (backBtn) backBtn.addEventListener("click", () => navigateHistory(-1));
+  const forwardBtn = historyBox.querySelector("#historyForwardBtn");
+  if (forwardBtn)
+    forwardBtn.addEventListener("click", () => navigateHistory(1));
+
+  const list = historyBox.querySelector(".history-list");
+  if (list) {
+    history.forEach((h) => {
+      const li = document.createElement("li");
+      li.className = "history-item";
+
+      const versionSpan = document.createElement("span");
+      versionSpan.className = "history-version";
+      versionSpan.textContent = `V.${h.version}`;
+
+      const dateSpan = document.createElement("span");
+      dateSpan.className = "history-date";
+      dateSpan.textContent = new Date(h.createdAt).toLocaleString();
+
+      const restoreBtn = document.createElement("button");
+      restoreBtn.className = "history-restore-btn";
+      restoreBtn.textContent = "Restore";
+      restoreBtn.addEventListener("click", () =>
+        restoreFileVersion(filename, h.version),
+      );
+
+      li.append(versionSpan, dateSpan, restoreBtn);
+      list.appendChild(li);
+    });
+  }
+
   historyBox.style.display = "block";
   updateHistoryNavigationUi();
 }
@@ -602,7 +629,6 @@ async function startSignalR() {
     }
   }
 
-  // @ts-ignore
   const nextConnection = new (window as any).signalR.HubConnectionBuilder()
     .withUrl("api/events/signalr", { accessTokenFactory: () => token })
     .withAutomaticReconnect()
@@ -1158,14 +1184,16 @@ function displayFiles(files: Record<string, { file: boolean }>) {
     return;
   }
 
-  const sortedItems = Object.entries(files).sort((a, b) => {
-    const aIsFile = a[1].file;
-    const bIsFile = b[1].file;
-    if (aIsFile !== bIsFile) return aIsFile ? 1 : -1;
-    return a[0].localeCompare(b[0], "sv");
-  });
+  const sortedItems = Object.entries(files).sort(
+    (a: [string, { file: boolean }], b: [string, { file: boolean }]) => {
+      const aIsFile = a[1].file;
+      const bIsFile = b[1].file;
+      if (aIsFile !== bIsFile) return aIsFile ? 1 : -1;
+      return a[0].localeCompare(b[0], "sv");
+    },
+  );
 
-  sortedItems.forEach(([name, metadata]) => {
+  sortedItems.forEach(([name, metadata]: [string, { file: boolean }]) => {
     const listItem = document.createElement("li");
     const itemLabel = document.createElement("span");
     const buttonGroup = document.createElement("div");
@@ -1250,6 +1278,10 @@ uploadBtn.addEventListener("click", uploadFile);
 createFolderBtn.addEventListener("click", createFolder);
 modalSubmit.addEventListener("click", login);
 logoutBtn.addEventListener("click", logout);
+
+editBtn.addEventListener("click", editFile);
+saveBtn.addEventListener("click", saveFile);
+cancelBtn.addEventListener("click", cancelEdit);
 
 fileInput.addEventListener("change", function () {
   if (fileInput.files && fileInput.files.length > 0) {
