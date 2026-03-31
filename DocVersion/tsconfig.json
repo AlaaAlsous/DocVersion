@@ -1,22 +1,24 @@
 {
   "compilerOptions": {
-    "rootDir": "./src", 
+    "rootDir": "./src",
     "outDir": "./wwwroot/js",
-    "module": "nodenext",
-    "target": "esnext",
+    "module": "ESNext",
+    "target": "ES2020",
     "types": [],
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+    "sourceMap": false,
+    "declaration": false,
+    "declarationMap": false,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "strict": true,
+    "esModuleInterop": true,
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "lib": ["ES2020", "DOM"]
   },
   "include": ["src/**/*.ts"]
 }
