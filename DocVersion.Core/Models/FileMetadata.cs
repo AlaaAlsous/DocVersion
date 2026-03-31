@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
-namespace DocVersion.Models;
+
+namespace DocVersion.Core.Models;
 
 public class FileMetadata
 {
