@@ -1,4 +1,4 @@
-namespace DocVersion.Security;
+namespace DocVersion.Server.Security;
 
 public class JwtOptions
 {

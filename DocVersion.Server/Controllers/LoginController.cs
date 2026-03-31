@@ -4,8 +4,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
-using DocVersion.Security;
-namespace DocVersion.Controllers;
+using DocVersion.Server.Security;
+namespace DocVersion.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

@@ -5,10 +5,10 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using DocVersion.Services;
-using DocVersion.Security;
-using DocVersion.Hubs;
-using DocVersion.Data;
+using DocVersion.Server.Services;
+using DocVersion.Server.Security;
+using DocVersion.Server.Hubs;
+using DocVersion.Server.Data;
 
 
 var builder = WebApplication.CreateBuilder(args);

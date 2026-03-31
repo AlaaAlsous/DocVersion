@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
-using DocVersion.Services;
-using DocVersion.Hubs;
-using DocVersion.Models;
+using DocVersion.Server.Services;
+using DocVersion.Server.Hubs;
+using DocVersion.Core.Models;
+using DocVersion.Server.Models;
 
-namespace DocVersion.Controllers;
+namespace DocVersion.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using DocVersion.Models;
+using DocVersion.Core.Models;
+using DocVersion.Server.Models;
 
-namespace DocVersion.Data;
+namespace DocVersion.Server.Data;
 
 public class AppDbContext : DbContext
 {

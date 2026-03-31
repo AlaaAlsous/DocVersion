@@ -1,4 +1,4 @@
-namespace DocVersion.Models;
+namespace DocVersion.Server.Models;
 
 public enum EventsType
 {

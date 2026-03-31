@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.StaticFiles;
-using DocVersion.Models;
-using DocVersion.Data;
+using DocVersion.Core.Models;
+using DocVersion.Server.Models;
+using DocVersion.Server.Data;
 using Microsoft.EntityFrameworkCore;
-namespace DocVersion.Services;
+namespace DocVersion.Server.Services;
 
 public class FileService
 {

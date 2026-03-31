@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace DocVersion.Models;
+namespace DocVersion.Server.Models;
 
 [Index(nameof(Username), nameof(FilePath))]
 [Index(nameof(Username), nameof(FilePath), nameof(Version), IsUnique = true)]
