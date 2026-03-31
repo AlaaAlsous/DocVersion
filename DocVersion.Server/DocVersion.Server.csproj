@@ -27,4 +27,8 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DocVersion.Core\DocVersion.Core.csproj" />
+  </ItemGroup>
+
 </Project>
