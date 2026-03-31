@@ -6,7 +6,7 @@
   "scripts": {
     "generate": "node tests/generate.js",
     "test": "node tests/run.js",
-    "build": "tsc -p DocVersion"
+    "build": "tsc -p DocVersion.Server"
   },
   "keywords": [],
   "author": "",
