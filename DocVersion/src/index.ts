@@ -11,7 +11,6 @@ const folderNameInput: any = document.getElementById("folderName");
 
 const uploadBtn: any = document.getElementById("uploadBtn");
 const fileInput: any = document.getElementById("fileInput");
-const fileInputLabel: any = document.getElementById("fileInputLabel");
 const fileInputName: any = document.getElementById("fileInputName");
 
 const errorMessage: any = document.getElementById("errorMessage");
@@ -1061,6 +1060,7 @@ async function uploadFile() {
     }
 
     fileInput.value = "";
+    fileInputName.textContent = "";
     await getFiles(currentPath);
     showSuccessMessage(`File uploaded: ${file.name}`);
   } catch (error) {
