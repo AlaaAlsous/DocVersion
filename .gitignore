@@ -12,6 +12,14 @@ DocVersion.Server/Data/*.db
 DocVersion.Server/Data/*.db-wal
 DocVersion.Server/Data/*.db-shm
 
+# DocVersion.Core
+DocVersion.Core/bin/
+DocVersion.Core/obj/
+
+# DocVersion.Client
+DocVersion.Client/bin/
+DocVersion.Client/obj/
+
 # Local secrets and env files
 .env.local
 .env.*.local
