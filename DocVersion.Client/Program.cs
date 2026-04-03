@@ -112,6 +112,35 @@ class Program
                 }
             }
         }
+
+        var localFiles = Directory.GetFiles(cwd, "*", SearchOption.AllDirectories);
+        foreach (var localFile in localFiles)
+        {
+            var relativePath = Path.GetRelativePath(cwd, localFile).Replace("\\", "/");
+            if (!flatServerFiles.ContainsKey(relativePath))
+            {
+                try
+                {
+                    if (File.Exists(localFile))
+                    {
+                        File.Delete(localFile);
+                        MessageColor($"Deleted file: {localFile}", ConsoleColor.DarkRed);
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    MessageColor($"Error: You do not have permission to delete {localFile}", ConsoleColor.Red);
+                }
+                catch (IOException ex)
+                {
+                    MessageColor($"Error: Could not delete {localFile}. It may be in use. {ex.Message}", ConsoleColor.Red);
+                }
+                catch (Exception ex)
+                {
+                    MessageColor($"Unexpected error deleting {localFile}: {ex.Message}", ConsoleColor.Red);
+                }
+            }
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
