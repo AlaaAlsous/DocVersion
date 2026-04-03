@@ -66,6 +66,26 @@ class Program
         return 0;
     }
 
+    private static async Task Pull(HttpClient client, string serverUrl, string cwd)
+    {
+        MessageColor("Pulling files from server...", ConsoleColor.DarkGreen);
+        var response = await client.GetAsync($"{serverUrl}/api/files");
+        if (!response.IsSuccessStatusCode)
+        {
+            MessageColor("Failed to pull files: " + response.StatusCode, ConsoleColor.Red);
+            return;
+        }
+        var files = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>();
+        if (files == null)
+        {
+            MessageColor("No files found on server.", ConsoleColor.Yellow);
+            return;
+        }
+
+        var flatServerFiles = ToFlatList(files)
+            .ToDictionary(entry => entry.Path, entry => entry.Metadata);
+    }
+
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
     {
         foreach (var entry in source)
