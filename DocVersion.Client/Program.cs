@@ -19,9 +19,52 @@ class Program
         var cwd = Directory.GetCurrentDirectory();
 
         MessageColor("Working directory: " + cwd, ConsoleColor.Cyan);
+
+        try
+        {
+            using var client = new HttpClient();
+
+
+            var loginResponse = await client.PostAsJsonAsync(
+                $"{serverUrl}/api/login",
+                new { User = username, Password = password });
+
+            if (!loginResponse.IsSuccessStatusCode)
+            {
+                MessageColor("Login failed: " + loginResponse.StatusCode, ConsoleColor.Red);
+                return 1;
+            }
+            var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+            var token = loginResult?.Token;
+            if (string.IsNullOrEmpty(token))
+            {
+                MessageColor("Login failed: No token received", ConsoleColor.Red);
+                Console.ResetColor();
+                return 1;
+            }
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            if (command == "pull")
+            {
+                await Pull(client, serverUrl, cwd);
+            }
+            else if (command == "push")
+            {
+                await Push(client, serverUrl, cwd);
+            }
+            else
+            {
+                MessageColor("Unknown command: " + command, ConsoleColor.Red);
+                return 1;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageColor("Error: " + ex.Message, ConsoleColor.Red);
+            return 1;
+        }
         return 0;
     }
-
 
     private static string NormalizeServerUrl(string url)
     {
@@ -42,5 +85,10 @@ class Program
         Console.WriteLine(message);
         Console.ResetColor();
         return message;
+    }
+
+    class LoginResponse
+    {
+        public string Token { get; set; } = "";
     }
 }
