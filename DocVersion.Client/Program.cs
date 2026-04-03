@@ -84,6 +84,34 @@ class Program
 
         var flatServerFiles = ToFlatList(files)
             .ToDictionary(entry => entry.Path, entry => entry.Metadata);
+
+        foreach (var file in flatServerFiles.OrderBy(entry => entry.Value.IsFile))
+        {
+            var filename = file.Key;
+            var metadata = file.Value;
+            var localPath = Path.Combine(cwd, filename);
+            if (metadata.IsFile)
+            {
+                MessageColor($"Pulling file: {filename} ({metadata.Bytes} bytes)", ConsoleColor.White);
+                var fileResponse = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filename)}");
+                if (!fileResponse.IsSuccessStatusCode)
+                {
+                    MessageColor($"Failed to pull file {filename}: " + fileResponse.StatusCode, ConsoleColor.Red);
+                    continue;
+                }
+                var content = await fileResponse.Content.ReadAsByteArrayAsync();
+                Directory.CreateDirectory(Path.GetDirectoryName(localPath) ?? "");
+                await File.WriteAllBytesAsync(localPath, content);
+            }
+            else
+            {
+                if (!Directory.Exists(localPath))
+                {
+                    MessageColor($"Creating folder: {filename}", ConsoleColor.DarkGray);
+                    Directory.CreateDirectory(localPath);
+                }
+            }
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
