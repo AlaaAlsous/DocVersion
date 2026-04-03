@@ -231,27 +231,9 @@ public class FileService
         var userPath = GetSafePath(username, foldername);
         if (!Directory.Exists(userPath))
             return Task.FromResult(false);
-        PrepareDirectoryForDelete(userPath);
+        FileHelper.PrepareDirectoryForDelete(userPath);
         Directory.Delete(userPath, recursive: true);
         return Task.FromResult(true);
-    }
-
-    private static void PrepareDirectoryForDelete(string folder)
-    {
-        foreach (var path in Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.AllDirectories))
-        {
-            try
-            {
-                File.SetAttributes(path, FileAttributes.Normal);
-            }
-            catch { }
-        }
-
-        try
-        {
-            File.SetAttributes(folder, FileAttributes.Normal);
-        }
-        catch { }
     }
 
     public Task<bool> FileExistsAsync(string username, string filename)

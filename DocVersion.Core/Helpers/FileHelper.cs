@@ -48,4 +48,15 @@ public static class FileHelper
         }
         return totalBytes;
     }
+
+    public static void PrepareDirectoryForDelete(string folder)
+    {
+        foreach (var path in Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.AllDirectories))
+        {
+            try { File.SetAttributes(path, FileAttributes.Normal); }
+            catch { }
+        }
+        try { File.SetAttributes(folder, FileAttributes.Normal); }
+        catch { }
+    }
 }
