@@ -66,6 +66,22 @@ class Program
         return 0;
     }
 
+    private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
+    {
+        foreach (var entry in source)
+        {
+            var currentPath = string.IsNullOrEmpty(currentFolder) ? entry.Key : $"{currentFolder}/{entry.Key}";
+            var normalizedPath = currentPath.Replace("\\", "/");
+            yield return (normalizedPath, entry.Value);
+
+            if (entry.Value.Content != null)
+            {
+                foreach (var nested in ToFlatList(entry.Value.Content, normalizedPath))
+                    yield return nested;
+            }
+        }
+    }
+
     private static string NormalizeServerUrl(string url)
     {
         if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
