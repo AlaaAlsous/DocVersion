@@ -167,6 +167,25 @@ class Program
         }
     }
 
+    private static async Task Push(HttpClient client, string serverUrl, string cwd)
+    {
+        MessageColor("Pushing files to server...", ConsoleColor.DarkGreen);
+        var response = await client.GetAsync($"{serverUrl}/api/files");
+        if (!response.IsSuccessStatusCode)
+        {
+            MessageColor("Failed to get file list from server: " + response.StatusCode, ConsoleColor.Red);
+            return;
+        }
+        var serverFiles = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>();
+        if (serverFiles == null) serverFiles = new Dictionary<string, FileMetadata>();
+
+        var flatServerFiles = ToFlatList(serverFiles)
+            .ToDictionary(entry => entry.Path, entry => entry.Metadata);
+
+        var localTree = FileHelper.GetFolderContent(cwd);
+        var flatLocalEntries = ToFlatList(localTree).ToList();
+    }
+
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
     {
         foreach (var entry in source)
