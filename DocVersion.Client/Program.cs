@@ -235,6 +235,21 @@ class Program
                     MessageColor($"Deleted folder from server: {foldername}", ConsoleColor.Green);
             }
         }
+
+        foreach (var serverFile in flatServerFiles.Where(entry => entry.Value.IsFile))
+        {
+            var filename = serverFile.Key;
+            if (!localPaths.Contains(filename))
+            {
+                var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(filename)}");
+                if (!deleteResponse.IsSuccessStatusCode)
+                {
+                    MessageColor($"Failed to delete file {filename} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
+                }
+                else
+                    MessageColor($"Deleted file from server: {filename}", ConsoleColor.Green);
+            }
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
