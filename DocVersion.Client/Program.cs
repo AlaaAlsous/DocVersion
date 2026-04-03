@@ -24,8 +24,14 @@ class Program
         {
             using var client = new HttpClient();
 
-            if (username != null && password != null)
+            if (username != null || password != null)
             {
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+                {
+                    MessageColor("Both username and password must be provided.", ConsoleColor.Red);
+                    return 1;
+                }
+
                 var loginResponse = await client.PostAsJsonAsync(
                     $"{serverUrl}/api/login",
                     new { User = username, Password = password });
@@ -73,14 +79,12 @@ class Program
         var response = await client.GetAsync($"{serverUrl}/api/files");
         if (!response.IsSuccessStatusCode)
         {
-            MessageColor("Failed to pull files: " + response.StatusCode, ConsoleColor.Red);
-            return;
+            throw new Exception("Failed to pull files: " + response.StatusCode);
         }
         var files = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>();
         if (files == null)
         {
-            MessageColor("No files found on server.", ConsoleColor.Yellow);
-            return;
+            files = new Dictionary<string, FileMetadata>();
         }
 
         var flatServerFiles = ToFlatList(files)
@@ -172,8 +176,7 @@ class Program
         var response = await client.GetAsync($"{serverUrl}/api/files");
         if (!response.IsSuccessStatusCode)
         {
-            MessageColor("Failed to get file list from server: " + response.StatusCode, ConsoleColor.Red);
-            return;
+            throw new Exception("Failed to get file list from server: " + response.StatusCode);
         }
         var serverFiles = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>();
         if (serverFiles == null) serverFiles = new Dictionary<string, FileMetadata>();
