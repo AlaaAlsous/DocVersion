@@ -204,6 +204,20 @@ class Program
                 MessageColor($"Successfully created folder on server: {localFolder.Path}", ConsoleColor.Green);
             }
         }
+
+        foreach (var localFile in flatLocalEntries.Where(entry => entry.Metadata.IsFile))
+        {
+            MessageColor($"Pushing file: {localFile.Path}", ConsoleColor.White);
+            using var fileStream = File.OpenRead(Path.Combine(cwd, localFile.Path));
+            var content = new StreamContent(fileStream);
+            var putResponse = await client.PutAsync($"{serverUrl}/api/files/{EncodePathForApi(localFile.Path)}", content);
+            if (!putResponse.IsSuccessStatusCode)
+            {
+                MessageColor($"Failed to push file {localFile.Path}: " + putResponse.StatusCode, ConsoleColor.Red);
+            }
+            else
+                MessageColor($"Successfully pushed file: {localFile.Path}", ConsoleColor.Green);
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
