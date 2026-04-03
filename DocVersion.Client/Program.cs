@@ -141,6 +141,30 @@ class Program
                 }
             }
         }
+
+        var localDirs = Directory.GetDirectories(cwd, "*", SearchOption.AllDirectories)
+            .OrderByDescending(path => path.Length);
+
+        foreach (var localDir in localDirs)
+        {
+            var relativeDirPath = Path.GetRelativePath(cwd, localDir).Replace("\\", "/");
+            var existsOnServerAsFolder = flatServerFiles.TryGetValue(relativeDirPath, out var metadata) && !metadata.IsFile;
+            if (existsOnServerAsFolder)
+                continue;
+
+            if (!Directory.EnumerateFileSystemEntries(localDir).Any())
+            {
+                try
+                {
+                    Directory.Delete(localDir);
+                    MessageColor($"Deleted folder: {localDir}", ConsoleColor.DarkRed);
+                }
+                catch (Exception ex)
+                {
+                    MessageColor($"Could not delete folder {localDir}: {ex.Message}", ConsoleColor.Red);
+                }
+            }
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
