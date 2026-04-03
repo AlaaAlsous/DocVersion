@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.StaticFiles;
+using DocVersion.Core.Helpers;
 using DocVersion.Core.Models;
 using DocVersion.Server.Models;
 using DocVersion.Server.Data;
@@ -29,7 +30,7 @@ public class FileService
         if (!Directory.Exists(userPath))
             Directory.CreateDirectory(userPath);
 
-        var result = GetFolderContent(userPath);
+        var result = FileHelper.GetFolderContent(userPath);
         return Task.FromResult(result);
     }
 
@@ -59,7 +60,7 @@ public class FileService
                 Created = dirInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
                 Changed = dirInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
                 IsFile = false,
-                Bytes = CalculateDirectorySize(userPath),
+                Bytes = FileHelper.CalculateDirectorySize(userPath),
                 Extension = null
             };
             return Task.FromResult<FileMetadata?>(metadata);
@@ -86,59 +87,10 @@ public class FileService
         if (!Directory.Exists(userPath))
             return Task.FromResult<Dictionary<string, FileMetadata>?>(null);
 
-        return Task.FromResult<Dictionary<string, FileMetadata>?>(GetFolderContent(userPath));
+        return Task.FromResult<Dictionary<string, FileMetadata>?>(FileHelper.GetFolderContent(userPath));
     }
 
-    private Dictionary<string, FileMetadata> GetFolderContent(string folderName)
-    {
-        var result = new Dictionary<string, FileMetadata>();
-        var files = Directory.GetFiles(folderName);
-        foreach (var file in files)
-        {
-            var fileInfo = new FileInfo(file);
-            var metadata = new FileMetadata
-            {
-                Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                IsFile = true,
-                Bytes = fileInfo.Length,
-                Extension = fileInfo.Extension
-            };
-            result[fileInfo.Name] = metadata;
-        }
-        var folders = Directory.GetDirectories(folderName);
-        foreach (var folder in folders)
-        {
-            var folderInfo = new DirectoryInfo(folder);
-            var metadata = new FileMetadata
-            {
-                Created = folderInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = folderInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                IsFile = false,
-                Bytes = CalculateDirectorySize(folder),
-                Extension = null,
-                Content = GetFolderContent(folder)
-            };
-            result[folderInfo.Name] = metadata;
-        }
-        return result;
-    }
 
-    private static long CalculateDirectorySize(string folder)
-    {
-        long totalBytes = 0;
-
-        foreach (var file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
-        {
-            try
-            {
-                totalBytes += new FileInfo(file).Length;
-            }
-            catch { }
-        }
-
-        return totalBytes;
-    }
 
     public async Task<bool> CreateFileAsync(string username, string filename, Stream content)
     {
