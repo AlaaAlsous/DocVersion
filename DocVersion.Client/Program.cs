@@ -184,6 +184,26 @@ class Program
 
         var localTree = FileHelper.GetFolderContent(cwd);
         var flatLocalEntries = ToFlatList(localTree).ToList();
+
+        foreach (var localFolder in flatLocalEntries.Where(entry => !entry.Metadata.IsFile).OrderBy(entry => entry.Path))
+        {
+            if (flatServerFiles.TryGetValue(localFolder.Path, out var existing) && !existing.IsFile)
+                continue;
+
+            MessageColor($"Creating folder on server: {localFolder.Path}", ConsoleColor.White);
+            using var request = new HttpRequestMessage(HttpMethod.Put, $"{serverUrl}/api/files/{EncodePathForApi(localFolder.Path)}");
+            request.Headers.Add("X-Type", "folder");
+            request.Content = new ByteArrayContent(Array.Empty<byte>());
+            var folderResponse = await client.SendAsync(request);
+            if (!folderResponse.IsSuccessStatusCode)
+            {
+                MessageColor($"Failed to create folder {localFolder.Path} on server: {folderResponse.StatusCode}", ConsoleColor.Red);
+            }
+            else
+            {
+                MessageColor($"Successfully created folder on server: {localFolder.Path}", ConsoleColor.Green);
+            }
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
