@@ -79,6 +79,14 @@ class Program
         return url.TrimEnd('/');
     }
 
+    private static string EncodePathForApi(string relativePath)
+    {
+        return string.Join("/", relativePath
+            .Replace("\\", "/")
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.EscapeDataString));
+    }
+
     private static string MessageColor(string message, ConsoleColor color)
     {
         Console.ForegroundColor = color;
