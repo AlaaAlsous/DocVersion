@@ -7,15 +7,15 @@ class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        if (args.Length < 4)
+        if (args.Length < 2)
         {
-            MessageColor("Usage: DocVersion.Client [pull|push] <serverUrl> <username> <password>", ConsoleColor.Red);
+            MessageColor("Usage: DocVersion.Client [pull|push] <serverUrl> [username] [password]", ConsoleColor.Red);
             return 1;
         }
         var command = args[0].ToLower();
         var serverUrl = NormalizeServerUrl(args[1]);
-        var username = args[2];
-        var password = args[3];
+        var username = args.Length > 2 ? args[2] : null;
+        var password = args.Length > 3 ? args[3] : null;
         var cwd = Directory.GetCurrentDirectory();
 
         MessageColor("Working directory: " + cwd, ConsoleColor.Cyan);
@@ -24,25 +24,26 @@ class Program
         {
             using var client = new HttpClient();
 
-
-            var loginResponse = await client.PostAsJsonAsync(
-                $"{serverUrl}/api/login",
-                new { User = username, Password = password });
-
-            if (!loginResponse.IsSuccessStatusCode)
+            if (username != null && password != null)
             {
-                MessageColor("Login failed: " + loginResponse.StatusCode, ConsoleColor.Red);
-                return 1;
+                var loginResponse = await client.PostAsJsonAsync(
+                    $"{serverUrl}/api/login",
+                    new { User = username, Password = password });
+
+                if (!loginResponse.IsSuccessStatusCode)
+                {
+                    MessageColor("Login failed: " + loginResponse.StatusCode, ConsoleColor.Red);
+                    return 1;
+                }
+                var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+                var token = loginResult?.Token;
+                if (string.IsNullOrEmpty(token))
+                {
+                    MessageColor("Login failed: No token received", ConsoleColor.Red);
+                    return 1;
+                }
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
-            var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
-            var token = loginResult?.Token;
-            if (string.IsNullOrEmpty(token))
-            {
-                MessageColor("Login failed: No token received", ConsoleColor.Red);
-                Console.ResetColor();
-                return 1;
-            }
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             if (command == "pull")
             {
@@ -68,7 +69,7 @@ class Program
 
     private static async Task Pull(HttpClient client, string serverUrl, string cwd)
     {
-        MessageColor("Pulling files from server...", ConsoleColor.DarkGreen);
+        MessageColor("Pulling files from server...", ConsoleColor.Blue);
         var response = await client.GetAsync($"{serverUrl}/api/files");
         if (!response.IsSuccessStatusCode)
         {
@@ -107,7 +108,7 @@ class Program
             {
                 if (!Directory.Exists(localPath))
                 {
-                    MessageColor($"Creating folder: {filename}", ConsoleColor.DarkGray);
+                    MessageColor($"Creating folder: {filename}", ConsoleColor.DarkYellow);
                     Directory.CreateDirectory(localPath);
                 }
             }
@@ -152,24 +153,22 @@ class Program
             if (existsOnServerAsFolder)
                 continue;
 
-            if (!Directory.EnumerateFileSystemEntries(localDir).Any())
+            try
             {
-                try
-                {
-                    Directory.Delete(localDir);
-                    MessageColor($"Deleted folder: {localDir}", ConsoleColor.DarkRed);
-                }
-                catch (Exception ex)
-                {
-                    MessageColor($"Could not delete folder {localDir}: {ex.Message}", ConsoleColor.Red);
-                }
+                FileHelper.PrepareDirectoryForDelete(localDir);
+                Directory.Delete(localDir, true);
+                MessageColor($"Deleted folder: {localDir}", ConsoleColor.DarkRed);
+            }
+            catch (Exception ex)
+            {
+                MessageColor($"Could not delete folder {localDir}: {ex.Message}", ConsoleColor.DarkRed);
             }
         }
     }
 
     private static async Task Push(HttpClient client, string serverUrl, string cwd)
     {
-        MessageColor("Pushing files to server...", ConsoleColor.DarkGreen);
+        MessageColor("Pushing files to server...", ConsoleColor.Blue);
         var response = await client.GetAsync($"{serverUrl}/api/files");
         if (!response.IsSuccessStatusCode)
         {
@@ -220,21 +219,6 @@ class Program
         }
 
         var localPaths = flatLocalEntries.Select(entry => entry.Path).ToHashSet();
-        foreach (var serverFile in flatServerFiles.Where(entry => !entry.Value.IsFile)
-        .OrderByDescending(entry => entry.Key.Count(ch => ch == '/')))
-        {
-            var foldername = serverFile.Key;
-            if (!localPaths.Contains(foldername))
-            {
-                var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(foldername)}");
-                if (!deleteResponse.IsSuccessStatusCode)
-                {
-                    MessageColor($"Failed to delete folder {foldername} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
-                }
-                else
-                    MessageColor($"Deleted folder from server: {foldername}", ConsoleColor.Green);
-            }
-        }
 
         foreach (var serverFile in flatServerFiles.Where(entry => entry.Value.IsFile))
         {
@@ -247,7 +231,23 @@ class Program
                     MessageColor($"Failed to delete file {filename} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
                 }
                 else
-                    MessageColor($"Deleted file from server: {filename}", ConsoleColor.Green);
+                    MessageColor($"Deleted file from server: {filename}", ConsoleColor.DarkRed);
+            }
+        }
+
+        foreach (var serverFile in flatServerFiles.Where(entry => !entry.Value.IsFile)
+        .OrderByDescending(entry => entry.Key.Count(ch => ch == '/')))
+        {
+            var foldername = serverFile.Key;
+            if (!localPaths.Contains(foldername))
+            {
+                var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(foldername)}");
+                if (!deleteResponse.IsSuccessStatusCode)
+                {
+                    MessageColor($"Failed to delete folder {foldername} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
+                }
+                else
+                    MessageColor($"Deleted folder from server: {foldername}", ConsoleColor.DarkRed);
             }
         }
     }
@@ -289,12 +289,11 @@ class Program
             .Select(Uri.EscapeDataString));
     }
 
-    private static string MessageColor(string message, ConsoleColor color)
+    private static void MessageColor(string message, ConsoleColor color)
     {
         Console.ForegroundColor = color;
         Console.WriteLine(message);
         Console.ResetColor();
-        return message;
     }
 
     class LoginResponse
