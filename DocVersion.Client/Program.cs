@@ -381,6 +381,25 @@ class Program
                 Interlocked.Exchange(ref ignoringLocalChanges, 0);
             }
         });
+
+        await connection.StartAsync();
+        MessageColor("Connected to server.", ConsoleColor.Green);
+
+        using var watcher = new FileSystemWatcher(cwd)
+        {
+            IncludeSubdirectories = true,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite
+        };
+
+        var lastEvent = new Dictionary<string, DateTime>();
+        int debounceMs = 1000;
+
+        var ignoredFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "desktop.ini", "Thumbs.db", ".DS_Store"
+        };
+
+        watcher.EnableRaisingEvents = true;
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
