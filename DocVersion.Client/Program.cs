@@ -2,11 +2,14 @@
 using DocVersion.Core.Helpers;
 using DocVersion.Core.Models;
 using System.Net.Http.Headers;
+using Microsoft.AspNetCore.SignalR.Client;
 
 class Program
 {
     public static async Task<int> Main(string[] args)
     {
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+
         if (args.Length < 2)
         {
             MessageColor("Usage: DocVersion.Client [pull|push] <serverUrl> [username] [password]", ConsoleColor.Red);
@@ -59,6 +62,10 @@ class Program
             {
                 await Push(client, serverUrl, cwd);
             }
+            else if (command == "sync")
+            {
+                await Sync(client, serverUrl, cwd);
+            }
             else
             {
                 MessageColor("Unknown command: " + command, ConsoleColor.Red);
@@ -97,7 +104,7 @@ class Program
             var localPath = Path.Combine(cwd, filename);
             if (metadata.IsFile)
             {
-                MessageColor($"Pulling file: {filename} ({metadata.Bytes} bytes)", ConsoleColor.White);
+                MessageColor($"Pulling file: {filename} ({metadata.Bytes} bytes)", ConsoleColor.Gray);
                 var fileResponse = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filename)}");
                 if (!fileResponse.IsSuccessStatusCode)
                 {
@@ -192,7 +199,7 @@ class Program
             if (flatServerFiles.TryGetValue(localFolder.Path, out var existing) && !existing.IsFile)
                 continue;
 
-            MessageColor($"Creating folder on server: {localFolder.Path}", ConsoleColor.White);
+            MessageColor($"Creating folder on server: {localFolder.Path}", ConsoleColor.DarkYellow);
             using var request = new HttpRequestMessage(HttpMethod.Put, $"{serverUrl}/api/files/{EncodePathForApi(localFolder.Path)}");
             request.Headers.Add("X-Type", "folder");
             request.Content = new ByteArrayContent(Array.Empty<byte>());
@@ -209,7 +216,7 @@ class Program
 
         foreach (var localFile in flatLocalEntries.Where(entry => entry.Metadata.IsFile))
         {
-            MessageColor($"Pushing file: {localFile.Path}", ConsoleColor.White);
+            MessageColor($"Pushing file: {localFile.Path}", ConsoleColor.Gray);
             using var fileStream = File.OpenRead(Path.Combine(cwd, localFile.Path));
             var content = new StreamContent(fileStream);
             var putResponse = await client.PutAsync($"{serverUrl}/api/files/{EncodePathForApi(localFile.Path)}", content);
@@ -255,6 +262,25 @@ class Program
         }
     }
 
+    private static async Task Sync(HttpClient client, string serverUrl, string cwd)
+    {
+        MessageColor("Syncing: doing initial pull...", ConsoleColor.Blue);
+        await Pull(client, serverUrl, cwd);
+
+        var token = client.DefaultRequestHeaders.Authorization?.Parameter;
+
+        var connection = new HubConnectionBuilder()
+            .WithUrl($"{serverUrl}/api/events/signalr", options =>
+            {
+                if (!string.IsNullOrEmpty(token))
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
+            })
+            .WithAutomaticReconnect()
+            .Build();
+
+        int ignoringLocalChanges = 0;
+    }
+
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
     {
         foreach (var entry in source)
@@ -276,8 +302,6 @@ class Program
         if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
             url = (url.StartsWith("localhost", StringComparison.OrdinalIgnoreCase)
-            || url.StartsWith("localhost:", StringComparison.OrdinalIgnoreCase)
-            || url.StartsWith("localhost/", StringComparison.OrdinalIgnoreCase)
             || url.StartsWith("127.0.0.1"))
                   ? $"http://{url}" : $"https://{url}";
         }
