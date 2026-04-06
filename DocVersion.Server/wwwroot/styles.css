@@ -464,7 +464,7 @@ h1 {
 }
 
 #fileInput {
-  position: relative;
+  position: absolute;
   width: 1px;
   height: 1px;
   padding: 0;
@@ -474,33 +474,43 @@ h1 {
   border: 0;
 }
 
-#fileInputName {
-  min-width: 120px;
+#fileInputLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.62rem;
+  background: var(--gh-input-bg);
   color: var(--gh-muted);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  cursor: pointer;
   font-size: 0.95em;
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 0.5rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+#fileInputLabel:hover {
+  border-color: var(--gh-accent);
+}
+
+#fileInputName {
+  color: var(--gh-text);
+  font-size: 0.95em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#fileInputName:empty::before {
+  content: "Choose file...";
+  color: var(--gh-muted);
 }
 
 #uploadBtn {
-  position: relative;
-  margin-left: auto;
-  z-index: 1;
-}
-
-#fileInputLabel {
-  display: inline-block;
-  padding: 0.45rem 0.62rem;
-  background: var(--gh-input-bg);
-  color: var(--gh-text);
-  border: 1px solid var(--gh-border);
-  border-radius: 6px;
-  margin-right: 0.5rem;
-  cursor: pointer;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  flex-shrink: 0;
 }
 
 #fileInput:focus + #fileInputLabel {
