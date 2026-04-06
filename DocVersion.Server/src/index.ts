@@ -425,7 +425,7 @@ async function showHistoryVersionContent(fileName: string, version: number) {
 
   try {
     const response = await fetch(
-      `/api/files/history/${version}/${encodedFilePath}`,
+      `/api/files/history/${encodedFilePath}?version=${version}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

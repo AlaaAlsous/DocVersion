@@ -95,7 +95,7 @@ public class FilesController : ControllerBase
     }
 
     [HttpGet("history/{**filename}")]
-    public async Task<IActionResult> GetFileHistoryAsync(string filename)
+    public async Task<IActionResult> GetFileHistoryAsync(string filename, [FromQuery] int? version = null)
     {
         var username = GetUsername();
         if (string.IsNullOrEmpty(username)) return Unauthorized();
@@ -103,6 +103,16 @@ public class FilesController : ControllerBase
 
         try
         {
+            if (version.HasValue)
+            {
+                if (version.Value <= 0) return BadRequest("Invalid version.");
+
+                var (fileStream, contentType) = await _fileService.GetFileHistoryVersionContentAsync(username, filename, version.Value);
+                if (fileStream == null) return NotFound();
+
+                return File(fileStream, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
+            }
+
             var history = await _fileService.GetFileHistoryAsync(username, filename);
             if (history == null || history.Count == 0) return NotFound();
             var result = history
@@ -114,27 +124,6 @@ public class FilesController : ControllerBase
             }).ToList();
 
             return Ok(result);
-        }
-        catch (InvalidOperationException)
-        {
-            return NotFound();
-        }
-    }
-
-    [HttpGet("history/{version:int}/{**filename}")]
-    public async Task<IActionResult> GetFileHistoryVersionContentAsync(string filename, int version)
-    {
-        var username = GetUsername();
-        if (string.IsNullOrEmpty(username)) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
-        if (version <= 0) return BadRequest("Invalid version.");
-
-        try
-        {
-            var (fileStream, contentType) = await _fileService.GetFileHistoryVersionContentAsync(username, filename, version);
-            if (fileStream == null) return NotFound();
-
-            return File(fileStream, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
         }
         catch (InvalidOperationException)
         {
