@@ -473,6 +473,66 @@ class Program
         watcher.Changed += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
         watcher.Deleted += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
 
+        watcher.Renamed += (_, e) =>
+        {
+            _ = Task.Run(async () =>
+            {
+                var oldPath = Path.GetRelativePath(cwd, e.OldFullPath).Replace("\\", "/");
+                var newPath = Path.GetRelativePath(cwd, e.FullPath).Replace("\\", "/");
+
+                Interlocked.Exchange(ref ignoringLocalChanges, 1);
+
+                try
+                {
+                    MessageColor($"[Local] Rename: {oldPath} → {newPath}", ConsoleColor.Magenta);
+
+                    MarkAsPushed(oldPath);
+                    MarkAsPushed(newPath);
+
+                    await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(oldPath)}");
+
+                    if (Directory.Exists(e.FullPath))
+                    {
+                        using var folderRequest = new HttpRequestMessage(HttpMethod.Put,
+                            $"{serverUrl}/api/files/{EncodePathForApi(newPath)}");
+                        folderRequest.Headers.Add("X-Type", "folder");
+                        folderRequest.Content = new ByteArrayContent(Array.Empty<byte>());
+                        await client.SendAsync(folderRequest);
+
+                        foreach (var file in Directory.GetFiles(e.FullPath, "*", SearchOption.AllDirectories))
+                        {
+                            var relFile = Path.GetRelativePath(cwd, file).Replace("\\", "/");
+                            MarkAsPushed(relFile);
+                            using var stream = File.OpenRead(file);
+                            using var fileRequest = new HttpRequestMessage(HttpMethod.Put,
+                                $"{serverUrl}/api/files/{EncodePathForApi(relFile)}");
+                            fileRequest.Headers.Add("X-Type", "file");
+                            fileRequest.Content = new StreamContent(stream);
+                            await client.SendAsync(fileRequest);
+                        }
+                    }
+                    else if (File.Exists(e.FullPath))
+                    {
+                        using var stream = File.OpenRead(e.FullPath);
+                        using var fileRequest = new HttpRequestMessage(HttpMethod.Put,
+                            $"{serverUrl}/api/files/{EncodePathForApi(newPath)}");
+                        fileRequest.Headers.Add("X-Type", "file");
+                        fileRequest.Content = new StreamContent(stream);
+                        await client.SendAsync(fileRequest);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageColor($"[Local] Rename error: {ex.Message}", ConsoleColor.Red);
+                }
+                finally
+                {
+                    await Task.Delay(500);
+                    Interlocked.Exchange(ref ignoringLocalChanges, 0);
+                }
+            });
+        };
+
         watcher.EnableRaisingEvents = true;
     }
 
