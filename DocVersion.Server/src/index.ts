@@ -634,9 +634,37 @@ async function startSignalR() {
     .build();
 
   nextConnection.on("Event", (type: number, path: string) => {
+    const getFileNameFromPath = (p: string) => {
+      const parts = p.split("/");
+      return parts[parts.length - 1];
+    };
+    const getParentPath = (p: string) => {
+      const parts = p.split("/");
+      parts.pop();
+      return parts.join("/");
+    };
+
     switch (type) {
       case 0:
       case 1:
+        if (shouldRefreshCurrentPath(path)) {
+          void getFiles(currentPath);
+        }
+        {
+          const fileName = getFileNameFromPath(path);
+          const parentPath = getParentPath(path);
+          if (parentPath === currentPath && fileName === currentFileName) {
+            void showFileContent(fileName);
+          }
+          if (
+            activeHistoryFileName &&
+            parentPath === currentPath &&
+            fileName === activeHistoryFileName
+          ) {
+            void getFilesHistory(activeHistoryFileName);
+          }
+        }
+        break;
       case 2:
       case 5:
       case 7:
