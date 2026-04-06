@@ -317,6 +317,37 @@ class Program
                 return false;
             }
         }
+
+        connection.On<int, string>("Event", async (eventType, filePath) =>
+        {
+            if (IsEcho(filePath))
+            {
+                MessageColor($"[Server] Ignoring echo: {filePath}", ConsoleColor.DarkGray);
+                return;
+            }
+
+            var type = (EventsType)eventType;
+            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+            Interlocked.Exchange(ref ignoringLocalChanges, 1);
+
+            try
+            {
+                switch (type)
+                {
+                   
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageColor($"[Server] Error: {ex.Message}", ConsoleColor.Red);
+            }
+            finally
+            {
+                await Task.Delay(500);
+                Interlocked.Exchange(ref ignoringLocalChanges, 0);
+            }
+        });
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
