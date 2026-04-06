@@ -534,6 +534,24 @@ class Program
         };
 
         watcher.EnableRaisingEvents = true;
+
+        MessageColor("Sync running... Ctrl+C to stop", ConsoleColor.Cyan);
+
+        var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            cts.Cancel();
+        };
+
+        try
+        {
+            await Task.Delay(Timeout.Infinite, cts.Token);
+        }
+        catch (TaskCanceledException) { }
+
+        MessageColor("Stopping sync...", ConsoleColor.Yellow);
+        await connection.StopAsync();
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
