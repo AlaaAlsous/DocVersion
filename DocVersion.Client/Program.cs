@@ -420,6 +420,53 @@ class Program
 
                 lastEvent[key] = now;
             }
+
+            try
+            {
+                if (type == WatcherChangeTypes.Deleted)
+                {
+                    MessageColor($"[Local] Deleted: {relative}", ConsoleColor.DarkRed);
+                    MarkAsPushed(relative);
+                    await Retry(() => client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"));
+                }
+                else if (Directory.Exists(fullPath))
+                {
+                    MessageColor($"[Local] Folder: {relative}", ConsoleColor.Magenta);
+                    MarkAsPushed(relative);
+
+                    await Retry(async () =>
+                    {
+                        using var request = new HttpRequestMessage(HttpMethod.Put,
+                            $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                        request.Headers.Add("X-Type", "folder");
+                        request.Content = new ByteArrayContent(Array.Empty<byte>());
+                        await client.SendAsync(request);
+                    });
+                }
+                else if (File.Exists(fullPath))
+                {
+                    await Task.Delay(500);
+
+                    if (!File.Exists(fullPath)) return;
+
+                    MessageColor($"[Local] File: {relative}", ConsoleColor.Magenta);
+                    MarkAsPushed(relative);
+
+                    await Retry(async () =>
+                    {
+                        using var stream = File.OpenRead(fullPath);
+                        using var request = new HttpRequestMessage(HttpMethod.Put,
+                            $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                        request.Headers.Add("X-Type", "file");
+                        request.Content = new StreamContent(stream);
+                        await client.SendAsync(request);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageColor($"[Local] Error: {ex.Message}", ConsoleColor.Red);
+            }
         }
 
         watcher.Created += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
