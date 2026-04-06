@@ -297,6 +297,26 @@ class Program
                 }
             }
         }
+
+        var recentlyPushed = new Dictionary<string, DateTime>();
+        var echoCooldownMs = 3000;
+
+        void MarkAsPushed(string path)
+        {
+            lock (recentlyPushed) { recentlyPushed[path] = DateTime.UtcNow; }
+        }
+
+        bool IsEcho(string path)
+        {
+            lock (recentlyPushed)
+            {
+                if (recentlyPushed.TryGetValue(path, out var time)
+                    && (DateTime.UtcNow - time).TotalMilliseconds < echoCooldownMs)
+                    return true;
+                recentlyPushed.Remove(path);
+                return false;
+            }
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
