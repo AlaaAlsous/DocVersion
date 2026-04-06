@@ -537,6 +537,12 @@ function displayFileHistory(
 
   const list = historyBox.querySelector(".history-list");
   if (list) {
+    if (history.length === 0) {
+      const li = document.createElement("li");
+      li.className = "history-item";
+      li.textContent = "No previous versions";
+      list.appendChild(li);
+    }
     history.forEach((h) => {
       const li = document.createElement("li");
       li.className = "history-item";
@@ -824,6 +830,11 @@ async function getFilesHistory(filename: string) {
     }
 
     if (!response.ok) {
+      if (response.status === 404) {
+        displayFileHistory(filename, []);
+        clearErrorMessage();
+        return;
+      }
       showErrorMessage("Failed to fetch file history");
       return;
     }

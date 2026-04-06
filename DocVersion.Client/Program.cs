@@ -320,11 +320,7 @@ class Program
 
         connection.On<int, string>("Event", async (eventType, filePath) =>
         {
-            if (IsEcho(filePath))
-            {
-                MessageColor($"[Server] Ignoring echo: {filePath}", ConsoleColor.DarkGray);
-                return;
-            }
+            if (IsEcho(filePath)) return;
 
             var type = (EventsType)eventType;
             var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
@@ -431,7 +427,9 @@ class Program
                 }
                 else if (Directory.Exists(fullPath))
                 {
-                    MessageColor($"[Local] Folder: {relative}", ConsoleColor.Magenta);
+                    var folderAction = type == WatcherChangeTypes.Created ? "New folder" : "Updated folder";
+                    var folderColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
+                    MessageColor($"[Local] {folderAction}: {relative}", folderColor);
                     MarkAsPushed(relative);
 
                     await Retry(async () =>
@@ -449,7 +447,9 @@ class Program
 
                     if (!File.Exists(fullPath)) return;
 
-                    MessageColor($"[Local] File: {relative}", ConsoleColor.Magenta);
+                    var fileAction = type == WatcherChangeTypes.Created ? "New file" : "Updated file";
+                    var fileColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
+                    MessageColor($"[Local] {fileAction}: {relative}", fileColor);
                     MarkAsPushed(relative);
 
                     await Retry(async () =>
@@ -484,7 +484,7 @@ class Program
 
                 try
                 {
-                    MessageColor($"[Local] Rename: {oldPath} → {newPath}", ConsoleColor.Magenta);
+                    MessageColor($"[Local] Rename: {oldPath} → {newPath}", ConsoleColor.White);
 
                     MarkAsPushed(oldPath);
                     MarkAsPushed(newPath);
