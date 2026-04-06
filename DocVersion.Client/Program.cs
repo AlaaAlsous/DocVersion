@@ -399,6 +399,33 @@ class Program
             "desktop.ini", "Thumbs.db", ".DS_Store"
         };
 
+        async Task HandleChange(string fullPath, WatcherChangeTypes type)
+        {
+            if (Volatile.Read(ref ignoringLocalChanges) == 1)
+                return;
+
+            var fileName = Path.GetFileName(fullPath);
+            if (ignoredFiles.Contains(fileName))
+                return;
+
+            var relative = Path.GetRelativePath(cwd, fullPath).Replace("\\", "/");
+            var key = relative + type;
+            var now = DateTime.UtcNow;
+
+            lock (lastEvent)
+            {
+                if (lastEvent.TryGetValue(key, out var last) &&
+                    (now - last).TotalMilliseconds < debounceMs)
+                    return;
+
+                lastEvent[key] = now;
+            }
+        }
+
+        watcher.Created += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
+        watcher.Changed += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
+        watcher.Deleted += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
+
         watcher.EnableRaisingEvents = true;
     }
 
