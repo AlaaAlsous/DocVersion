@@ -279,6 +279,24 @@ class Program
             .Build();
 
         int ignoringLocalChanges = 0;
+
+        async Task Retry(Func<Task> action)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    await action();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    if (i == 2) throw;
+                    MessageColor($"[Retry] Attempt {i + 1} failed: {ex.Message}", ConsoleColor.Yellow);
+                    await Task.Delay(500);
+                }
+            }
+        }
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
