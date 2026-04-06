@@ -335,7 +335,40 @@ class Program
             {
                 switch (type)
                 {
-                   
+                    case EventsType.FileCreated:
+                    case EventsType.FileUpdated:
+                        MessageColor($"[Server] File updated: {filePath}", ConsoleColor.DarkCyan);
+
+                        await Retry(async () =>
+                        {
+                            var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
+                            response.EnsureSuccessStatusCode();
+
+                            Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
+                            var content = await response.Content.ReadAsByteArrayAsync();
+                            await File.WriteAllBytesAsync(localPath, content);
+                        });
+                        break;
+
+                    case EventsType.FileDeleted:
+                        if (File.Exists(localPath))
+                            File.Delete(localPath);
+                        MessageColor($"[Server] File deleted: {filePath}", ConsoleColor.DarkRed);
+                        break;
+
+                    case EventsType.FolderCreated:
+                        Directory.CreateDirectory(localPath);
+                        MessageColor($"[Server] Folder created: {filePath}", ConsoleColor.DarkCyan);
+                        break;
+
+                    case EventsType.FolderDeleted:
+                        if (Directory.Exists(localPath))
+                        {
+                            FileHelper.PrepareDirectoryForDelete(localPath);
+                            Directory.Delete(localPath, true);
+                        }
+                        MessageColor($"[Server] Folder deleted: {filePath}", ConsoleColor.DarkRed);
+                        break;
                 }
             }
             catch (Exception ex)
