@@ -357,6 +357,12 @@ h1 {
   background: var(--gh-row-hover);
 }
 
+#file-list li.active {
+  background: color-mix(in srgb, var(--gh-accent) 12%, var(--gh-canvas));
+  border-left: 3px solid var(--gh-accent);
+  padding-left: calc(0.6rem - 3px);
+}
+
 .item-label {
   min-width: 0;
   flex: 1;

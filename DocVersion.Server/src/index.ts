@@ -1200,6 +1200,13 @@ async function deleteItem(item: string) {
 function displayFiles(files: Record<string, { file: boolean }>) {
   fileList.innerHTML = "";
 
+  function setActiveItem(li: HTMLElement) {
+    fileList
+      .querySelectorAll("li.active")
+      .forEach((el: HTMLElement) => el.classList.remove("active"));
+    li.classList.add("active");
+  }
+
   if (currentPath) {
     const backItem = document.createElement("li");
     backItem.classList.add("folder");
@@ -1297,6 +1304,7 @@ function displayFiles(files: Record<string, { file: boolean }>) {
       itemLabel.textContent = name;
       listItem.style.cursor = "pointer";
       listItem.addEventListener("click", async () => {
+        setActiveItem(listItem);
         await showItemMetadata(name);
         await showFileContent(name);
       });
@@ -1306,6 +1314,7 @@ function displayFiles(files: Record<string, { file: boolean }>) {
       itemLabel.textContent = name;
       listItem.style.cursor = "pointer";
       listItem.addEventListener("click", async () => {
+        setActiveItem(listItem);
         await showItemMetadata(name);
         currentPath = currentPath ? `${currentPath}/${name}` : name;
         await getFiles(currentPath);
