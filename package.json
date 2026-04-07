@@ -6,7 +6,8 @@
   "scripts": {
     "generate": "node tests/generate.js",
     "test": "node tests/run.js",
-    "build": "tsc -p DocVersion.Server"
+    "build": "tsc -p DocVersion.Server",
+    "dev-css": "npx sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --watch --no-source-map"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +17,7 @@
     "@microsoft/signalr": "^10.0.0"
   },
   "devDependencies": {
+    "sass": "^1.99.0",
     "typescript": "^6.0.2"
   }
 }
