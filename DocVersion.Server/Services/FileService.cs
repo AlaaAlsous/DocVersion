@@ -136,6 +136,8 @@ public class FileService
     {
         if (!File.Exists(sourceFilePath)) return;
 
+        using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
         var lastVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename)
             .OrderByDescending(f => f.Version)
@@ -164,6 +166,7 @@ public class FileService
 
         _dbContext.FileHistories.Add(newVersion);
         await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public async Task<List<FileHistory>> GetFileHistoryAsync(string username, string filename)
