@@ -389,6 +389,7 @@ class Program
 
         var lastEvent = new Dictionary<string, DateTime>();
         int debounceMs = 1000;
+        var changeSemaphore = new SemaphoreSlim(1, 1);
 
         var ignoredFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -400,72 +401,81 @@ class Program
             if (Volatile.Read(ref ignoringLocalChanges) == 1)
                 return;
 
-            var fileName = Path.GetFileName(fullPath);
-            if (ignoredFiles.Contains(fileName))
-                return;
-
-            var relative = Path.GetRelativePath(cwd, fullPath).Replace("\\", "/");
-            var key = relative + type;
-            var now = DateTime.UtcNow;
-
-            lock (lastEvent)
-            {
-                if (lastEvent.TryGetValue(key, out var last) &&
-                    (now - last).TotalMilliseconds < debounceMs)
-                    return;
-
-                lastEvent[key] = now;
-            }
-
+            await changeSemaphore.WaitAsync();
             try
             {
-                if (type == WatcherChangeTypes.Deleted)
+
+                var fileName = Path.GetFileName(fullPath);
+                if (ignoredFiles.Contains(fileName))
+                    return;
+
+                var relative = Path.GetRelativePath(cwd, fullPath).Replace("\\", "/");
+                var key = relative + type;
+                var now = DateTime.UtcNow;
+
+                lock (lastEvent)
                 {
-                    MessageColor($"[Local] Deleted: {relative}", ConsoleColor.DarkRed);
-                    MarkAsPushed(relative);
-                    await Retry(() => client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"));
+                    if (lastEvent.TryGetValue(key, out var last) &&
+                        (now - last).TotalMilliseconds < debounceMs)
+                        return;
+
+                    lastEvent[key] = now;
                 }
-                else if (Directory.Exists(fullPath))
-                {
-                    var folderAction = type == WatcherChangeTypes.Created ? "New folder" : "Updated folder";
-                    var folderColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
-                    MessageColor($"[Local] {folderAction}: {relative}", folderColor);
-                    MarkAsPushed(relative);
 
-                    await Retry(async () =>
+                try
+                {
+                    if (type == WatcherChangeTypes.Deleted)
                     {
-                        using var request = new HttpRequestMessage(HttpMethod.Put,
-                            $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
-                        request.Headers.Add("X-Type", "folder");
-                        request.Content = new ByteArrayContent(Array.Empty<byte>());
-                        await client.SendAsync(request);
-                    });
+                        MessageColor($"[Local] Deleted: {relative}", ConsoleColor.DarkRed);
+                        MarkAsPushed(relative);
+                        await Retry(() => client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"));
+                    }
+                    else if (Directory.Exists(fullPath))
+                    {
+                        var folderAction = type == WatcherChangeTypes.Created ? "New folder" : "Updated folder";
+                        var folderColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
+                        MessageColor($"[Local] {folderAction}: {relative}", folderColor);
+                        MarkAsPushed(relative);
+
+                        await Retry(async () =>
+                        {
+                            using var request = new HttpRequestMessage(HttpMethod.Put,
+                                $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                            request.Headers.Add("X-Type", "folder");
+                            request.Content = new ByteArrayContent(Array.Empty<byte>());
+                            await client.SendAsync(request);
+                        });
+                    }
+                    else if (File.Exists(fullPath))
+                    {
+                        await Task.Delay(500);
+
+                        if (!File.Exists(fullPath)) return;
+
+                        var fileAction = type == WatcherChangeTypes.Created ? "New file" : "Updated file";
+                        var fileColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
+                        MessageColor($"[Local] {fileAction}: {relative}", fileColor);
+                        MarkAsPushed(relative);
+
+                        await Retry(async () =>
+                        {
+                            using var stream = File.OpenRead(fullPath);
+                            using var request = new HttpRequestMessage(HttpMethod.Put,
+                                $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                            request.Headers.Add("X-Type", "file");
+                            request.Content = new StreamContent(stream);
+                            await client.SendAsync(request);
+                        });
+                    }
                 }
-                else if (File.Exists(fullPath))
+                catch (Exception ex)
                 {
-                    await Task.Delay(500);
-
-                    if (!File.Exists(fullPath)) return;
-
-                    var fileAction = type == WatcherChangeTypes.Created ? "New file" : "Updated file";
-                    var fileColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
-                    MessageColor($"[Local] {fileAction}: {relative}", fileColor);
-                    MarkAsPushed(relative);
-
-                    await Retry(async () =>
-                    {
-                        using var stream = File.OpenRead(fullPath);
-                        using var request = new HttpRequestMessage(HttpMethod.Put,
-                            $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
-                        request.Headers.Add("X-Type", "file");
-                        request.Content = new StreamContent(stream);
-                        await client.SendAsync(request);
-                    });
+                    MessageColor($"[Local] Error: {ex.Message}", ConsoleColor.Red);
                 }
             }
-            catch (Exception ex)
+            finally
             {
-                MessageColor($"[Local] Error: {ex.Message}", ConsoleColor.Red);
+                changeSemaphore.Release();
             }
         }
 
