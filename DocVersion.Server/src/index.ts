@@ -99,7 +99,7 @@ function showMediaPreview(blob: Blob, tagName: string) {
   resetPreviewSurface();
 
   activePreviewObjectUrl = URL.createObjectURL(blob);
-  let mediaElement: HTMLImageElement | HTMLVideoElement;
+  let mediaElement: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
   if (tagName === "img") {
     mediaElement = document.createElement("img");
     mediaElement.src = activePreviewObjectUrl!;
@@ -107,6 +107,12 @@ function showMediaPreview(blob: Blob, tagName: string) {
     mediaElement.alt = currentFileName || "Image preview";
   } else if (tagName === "video") {
     mediaElement = document.createElement("video");
+    mediaElement.src = activePreviewObjectUrl!;
+    mediaElement.className = "file-preview-media";
+    mediaElement.controls = true;
+    mediaElement.preload = "metadata";
+  } else if (tagName === "audio") {
+    mediaElement = document.createElement("audio");
     mediaElement.src = activePreviewObjectUrl!;
     mediaElement.className = "file-preview-media";
     mediaElement.controls = true;
@@ -219,6 +225,12 @@ async function renderFilePreview(
   if (contentType.startsWith("video/")) {
     const blob = await response.blob();
     showMediaPreview(blob, "video");
+    return;
+  }
+
+  if (contentType.startsWith("audio/")) {
+    const blob = await response.blob();
+    showMediaPreview(blob, "audio");
     return;
   }
 
