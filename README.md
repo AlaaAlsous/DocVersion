@@ -83,3 +83,30 @@ En annan variant är att sätta projekt via en header, som `X-Project` eller
 `X-Repo`, följt av namnet. Då ser själva URL:en likadan ut som alltid, vilket
 kan göra det enklare. Om ingen sådan header anges så hamnar allt förslagsvis i
 någon form av standardprojekt för användaren.
+
+# Installation
+
+## 1. Installera Node-beroenden (TypeScript, esbuild, Sass)
+
+```bash
+npm install
+```
+
+## 2. Bygg JavaScript (bundlar alla TS-filer till en index.js)
+
+```bash
+npm run build
+```
+
+## 3. Bygg CSS
+
+```bash
+npx sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --no-source-map
+```
+
+## 4. Starta servern
+
+```bash
+cd DocVersion.Server
+dotnet run
+```
