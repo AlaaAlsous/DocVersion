@@ -6,7 +6,8 @@
   "scripts": {
     "generate": "node tests/generate.js",
     "test": "node tests/run.js",
-    "build": "tsc -p DocVersion.Server",
+    "build": "esbuild DocVersion.Server/src/index.ts --bundle --outfile=DocVersion.Server/wwwroot/js/index.js --format=esm --target=es2020",
+    "build:check": "tsc -p DocVersion.Server --noEmit",
     "dev-css": "npx sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --watch --no-source-map"
   },
   "keywords": [],
@@ -17,6 +18,7 @@
     "@microsoft/signalr": "^10.0.0"
   },
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "sass": "^1.99.0",
     "typescript": "^6.0.2"
   }
