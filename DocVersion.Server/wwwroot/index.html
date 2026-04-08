@@ -21,11 +21,17 @@
 
     <section id="quickActions">
       <div class="action-group">
-        <input id="folderName" type="text" placeholder="Folder name" />
+        <input
+          id="folderName"
+          name="folderName"
+          type="text"
+          placeholder="Folder name"
+          autocomplete="off"
+        />
         <button id="createFolderBtn">Create Folder</button>
       </div>
       <div class="action-group">
-        <input id="fileInput" type="file" />
+        <input id="fileInput" name="fileInput" type="file" />
         <label id="fileInputLabel" for="fileInput"
           ><span id="fileInputName"></span
         ></label>

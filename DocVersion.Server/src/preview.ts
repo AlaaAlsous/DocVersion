@@ -18,9 +18,10 @@ export function resetPreviewSurface(): void {
 }
 
 export function updateEditorActions() {
-  dom.editBtn.style.display = state.currentFileIsEditable
-    ? "inline-block"
-    : "none";
+  dom.editBtn.style.display = "inline-block";
+  dom.editBtn.style.visibility = state.currentFileIsEditable
+    ? "visible"
+    : "hidden";
   dom.saveBtn.style.display = "none";
   dom.cancelBtn.style.display = "none";
 }
