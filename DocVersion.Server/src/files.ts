@@ -1,5 +1,5 @@
 import { dom, state } from "./state";
-import { toApiPath } from "./utils";
+import { toApiPath, formatBytes } from "./utils";
 import {
   clearErrorMessage,
   showErrorMessage,
@@ -407,7 +407,7 @@ export function showMetadata(
     </div>
     <p><strong>Name:</strong> ${file}</p>
     <p><strong>Type:</strong> ${metadata.type}</p>
-    <p><strong>Size:</strong> ${metadata.bytes} bytes</p>
+    <p><strong>Size:</strong> ${formatBytes(typeof metadata.bytes === 'number' ? metadata.bytes : Number(metadata.bytes))}</p>
     <p><strong>Created:</strong> ${metadata.created}</p>
     <p><strong>Modified:</strong> ${metadata.changed}</p>
     <p><strong>Extension:</strong> ${metadata.extension || "-"}</p>
