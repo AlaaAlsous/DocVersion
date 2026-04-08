@@ -78,11 +78,19 @@
         <h2>Sign In</h2>
         <input
           id="modalUserName"
+          name="username"
           type="text"
           placeholder="Username"
           maxlength="100"
+          autocomplete="username"
         />
-        <input id="modalPassword" type="password" placeholder="Password" />
+        <input
+          id="modalPassword"
+          name="password"
+          type="password"
+          placeholder="Password"
+          autocomplete="current-password"
+        />
         <button id="modalSubmit">Log In</button>
         <p id="modalError" style="display: none"></p>
       </div>

@@ -205,7 +205,7 @@ export function displayFileHistory(
     </div>
     <div class="history-nav" role="group" aria-label="History navigation">
       <button id="historyBackBtn" class="history-nav-btn" type="button">← Older</button>
-      <span id="historyNavStatus" class="history-nav-status">Nuvarande version</span>
+      <span id="historyNavStatus" class="history-nav-status">Current version</span>
       <button id="historyForwardBtn" class="history-nav-btn" type="button">Newer →</button>
     </div>
     <ul class="history-list"></ul>
