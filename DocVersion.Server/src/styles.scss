@@ -304,6 +304,8 @@ h1 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
 }
 
 #file-list {
@@ -591,6 +593,8 @@ h1 {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
 }
 
 #file-content-actions {
