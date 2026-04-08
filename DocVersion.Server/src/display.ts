@@ -123,6 +123,9 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
         setActiveItem(listItem);
         await showItemMetadata(name);
         await showFileContent(name);
+        if (dom.historyBox.style.display !== "none") {
+          await getFilesHistory(name);
+        }
       });
       buttonGroup.append(downloadBtn, delBtn, historyBtn);
     } else {
