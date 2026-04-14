@@ -90,7 +90,7 @@ public class FileService
         return Task.FromResult<Dictionary<string, FileMetadata>?>(FileHelper.GetFolderContent(userPath));
     }
 
-    public async Task<bool> CreateFileAsync(string username, string filename, Stream content)
+    public async Task<bool> CreateFileAsync(string username, string filename, Stream content, CancellationToken cts = default)
     {
         var userPath = GetSafePath(username, filename);
         var directory = Path.GetDirectoryName(userPath);
@@ -99,10 +99,10 @@ public class FileService
 
         using (var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write))
         {
-            await content.CopyToAsync(fileStream);
+            await content.CopyToAsync(fileStream, cts);
         }
 
-        await SaveFileVersionAsync(username, filename, userPath);
+        await SaveFileVersionAsync(username, filename, userPath, cts);
         return true;
     }
 
@@ -116,7 +116,7 @@ public class FileService
         return Task.FromResult(true);
     }
 
-    public async Task SaveFileAsync(string username, string filename, Stream content)
+    public async Task SaveFileAsync(string username, string filename, Stream content, CancellationToken cts = default)
     {
         var userPath = GetSafePath(username, filename);
         var directory = Path.GetDirectoryName(userPath);
@@ -124,23 +124,23 @@ public class FileService
 
         if (File.Exists(userPath))
         {
-            await SaveFileVersionAsync(username, filename, userPath);
+            await SaveFileVersionAsync(username, filename, userPath, cts);
         }
         using var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write);
-        await content.CopyToAsync(fileStream);
+        await content.CopyToAsync(fileStream, cts);
     }
 
-    private async Task SaveFileVersionAsync(string username, string filename, string sourceFilePath)
+    private async Task SaveFileVersionAsync(string username, string filename, string sourceFilePath, CancellationToken cts = default)
     {
         if (!File.Exists(sourceFilePath)) return;
 
-        using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        using var transaction = await _dbContext.Database.BeginTransactionAsync(cts);
 
         var lastVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename)
             .OrderByDescending(f => f.Version)
             .Select(f => f.Version)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cts);
 
         var nextVersion = lastVersion + 1;
         var historyDirectory = GetSafeHistoryDirectoryPath(username, filename);
@@ -148,7 +148,7 @@ public class FileService
             Directory.CreateDirectory(historyDirectory);
 
         var versionFilePath = Path.Combine(historyDirectory, $"{nextVersion}.bin");
-        await CopyFileAsync(sourceFilePath, versionFilePath);
+        await CopyFileAsync(sourceFilePath, versionFilePath, cts);
 
         var versionFileInfo = new FileInfo(versionFilePath);
 
@@ -163,23 +163,23 @@ public class FileService
         };
 
         _dbContext.FileHistories.Add(newVersion);
-        await _dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
+        await _dbContext.SaveChangesAsync(cts);
+        await transaction.CommitAsync(cts);
     }
 
-    public async Task<List<FileHistory>> GetFileHistoryAsync(string username, string filename)
+    public async Task<List<FileHistory>> GetFileHistoryAsync(string username, string filename, CancellationToken cts = default)
     {
         return await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename)
             .OrderByDescending(f => f.Version)
-            .ToListAsync();
+            .ToListAsync(cts);
     }
 
-    public async Task<(Stream, string)> GetFileHistoryVersionContentAsync(string username, string filename, int version)
+    public async Task<(Stream, string)> GetFileHistoryVersionContentAsync(string username, string filename, int version, CancellationToken cts = default)
     {
         var fileVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename && f.Version == version)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cts);
 
         if (fileVersion == null)
             return (null!, null!);
@@ -192,12 +192,11 @@ public class FileService
         return (fileStream, GetContentType(filename));
     }
 
-    public async Task RestoreFileHistoryAsync(string username, string filename, int version)
+    public async Task RestoreFileHistoryAsync(string username, string filename, int version, CancellationToken cts = default)
     {
         var fileVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename && f.Version == version)
-            .FirstOrDefaultAsync();
-
+            .FirstOrDefaultAsync(cts);
         if (fileVersion == null)
             throw new InvalidOperationException("File version not found.");
 
@@ -211,10 +210,10 @@ public class FileService
 
         if (File.Exists(userPath))
         {
-            await SaveFileVersionAsync(username, filename, userPath);
+            await SaveFileVersionAsync(username, filename, userPath, cts);
         }
 
-        await CopyFileAsync(versionFilePath, userPath);
+        await CopyFileAsync(versionFilePath, userPath, cts);
     }
 
     public Task<bool> DeleteFileAsync(string username, string filename)
@@ -283,11 +282,11 @@ public class FileService
         return fullPath;
     }
 
-    private static async Task CopyFileAsync(string sourcePath, string destinationPath)
+    private static async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cts = default)
     {
         using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await sourceStream.CopyToAsync(destinationStream);
+        await sourceStream.CopyToAsync(destinationStream, cts);
     }
 
     private string GetContentType(string filename)

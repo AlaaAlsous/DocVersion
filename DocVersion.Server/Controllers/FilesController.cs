@@ -110,13 +110,13 @@ public class FilesController : ControllerBase
             {
                 if (version.Value <= 0) return BadRequest("Invalid version.");
 
-                var (fileStream, contentType) = await _fileService.GetFileHistoryVersionContentAsync(username, filename, version.Value);
+                var (fileStream, contentType) = await _fileService.GetFileHistoryVersionContentAsync(username, filename, version.Value, HttpContext.RequestAborted);
                 if (fileStream == null) return NotFound();
 
                 return File(fileStream, contentType, Path.GetFileName(filename), enableRangeProcessing: true);
             }
 
-            var history = await _fileService.GetFileHistoryAsync(username, filename);
+            var history = await _fileService.GetFileHistoryAsync(username, filename, HttpContext.RequestAborted);
             if (history == null || history.Count == 0) return NotFound();
             var result = history
             .OrderByDescending(h => h.Version)
@@ -153,7 +153,7 @@ public class FilesController : ControllerBase
                 return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
             }
 
-            var created = await _fileService.CreateFileAsync(username, filename, Request.Body);
+            var created = await _fileService.CreateFileAsync(username, filename, Request.Body, HttpContext.RequestAborted);
             if (!created) return Conflict("File already exists.");
             await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileCreated, filename);
             return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
@@ -177,7 +177,7 @@ public class FilesController : ControllerBase
         if (version <= 0) return BadRequest("Invalid version.");
         try
         {
-            await _fileService.RestoreFileHistoryAsync(username, filename, version);
+            await _fileService.RestoreFileHistoryAsync(username, filename, version, HttpContext.RequestAborted);
 
             await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileUpdated, filename);
             return Ok(new { Message = "File restored to version ", version, filename });
@@ -207,7 +207,7 @@ public class FilesController : ControllerBase
                 return NoContent();
             }
             bool fileExists = await _fileService.FileExistsAsync(username, filename);
-            await _fileService.SaveFileAsync(username, filename, Request.Body);
+            await _fileService.SaveFileAsync(username, filename, Request.Body, HttpContext.RequestAborted);
             await _eventsHub.Clients.All.SendAsync("Event", fileExists ? (int)EventsType.FileUpdated : (int)EventsType.FileCreated, filename);
             return NoContent();
         }
