@@ -6,7 +6,6 @@ using DocVersion.Server.Services;
 using DocVersion.Server.Hubs;
 using DocVersion.Core.Models;
 
-
 namespace DocVersion.Server.Controllers;
 
 [ApiController]

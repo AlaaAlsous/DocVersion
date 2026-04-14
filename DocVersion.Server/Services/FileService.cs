@@ -90,8 +90,6 @@ public class FileService
         return Task.FromResult<Dictionary<string, FileMetadata>?>(FileHelper.GetFolderContent(userPath));
     }
 
-
-
     public async Task<bool> CreateFileAsync(string username, string filename, Stream content)
     {
         var userPath = GetSafePath(username, filename);

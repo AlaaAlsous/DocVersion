@@ -12,7 +12,7 @@ class Program
 
         if (args.Length < 2)
         {
-            MessageColor("Usage: DocVersion.Client [pull|push] <serverUrl> [username] [password]", ConsoleColor.Red);
+            MessageColor("Usage: DocVersion.Client [pull|push|sync] <serverUrl> [username] [password]", ConsoleColor.Red);
             return 1;
         }
         var command = args[0].ToLower();
@@ -111,6 +111,7 @@ class Program
                     MessageColor($"Failed to pull file {filename}: " + fileResponse.StatusCode, ConsoleColor.Red);
                     continue;
                 }
+                MessageColor($"Successfully pulled file: {filename}", ConsoleColor.Green);
                 var content = await fileResponse.Content.ReadAsByteArrayAsync();
                 Directory.CreateDirectory(Path.GetDirectoryName(localPath) ?? "");
                 await File.WriteAllBytesAsync(localPath, content);
@@ -404,7 +405,6 @@ class Program
             await changeSemaphore.WaitAsync();
             try
             {
-
                 var fileName = Path.GetFileName(fullPath);
                 if (ignoredFiles.Contains(fileName))
                     return;
