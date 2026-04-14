@@ -1,18 +1,15 @@
 {
-  "name": "tests",
+  "name": "doc-version",
   "version": "1.0.0",
   "description": "",
-  "main": "run.js",
   "scripts": {
-    "generate": "node tests/generate.js",
-    "test": "node tests/run.js",
     "build": "esbuild DocVersion.Server/src/index.ts --bundle --outfile=DocVersion.Server/wwwroot/js/index.js --format=esm --target=es2020",
     "build:check": "tsc -p DocVersion.Server --noEmit",
     "dev-css": "npx sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --watch --no-source-map"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@microsoft/signalr": "^10.0.0"
