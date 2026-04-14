@@ -102,7 +102,21 @@ dom.modalPassword.addEventListener("keydown", (event: KeyboardEvent) => {
   if (event.key === "Enter") login();
 });
 
+window.addEventListener("storage", (event) => {
+  if (event.key === "jwt") {
+    if (!event.newValue) {
+      logout();
+    } else {
+      startSignalR();
+    }
+  }
+  if (event.key === "username") {
+    setCurrentUser(event.newValue ?? "");
+  }
+});
+
 setCurrentUser(localStorage.getItem("username") ?? "");
+startSignalR();
 getFiles();
 
 export {
