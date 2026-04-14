@@ -4,6 +4,7 @@ using DocVersion.Core.Models;
 using DocVersion.Server.Models;
 using DocVersion.Server.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 namespace DocVersion.Server.Services;
 
 public class FileService
@@ -122,12 +123,36 @@ public class FileService
         var directory = Path.GetDirectoryName(userPath);
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
 
-        if (File.Exists(userPath))
+        string? oldHash = null;
+        bool fileExisted = File.Exists(userPath);
+        if (fileExisted)
+        {
+            using var oldStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
+            oldHash = ComputeSha256Hash(oldStream);
+        }
+
+        using (var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write))
+        {
+            await content.CopyToAsync(fileStream, cts);
+        }
+
+        using var newStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
+        var newHash = ComputeSha256Hash(newStream);
+
+        if (!fileExisted || oldHash != newHash)
         {
             await SaveFileVersionAsync(username, filename, userPath, cts);
         }
-        using var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write);
-        await content.CopyToAsync(fileStream, cts);
+
+    }
+
+    private static string ComputeSha256Hash(Stream stream)
+    {
+        using var sha256 = SHA256.Create();
+        stream.Position = 0;
+        var hash = sha256.ComputeHash(stream);
+        stream.Position = 0;
+        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
     private async Task SaveFileVersionAsync(string username, string filename, string sourceFilePath, CancellationToken cts = default)
