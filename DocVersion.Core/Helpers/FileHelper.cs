@@ -10,29 +10,49 @@ public static class FileHelper
 
         foreach (var file in Directory.GetFiles(folderPath))
         {
-            var fileInfo = new FileInfo(file);
-            result[fileInfo.Name] = new FileMetadata
+            try
             {
-                Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                IsFile = true,
-                Bytes = fileInfo.Length,
-                Extension = fileInfo.Extension
-            };
+                var fileInfo = new FileInfo(file);
+                long bytes = 0;
+                try { if (fileInfo.Exists) bytes = fileInfo.Length; } catch { bytes = 0; }
+
+                result[fileInfo.Name] = new FileMetadata
+                {
+                    Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                    IsFile = true,
+                    Bytes = bytes,
+                    Extension = fileInfo.Extension
+                };
+            }
+            catch
+            {
+                continue;
+            }
         }
 
         foreach (var folder in Directory.GetDirectories(folderPath))
         {
-            var folderInfo = new DirectoryInfo(folder);
-            result[folderInfo.Name] = new FileMetadata
+            try
             {
-                Created = folderInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = folderInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                IsFile = false,
-                Bytes = CalculateDirectorySize(folder),
-                Extension = null,
-                Content = GetFolderContent(folder)
-            };
+                var folderInfo = new DirectoryInfo(folder);
+                Dictionary<string, FileMetadata>? content = null;
+                try { content = GetFolderContent(folder); } catch { content = null; }
+
+                result[folderInfo.Name] = new FileMetadata
+                {
+                    Created = folderInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Changed = folderInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                    IsFile = false,
+                    Bytes = CalculateDirectorySize(folder),
+                    Extension = null,
+                    Content = content
+                };
+            }
+            catch
+            {
+                continue;
+            }
         }
 
         return result;
