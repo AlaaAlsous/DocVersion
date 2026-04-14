@@ -154,7 +154,7 @@ export async function uploadFile() {
 
   try {
     const response = await fetch(`/api/files/${encodedPath}`, {
-      method: "POST",
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "X-Type": "file",
@@ -407,7 +407,7 @@ export function showMetadata(
     </div>
     <p><strong>Name:</strong> ${file}</p>
     <p><strong>Type:</strong> ${metadata.type}</p>
-    <p><strong>Size:</strong> ${formatBytes(typeof metadata.bytes === 'number' ? metadata.bytes : Number(metadata.bytes))}</p>
+    <p><strong>Size:</strong> ${formatBytes(typeof metadata.bytes === "number" ? metadata.bytes : Number(metadata.bytes))}</p>
     <p><strong>Created:</strong> ${metadata.created}</p>
     <p><strong>Modified:</strong> ${metadata.changed}</p>
     <p><strong>Extension:</strong> ${metadata.extension || "-"}</p>

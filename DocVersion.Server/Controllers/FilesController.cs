@@ -74,6 +74,10 @@ public class FilesController : ControllerBase
         {
             return NotFound();
         }
+        catch (IOException)
+        {
+            return Conflict("File is in use by another process.");
+        }
     }
 
     [HttpHead("{**filename}")]
@@ -158,6 +162,10 @@ public class FilesController : ControllerBase
         {
             return NotFound();
         }
+        catch (IOException)
+        {
+            return Conflict("File is in use by another process.");
+        }
     }
 
     [HttpPost("restore/{**filename}")]
@@ -206,6 +214,10 @@ public class FilesController : ControllerBase
         catch (InvalidOperationException)
         {
             return NotFound();
+        }
+        catch (IOException)
+        {
+            return Conflict("File is in use by another process.");
         }
     }
 
