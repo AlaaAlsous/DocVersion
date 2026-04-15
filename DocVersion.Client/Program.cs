@@ -265,6 +265,7 @@ class Program
 
     private static async Task Sync(HttpClient client, string serverUrl, string cwd)
     {
+        var cts = new CancellationTokenSource();
         MessageColor("Syncing: doing initial pull...", ConsoleColor.Blue);
         await Pull(client, serverUrl, cwd);
 
@@ -280,15 +281,14 @@ class Program
             .Build();
 
         int ignoringLocalChanges = 0;
-
-        var failedOps = new Queue<(Func<Task> Op, int Attempts)>();
+        var failedOps = new Queue<(Func<Task> Op, int Attempts, string? FilePath)>();
         var failedOpsLock = new object();
 
         var processFailedOpsTask = Task.Run(async () =>
         {
-            while (true)
+            while (!cts.Token.IsCancellationRequested)
             {
-                (Func<Task> Op, int Attempts)? item = null;
+                (Func<Task> Op, int Attempts, string? FilePath)? item = null;
 
                 lock (failedOpsLock)
                 {
@@ -298,45 +298,45 @@ class Program
 
                 if (item != null)
                 {
-                    var (op, attempts) = item.Value;
+                    var (op, attempts, filePath) = item.Value;
 
                     try
                     {
                         await op();
-                        MessageColor($"[Retry] Success", ConsoleColor.Green);
+                        MessageColor($"[Retry] Success{(filePath != null ? $" for {filePath}" : "")}", ConsoleColor.Green);
                     }
                     catch (Exception ex)
                     {
                         if (attempts >= 10)
                         {
-                            MessageColor($"[Retry] Failed after 10 attempts: {ex.Message}", ConsoleColor.Red);
+                            MessageColor($"[Retry] Failed after 10 attempts{(filePath != null ? $" for {filePath}" : "")}: {ex.Message}", ConsoleColor.Red);
                             continue;
                         }
 
-                        var delay = (int)Math.Pow(2, attempts) * 1000;
+                        var delay = Math.Min((int)Math.Pow(2, attempts) * 1000, 30000);
 
-                        MessageColor($"[Retry] Attempt {attempts + 1} failed. Retrying in {delay} ms", ConsoleColor.Yellow);
+                        MessageColor($"[Retry] Attempt {attempts + 1} failed{(filePath != null ? $" for {filePath}" : "")}. Retrying in {delay} ms", ConsoleColor.Yellow);
 
                         await Task.Delay(delay);
 
                         lock (failedOpsLock)
                         {
-                            failedOps.Enqueue((op, attempts + 1));
+                            failedOps.Enqueue((op, attempts + 1, filePath));
                         }
                     }
                 }
                 else
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cts.Token);
                 }
             }
         });
 
-        void EnqueueFailed(Func<Task> op)
+        void EnqueueFailed(Func<Task> op, string? filePath = null)
         {
             lock (failedOpsLock)
             {
-                failedOps.Enqueue((op, 0));
+                failedOps.Enqueue((op, 0, filePath));
             }
         }
 
@@ -395,7 +395,7 @@ class Program
                                 Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
                                 var content = await response.Content.ReadAsByteArrayAsync();
                                 await File.WriteAllBytesAsync(localPath, content);
-                            });
+                            }, filePath);
                         }
                         break;
 
@@ -487,7 +487,7 @@ class Program
                         catch (Exception ex)
                         {
                             MessageColor($"[Local] Delete failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
-                            EnqueueFailed(async () => await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"));
+                            EnqueueFailed(async () => await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"), relative);
                         }
                     }
                     else if (Directory.Exists(fullPath))
@@ -514,7 +514,7 @@ class Program
                                 request.Headers.Add("X-Type", "folder");
                                 request.Content = new ByteArrayContent(Array.Empty<byte>());
                                 await client.SendAsync(request);
-                            });
+                            }, relative);
                         }
                     }
                     else if (File.Exists(fullPath))
@@ -545,7 +545,7 @@ class Program
                                 request.Headers.Add("X-Type", "file");
                                 request.Content = new StreamContent(stream);
                                 await client.SendAsync(request);
-                            });
+                            }, relative);
                         }
                     }
                 }
@@ -628,7 +628,7 @@ class Program
 
         MessageColor("Sync running... Ctrl+C to stop", ConsoleColor.Cyan);
 
-        var cts = new CancellationTokenSource();
+
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
