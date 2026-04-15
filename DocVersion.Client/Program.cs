@@ -303,19 +303,19 @@ class Program
                     try
                     {
                         await op();
-                        Console.WriteLine($"[Retry] {op} Success");
+                        MessageColor($"[Retry] Success", ConsoleColor.Green);
                     }
                     catch (Exception ex)
                     {
                         if (attempts >= 10)
                         {
-                            Console.WriteLine($"[Retry] Failed after 10 attempts: {ex.Message}");
+                            MessageColor($"[Retry] Failed after 10 attempts: {ex.Message}", ConsoleColor.Red);
                             continue;
                         }
 
                         var delay = (int)Math.Pow(2, attempts) * 1000;
 
-                        Console.WriteLine($"[Retry] Attempt {attempts + 1} failed. Retrying in {delay} ms");
+                        MessageColor($"[Retry] Attempt {attempts + 1} failed. Retrying in {delay} ms", ConsoleColor.Yellow);
 
                         await Task.Delay(delay);
 
