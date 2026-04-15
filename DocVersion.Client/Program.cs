@@ -281,21 +281,62 @@ class Program
 
         int ignoringLocalChanges = 0;
 
-        async Task Retry(Func<Task> action)
+        var failedOps = new Queue<(Func<Task> Op, int Attempts)>();
+        var failedOpsLock = new object();
+
+        var processFailedOpsTask = Task.Run(async () =>
         {
-            for (int i = 0; i < 3; i++)
+            while (true)
             {
-                try
+                (Func<Task> Op, int Attempts)? item = null;
+
+                lock (failedOpsLock)
                 {
-                    await action();
-                    return;
+                    if (failedOps.Count > 0)
+                        item = failedOps.Dequeue();
                 }
-                catch (Exception ex)
+
+                if (item != null)
                 {
-                    if (i == 2) throw;
-                    MessageColor($"[Retry] Attempt {i + 1} failed: {ex.Message}", ConsoleColor.Yellow);
-                    await Task.Delay(500);
+                    var (op, attempts) = item.Value;
+
+                    try
+                    {
+                        await op();
+                        Console.WriteLine($"[Retry] {op} Success");
+                    }
+                    catch (Exception ex)
+                    {
+                        if (attempts >= 10)
+                        {
+                            Console.WriteLine($"[Retry] Failed after 10 attempts: {ex.Message}");
+                            continue;
+                        }
+
+                        var delay = (int)Math.Pow(2, attempts) * 1000;
+
+                        Console.WriteLine($"[Retry] Attempt {attempts + 1} failed. Retrying in {delay} ms");
+
+                        await Task.Delay(delay);
+
+                        lock (failedOpsLock)
+                        {
+                            failedOps.Enqueue((op, attempts + 1));
+                        }
+                    }
                 }
+                else
+                {
+                    await Task.Delay(1000);
+                }
+            }
+        });
+
+        void EnqueueFailed(Func<Task> op)
+        {
+            lock (failedOpsLock)
+            {
+                failedOps.Enqueue((op, 0));
             }
         }
 
@@ -336,15 +377,26 @@ class Program
                     case EventsType.FileUpdated:
                         MessageColor($"[Server] File updated: {filePath}", ConsoleColor.DarkCyan);
 
-                        await Retry(async () =>
+                        try
                         {
                             var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
                             response.EnsureSuccessStatusCode();
-
                             Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
                             var content = await response.Content.ReadAsByteArrayAsync();
                             await File.WriteAllBytesAsync(localPath, content);
-                        });
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageColor($"[Server] File download failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+                            EnqueueFailed(async () =>
+                            {
+                                var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
+                                response.EnsureSuccessStatusCode();
+                                Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
+                                var content = await response.Content.ReadAsByteArrayAsync();
+                                await File.WriteAllBytesAsync(localPath, content);
+                            });
+                        }
                         break;
 
                     case EventsType.FileDeleted:
@@ -428,7 +480,15 @@ class Program
                     {
                         MessageColor($"[Local] Deleted: {relative}", ConsoleColor.DarkRed);
                         MarkAsPushed(relative);
-                        await Retry(() => client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"));
+                        try
+                        {
+                            await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageColor($"[Local] Delete failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+                            EnqueueFailed(async () => await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"));
+                        }
                     }
                     else if (Directory.Exists(fullPath))
                     {
@@ -436,28 +496,36 @@ class Program
                         var folderColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
                         MessageColor($"[Local] {folderAction}: {relative}", folderColor);
                         MarkAsPushed(relative);
-
-                        await Retry(async () =>
+                        try
                         {
                             using var request = new HttpRequestMessage(HttpMethod.Put,
                                 $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
                             request.Headers.Add("X-Type", "folder");
                             request.Content = new ByteArrayContent(Array.Empty<byte>());
                             await client.SendAsync(request);
-                        });
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageColor($"[Local] Folder operation failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+                            EnqueueFailed(async () =>
+                            {
+                                using var request = new HttpRequestMessage(HttpMethod.Put,
+                                    $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                                request.Headers.Add("X-Type", "folder");
+                                request.Content = new ByteArrayContent(Array.Empty<byte>());
+                                await client.SendAsync(request);
+                            });
+                        }
                     }
                     else if (File.Exists(fullPath))
                     {
                         await Task.Delay(500);
-
                         if (!File.Exists(fullPath)) return;
-
                         var fileAction = type == WatcherChangeTypes.Created ? "New file" : "Updated file";
                         var fileColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
                         MessageColor($"[Local] {fileAction}: {relative}", fileColor);
                         MarkAsPushed(relative);
-
-                        await Retry(async () =>
+                        try
                         {
                             using var stream = File.OpenRead(fullPath);
                             using var request = new HttpRequestMessage(HttpMethod.Put,
@@ -465,7 +533,20 @@ class Program
                             request.Headers.Add("X-Type", "file");
                             request.Content = new StreamContent(stream);
                             await client.SendAsync(request);
-                        });
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageColor($"[Local] File operation failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+                            EnqueueFailed(async () =>
+                            {
+                                using var stream = File.OpenRead(fullPath);
+                                using var request = new HttpRequestMessage(HttpMethod.Put,
+                                    $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                                request.Headers.Add("X-Type", "file");
+                                request.Content = new StreamContent(stream);
+                                await client.SendAsync(request);
+                            });
+                        }
                     }
                 }
                 catch (Exception ex)
