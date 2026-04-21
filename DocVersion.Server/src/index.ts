@@ -1,3 +1,5 @@
+import { createFile } from "./files";
+dom.createFileBtn.addEventListener("click", createFile);
 import { dom, state, MESSAGE_TIMEOUT_MS, DEFAULT_PREVIEW_TEXT } from "./state";
 import { toApiPath, getResponseContentType, isTextContentType } from "./utils";
 import {

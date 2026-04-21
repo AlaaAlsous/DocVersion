@@ -8,6 +8,8 @@ export const dom = {
   modalError: document.getElementById("modalError") as any,
   createFolderBtn: document.getElementById("createFolderBtn") as any,
   folderNameInput: document.getElementById("folderName") as any,
+  createFileBtn: document.getElementById("createFileBtn") as any,
+  fileNameInput: document.getElementById("fileNameInput") as any,
   uploadBtn: document.getElementById("uploadBtn") as any,
   fileInput: document.getElementById("fileInput") as any,
   fileInputName: document.getElementById("fileInputName") as any,

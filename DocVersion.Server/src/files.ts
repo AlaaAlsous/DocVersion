@@ -1,3 +1,45 @@
+export async function createFile() {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+  const fileName = dom.fileNameInput.value.trim();
+  if (!fileName) {
+    showErrorMessage("File name cannot be empty");
+    return;
+  }
+  const path = state.currentPath
+    ? `${state.currentPath}/${fileName}`
+    : fileName;
+  const encodedPath = toApiPath(path);
+  try {
+    const response = await fetch(`/api/files/${encodedPath}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Type": "file",
+      },
+      body: "",
+    });
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+    if (!response.ok) {
+      if (response.status === 409) {
+        showErrorMessage("A file with that name already exists");
+      } else {
+        showErrorMessage("Failed to create file");
+      }
+      return;
+    }
+    dom.fileNameInput.value = "";
+    await getFiles(state.currentPath);
+    showSuccessMessage(`File created: ${fileName}`);
+  } catch (error) {
+    showErrorMessage("Error creating file");
+  }
+}
 import { dom, state } from "./state";
 import { toApiPath, formatBytes } from "./utils";
 import {

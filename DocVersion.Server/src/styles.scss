@@ -515,14 +515,16 @@ h1 {
 }
 
 #folderName:focus,
-#fileInput:focus {
+#fileInput:focus,
+#fileInputLabel:focus {
   outline: none;
   border-color: var(--gh-accent);
   box-shadow: 0 0 0 3px #0969da26;
 }
 
 #createFolderBtn,
-#uploadBtn {
+#uploadBtn,
+#createFileBtn {
   border: 1px solid #1a7f37;
   background: var(--gh-success);
   color: #ffffff;
