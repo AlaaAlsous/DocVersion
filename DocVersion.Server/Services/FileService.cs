@@ -241,6 +241,24 @@ public class FileService
         await CopyFileAsync(versionFilePath, userPath, cts);
     }
 
+    public async Task<List<(string File, bool Success, string? Error)>> UploadFilesAsync(string username, IEnumerable<(string FileName, Stream Content)> files, CancellationToken cts = default)
+    {
+        var results = new List<(string File, bool Success, string? Error)>();
+        foreach (var (fileName, content) in files)
+        {
+            try
+            {
+                var created = await CreateFileAsync(username, fileName, content, cts);
+                results.Add((fileName, created, created ? null : "File already exists"));
+            }
+            catch (Exception ex)
+            {
+                results.Add((fileName, false, ex.Message));
+            }
+        }
+        return results;
+    }
+
     public Task<bool> DeleteFileAsync(string username, string filename)
     {
         var userPath = GetSafePath(username, filename);
