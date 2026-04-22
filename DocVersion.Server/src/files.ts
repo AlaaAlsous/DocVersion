@@ -310,7 +310,11 @@ export async function uploadFolder() {
   const formData = new FormData();
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    formData.append("files", f, f.webkitRelativePath);
+    let relPath = f.webkitRelativePath;
+    if (state.currentPath) {
+      relPath = state.currentPath.replace(/^\/+|\/+$/g, "") + "/" + relPath;
+    }
+    formData.append("files", f, relPath);
   }
   try {
     const response = await fetch("/api/files/upload-folder", {
@@ -341,7 +345,6 @@ if (
   dom.uploadFolderBtn &&
   dom.folderInputName
 ) {
-
   dom.folderInputLabel.addEventListener("click", (e: MouseEvent) => {
     e.preventDefault();
     dom.folderInput.click();
