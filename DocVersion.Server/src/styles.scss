@@ -470,7 +470,8 @@ h1 {
   border: 0;
 }
 
-#fileInputLabel {
+#fileInputLabel,
+#folderInputLabel {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -492,20 +493,29 @@ h1 {
   }
 }
 
-#fileInputName {
+#fileInputName,
+#folderInputName {
   color: var(--gh-text);
   font-size: 0.95em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-
-  &:empty::before {
-    content: "Choose file...";
-    color: var(--gh-muted);
-  }
 }
 
-#uploadBtn {
+#fileInputName:empty::before {
+  content: ("Select a file");
+  color: var(--gh-muted);
+}
+
+#folderInputName:empty::before {
+  content: ("Select a folder");
+  color: var(--gh-muted);
+}
+
+#uploadBtn,
+#uploadFolderBtn,
+#createFileBtn,
+#createFolderBtn {
   flex-shrink: 0;
 }
 
@@ -515,8 +525,9 @@ h1 {
 }
 
 #folderName:focus,
-#fileInput:focus,
-#fileInputLabel:focus {
+#folderInputLabel:focus,
+#fileInputLabel:focus,
+#fileNameInput:focus {
   outline: none;
   border-color: var(--gh-accent);
   box-shadow: 0 0 0 3px #0969da26;
@@ -524,7 +535,9 @@ h1 {
 
 #createFolderBtn,
 #uploadBtn,
-#createFileBtn {
+#uploadFolderBtn,
+#createFileBtn,
+#createFolderBtn {
   border: 1px solid #1a7f37;
   background: var(--gh-success);
   color: #ffffff;
@@ -538,12 +551,16 @@ h1 {
     box-shadow 0.18s ease,
     transform 0.15s ease;
   box-shadow: 0 1px 3px #00000012;
-
-  &:hover {
-    background: #2ea043;
-    box-shadow: 0 4px 12px #1f883d33;
-    transform: translateY(-1px);
-  }
+  min-width: 120px;
+  max-width: 120px;
+}
+#createFolderBtn:hover,
+#uploadBtn:hover,
+#createFileBtn:hover,
+#uploadFolderBtn:hover {
+  background: #2ea043;
+  box-shadow: 0 4px 12px #1f883d33;
+  transform: translateY(-1px);
 }
 
 #file-content-box {

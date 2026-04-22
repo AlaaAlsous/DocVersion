@@ -35,16 +35,36 @@
           id="fileNameInput"
           name="fileNameInput"
           type="text"
-          placeholder="File name (ex: myfile.txt)"
+          placeholder="File name"
           autocomplete="off"
         />
         <button id="createFileBtn" class="upload-btn">Create File</button>
       </div>
       <div class="action-group">
-        <input id="fileInput" name="fileInput" type="file" />
-        <label id="fileInputLabel" for="fileInput"
-          ><span id="fileInputName"></span
-        ></label>
+        <input
+          id="folderInput"
+          name="folderInput"
+          type="file"
+          webkitdirectory
+          directory
+          multiple
+          style="display: none"
+        />
+        <label id="folderInputLabel" for="folderInput">
+          <span id="folderInputName" data-placeholder="Choose folder..."></span>
+        </label>
+        <button id="uploadFolderBtn" class="upload-btn">Upload Folder</button>
+      </div>
+      <div class="action-group">
+        <input
+          id="fileInput"
+          name="fileInput"
+          type="file"
+          style="display: none"
+        />
+        <label id="fileInputLabel" for="fileInput">
+          <span id="fileInputName" data-placeholder="Choose file..."></span>
+        </label>
         <button id="uploadBtn" class="upload-btn">Upload File</button>
       </div>
     </section>

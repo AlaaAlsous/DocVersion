@@ -1,45 +1,3 @@
-export async function createFile() {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-  const fileName = dom.fileNameInput.value.trim();
-  if (!fileName) {
-    showErrorMessage("File name cannot be empty");
-    return;
-  }
-  const path = state.currentPath
-    ? `${state.currentPath}/${fileName}`
-    : fileName;
-  const encodedPath = toApiPath(path);
-  try {
-    const response = await fetch(`/api/files/${encodedPath}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "X-Type": "file",
-      },
-      body: "",
-    });
-    if (handleUnauthorizedResponse(response)) {
-      return;
-    }
-    if (!response.ok) {
-      if (response.status === 409) {
-        showErrorMessage("A file with that name already exists");
-      } else {
-        showErrorMessage("Failed to create file");
-      }
-      return;
-    }
-    dom.fileNameInput.value = "";
-    await getFiles(state.currentPath);
-    showSuccessMessage(`File created: ${fileName}`);
-  } catch (error) {
-    showErrorMessage("Error creating file");
-  }
-}
 import { dom, state } from "./state";
 import { toApiPath, formatBytes } from "./utils";
 import {
@@ -315,6 +273,141 @@ export async function createFolder() {
   } catch (error) {
     console.error("Error creating folder:", error);
     showErrorMessage("Error creating folder");
+  }
+}
+
+export async function uploadFolder() {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+  const files = dom.folderInput.files;
+  if (!files || files.length === 0) {
+    showErrorMessage("No folder selected");
+    return;
+  }
+
+  const first = files[0].webkitRelativePath.split("/")[0];
+  let exists = false;
+  try {
+    const encodedPath = toApiPath(
+      state.currentPath ? `${state.currentPath}/${first}` : first,
+    );
+    const res = await fetch(`/api/files/${encodedPath}`, {
+      method: "HEAD",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok && res.headers.get("X-Type") === "folder") {
+      exists = true;
+    }
+  } catch {}
+  if (exists) {
+    showErrorMessage("A folder with that name already exists");
+    return;
+  }
+
+  const formData = new FormData();
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    formData.append("files", f, f.webkitRelativePath);
+  }
+  try {
+    const response = await fetch("/api/files/upload-folder", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    if (handleUnauthorizedResponse(response)) return;
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      showErrorMessage(data?.Message || "Failed to upload folder");
+      return;
+    }
+    dom.folderInput.value = "";
+    dom.folderInputName.textContent = "";
+    await getFiles(state.currentPath);
+    showSuccessMessage("Folder uploaded!");
+  } catch (error) {
+    showErrorMessage("Error uploading folder");
+  }
+}
+
+if (
+  dom.folderInput &&
+  dom.folderInputLabel &&
+  dom.uploadFolderBtn &&
+  dom.folderInputName
+) {
+
+  dom.folderInputLabel.addEventListener("click", (e: MouseEvent) => {
+    e.preventDefault();
+    dom.folderInput.click();
+  });
+
+  dom.folderInput.addEventListener("change", () => {
+    const files = dom.folderInput.files;
+    if (files && files.length > 0) {
+      const first = files[0].webkitRelativePath.split("/")[0];
+      dom.folderInputName.textContent = first;
+    } else {
+      dom.folderInputName.textContent = "";
+    }
+  });
+
+  dom.uploadFolderBtn.addEventListener("click", async () => {
+    if (!dom.folderInput.files || dom.folderInput.files.length === 0) {
+      showErrorMessage("No folder selected  to upload");
+      return;
+    }
+    await uploadFolder();
+    dom.folderInput.value = "";
+    dom.folderInputName.textContent = "";
+  });
+}
+
+export async function createFile() {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+  const fileName = dom.fileNameInput.value.trim();
+  if (!fileName) {
+    showErrorMessage("File name cannot be empty");
+    return;
+  }
+  const path = state.currentPath
+    ? `${state.currentPath}/${fileName}`
+    : fileName;
+  const encodedPath = toApiPath(path);
+  try {
+    const response = await fetch(`/api/files/${encodedPath}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Type": "file",
+      },
+      body: "",
+    });
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+    if (!response.ok) {
+      if (response.status === 409) {
+        showErrorMessage("A file with that name already exists");
+      } else {
+        showErrorMessage("Failed to create file");
+      }
+      return;
+    }
+    dom.fileNameInput.value = "";
+    await getFiles(state.currentPath);
+    showSuccessMessage(`File created: ${fileName}`);
+  } catch (error) {
+    showErrorMessage("Error creating file");
   }
 }
 
