@@ -234,8 +234,33 @@ public class FilesController : ControllerBase
             .Select(f => (FileName: f.FileName.Replace("\\", "/").TrimStart('/'), Content: f.OpenReadStream()))
             .ToList();
 
+        var allFolders = uploadFiles
+            .Select(f => Path.GetDirectoryName(f.FileName))
+            .Where(d => !string.IsNullOrEmpty(d))
+            .SelectMany(d =>
+                d!.Split('/')
+                .Select((_, idx) => string.Join('/', d.Split('/').Take(idx + 1))))
+            .Distinct()
+            .OrderBy(x => x.Length)
+            .ToList();
+
+        foreach (var folder in allFolders)
+        {
+            if (!string.IsNullOrWhiteSpace(folder))
+            {
+                await _fileService.CreateFolderAsync(username, folder);
+                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderCreated, folder);
+            }
+        }
+
         var results = await _fileService.UploadFilesAsync(username, uploadFiles, HttpContext.RequestAborted);
-        await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileCreated, "folder-upload");
+
+        foreach (var result in results)
+        {
+            if (result.Success)
+                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileCreated, result.File);
+        }
+
         var failed = results.Where(r => !r.Success).ToList();
         if (failed.Count > 0)
             return StatusCode(207, new { Message = "Some files failed", Results = results });
