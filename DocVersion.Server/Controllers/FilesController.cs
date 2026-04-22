@@ -221,6 +221,27 @@ public class FilesController : ControllerBase
         }
     }
 
+    [HttpPost("upload-folder")]
+    [RequestSizeLimit(1_073_741_824)]
+    public async Task<IActionResult> UploadFolder()
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        if (!Request.HasFormContentType || !Request.Form.Files.Any())
+            return BadRequest("No files uploaded.");
+
+        var uploadFiles = Request.Form.Files
+            .Select(f => (FileName: f.FileName.Replace("\\", "/").TrimStart('/'), Content: f.OpenReadStream()))
+            .ToList();
+
+        var results = await _fileService.UploadFilesAsync(username, uploadFiles, HttpContext.RequestAborted);
+        await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileCreated, "folder-upload");
+        var failed = results.Where(r => !r.Success).ToList();
+        if (failed.Count > 0)
+            return StatusCode(207, new { Message = "Some files failed", Results = results });
+        return Ok(new { Message = "Folder uploaded", Results = results });
+    }
+
     [HttpDelete("{**filename}")]
     public async Task<IActionResult> DeleteFileAsync(string filename)
     {
