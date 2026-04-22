@@ -92,6 +92,16 @@ if (dom.fileNameInput && dom.createFileBtn) {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (
+    state.isEditMode &&
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === "s"
+  ) {
+    event.preventDefault();
+    dom.saveBtn.click();
+    return;
+  }
+
   if (!state.activeHistoryFileName || dom.historyBox.style.display === "none")
     return;
   if (state.isEditMode) return;
