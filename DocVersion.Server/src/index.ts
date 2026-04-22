@@ -73,6 +73,24 @@ dom.fileInput.addEventListener("change", function () {
   }
 });
 
+if (dom.folderNameInput && dom.createFolderBtn) {
+  dom.folderNameInput.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      dom.createFolderBtn.click();
+    }
+  });
+}
+
+if (dom.fileNameInput && dom.createFileBtn) {
+  dom.fileNameInput.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      dom.createFileBtn.click();
+    }
+  });
+}
+
 document.addEventListener("keydown", (event) => {
   if (!state.activeHistoryFileName || dom.historyBox.style.display === "none")
     return;
