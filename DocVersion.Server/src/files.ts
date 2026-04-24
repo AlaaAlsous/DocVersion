@@ -583,3 +583,50 @@ export function cancelEdit() {
   dom.saveBtn.style.display = "none";
   dom.cancelBtn.style.display = "none";
 }
+
+export async function renameItem(
+  oldName: string,
+  newName: string,
+  isFolder: boolean,
+  prevName?: string,
+  nextName?: string,
+) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+  try {
+    const response = await fetch("/api/files/rename", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        OldName: oldName,
+        NewName: newName,
+        IsFolder: isFolder,
+      }),
+    });
+    if (handleUnauthorizedResponse(response)) return;
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      if (data?.Message && prevName && nextName) {
+        showErrorMessage(`${data.Message} (${prevName} → ${nextName})`);
+      } else {
+        await getFiles(state.currentPath);
+        showErrorMessage(data?.Message || "Rename failed, There is a file or folder with the same name");
+      }
+      return;
+    }
+    await getFiles(state.currentPath);
+    if (prevName && nextName) {
+      showSuccessMessage(`Renamed: ${prevName} → ${nextName}`);
+    } else {
+      showSuccessMessage(`Renamed to: ${newName}`);
+    }
+  } catch (error) {
+    showErrorMessage("Error renaming item");
+  }
+}
