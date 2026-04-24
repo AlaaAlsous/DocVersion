@@ -286,6 +286,23 @@ public class FileService
         var histories = _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == oldFilename)
             .ToList();
+            
+        foreach (var history in histories)
+        {
+            bool duplicateExists = _dbContext.FileHistories.Any(f =>
+                f.Username == username &&
+                f.FilePath == newFilename &&
+                f.Version == history.Version);
+            if (duplicateExists)
+            {
+                if (File.Exists(newPath) && !File.Exists(oldPath))
+                {
+                    File.Move(newPath, oldPath);
+                }
+                throw new InvalidOperationException($"Det finns redan historik för '{newFilename}' med version {history.Version}. Bytet avbryts för att undvika dubbletter.");
+            }
+        }
+
         foreach (var history in histories)
         {
             history.FilePath = newFilename;

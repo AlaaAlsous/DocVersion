@@ -618,7 +618,7 @@ export async function renameItem(
         await getFiles(state.currentPath);
         showErrorMessage(
           data?.Message ||
-            "Rename failed, There is a file or folder with the same name",
+            "Rename failed: A file or folder with this name already exists locally or in the database.",
         );
       }
       return;
