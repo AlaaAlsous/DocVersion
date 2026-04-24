@@ -98,13 +98,28 @@ public class FileService
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
         if (File.Exists(userPath)) return false;
 
-        using (var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write))
+        try
         {
-            await content.CopyToAsync(fileStream, cts);
-        }
+            using (var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write))
+            {
+                await content.CopyToAsync(fileStream, cts);
+            }
 
-        await SaveFileVersionAsync(username, filename, userPath, cts);
-        return true;
+            await SaveFileVersionAsync(username, filename, userPath, cts);
+            return true;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new IOException($"Access denied to path '{userPath}'. Check permissions and that there is no file/folder name conflict. Error: {ex.Message}", ex);
+        }
+        catch (IOException ex)
+        {
+            throw new IOException($"IO error when creating file '{userPath}': {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Unknown error when creating file '{userPath}': {ex.Message}", ex);
+        }
     }
 
     public Task<bool> CreateFolderAsync(string username, string foldername)
@@ -257,6 +272,26 @@ public class FileService
             }
         }
         return results;
+    }
+
+    public Task<bool> RenameFileAsync(string username, string oldFilename, string newFilename)
+    {
+        var oldPath = GetSafePath(username, oldFilename);
+        var newPath = GetSafePath(username, newFilename);
+        if (!File.Exists(oldPath) || File.Exists(newPath))
+            return Task.FromResult(false);
+        File.Move(oldPath, newPath);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> RenameFolderAsync(string username, string oldFoldername, string newFoldername)
+    {
+        var oldPath = GetSafePath(username, oldFoldername);
+        var newPath = GetSafePath(username, newFoldername);
+        if (!Directory.Exists(oldPath) || Directory.Exists(newPath) || File.Exists(newPath))
+            return Task.FromResult(false);
+        Directory.Move(oldPath, newPath);
+        return Task.FromResult(true);
     }
 
     public Task<bool> DeleteFileAsync(string username, string filename)
