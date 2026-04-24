@@ -624,6 +624,11 @@ export async function renameItem(
       return;
     }
     await getFiles(state.currentPath);
+    if (!isFolder && newName) {
+      await showItemMetadata(newName);
+      await showFileContent(newName);
+      await getFilesHistory(newName);
+    }
     if (prevName && nextName) {
       showSuccessMessage(`Renamed: ${prevName} → ${nextName}`);
     } else {
