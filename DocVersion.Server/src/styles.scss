@@ -405,6 +405,10 @@ h1 {
         --icon-url: url("/Assets/History.png");
       }
 
+      &-rename {
+        --icon-url: url("/Assets/Rename.png");
+      }
+
       &:focus-visible {
         outline: 2px solid var(--gh-accent);
         outline-offset: 1px;
@@ -419,6 +423,8 @@ h1 {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
 }
 
 .item-actions {
@@ -1243,4 +1249,25 @@ audio.file-preview-media {
     margin-left: 0;
     justify-content: flex-end;
   }
+}
+
+.rename-input {
+  font-size: 1em;
+  padding: 0.1em 0.3em;
+  border: 1px solid var(--gh-border);
+  border-radius: 4px;
+  background: var(--gh-input-bg);
+  color: var(--gh-text);
+  outline: none;
+  margin-left: -2px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rename-input:focus {
+  border-color: var(--gh-accent);
+  box-shadow: 0 0 0 2px var(--modal-input-focus-shadow);
 }
