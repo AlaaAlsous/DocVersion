@@ -6,5 +6,7 @@ public enum EventsType
     FileUpdated = 1,
     FileDeleted = 2,
     FolderCreated = 5,
-    FolderDeleted = 7
+    FolderDeleted = 7,
+    FolderRenamed = 8,
+    FileRenamed = 9,
 }
