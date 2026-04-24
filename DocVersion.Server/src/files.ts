@@ -616,7 +616,10 @@ export async function renameItem(
         showErrorMessage(`${data.Message} (${prevName} → ${nextName})`);
       } else {
         await getFiles(state.currentPath);
-        showErrorMessage(data?.Message || "Rename failed, There is a file or folder with the same name");
+        showErrorMessage(
+          data?.Message ||
+            "Rename failed, There is a file or folder with the same name",
+        );
       }
       return;
     }

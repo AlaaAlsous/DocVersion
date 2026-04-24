@@ -70,6 +70,8 @@ export async function startSignalR() {
           void getFiles(state.currentPath);
         }
         break;
+      case 8:
+      case 9:
       default:
         console.log("Unknown event type:", type);
     }

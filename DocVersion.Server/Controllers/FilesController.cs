@@ -318,14 +318,14 @@ public class FilesController : ControllerBase
         {
             success = await _fileService.RenameFolderAsync(username, oldName, newName);
             if (success)
-                await _eventsHub.Clients.User(username)
+                await _eventsHub.Clients.All
                     .SendAsync("Event", (int)EventsType.FolderRenamed, new { OldName = oldName, NewName = newName });
         }
         else
         {
             success = await _fileService.RenameFileAsync(username, oldName, newName);
             if (success)
-                await _eventsHub.Clients.User(username)
+                await _eventsHub.Clients.All
                     .SendAsync("Event", (int)EventsType.FileRenamed, new { OldName = oldName, NewName = newName });
         }
 

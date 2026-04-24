@@ -280,7 +280,18 @@ public class FileService
         var newPath = GetSafePath(username, newFilename);
         if (!File.Exists(oldPath) || File.Exists(newPath))
             return Task.FromResult(false);
+
         File.Move(oldPath, newPath);
+
+        var histories = _dbContext.FileHistories
+            .Where(f => f.Username == username && f.FilePath == oldFilename)
+            .ToList();
+        foreach (var history in histories)
+        {
+            history.FilePath = newFilename;
+        }
+        _dbContext.SaveChanges();
+
         return Task.FromResult(true);
     }
 
