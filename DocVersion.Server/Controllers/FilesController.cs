@@ -296,4 +296,39 @@ public class FilesController : ControllerBase
             return NotFound();
         }
     }
+
+    [HttpPost("rename")]
+    public async Task<IActionResult> Rename([FromBody] RenameRequest request)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(request.OldName) || string.IsNullOrWhiteSpace(request.NewName))
+            return BadRequest("OldName and NewName are required.");
+
+        bool success = false;
+        if (request.IsFolder)
+        {
+            success = await _fileService.RenameFolderAsync(username, request.OldName, request.NewName);
+            if (success)
+                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderRenamed, new { OldName = request.OldName, NewName = request.NewName });
+        }
+        else
+        {
+            success = await _fileService.RenameFileAsync(username, request.OldName, request.NewName);
+            if (success)
+                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileRenamed, new { OldName = request.OldName, NewName = request.NewName });
+        }
+
+        if (!success)
+            return Conflict("Rename failed. Check if the source exists and the destination does not already exist.");
+
+        return Ok(new { Message = "Rename successful", request.OldName, request.NewName });
+    }
+    
+        public class RenameRequest
+    {
+        public string OldName { get; set; } = null!;
+        public string NewName { get; set; } = null!;
+        public bool IsFolder { get; set; }
+    }
 }
