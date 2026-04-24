@@ -300,32 +300,42 @@ public class FilesController : ControllerBase
     [HttpPost("rename")]
     public async Task<IActionResult> Rename([FromBody] RenameRequest request)
     {
+        if (request == null)
+            return BadRequest("Request body saknas.");
+
         var username = GetUsername();
         if (string.IsNullOrEmpty(username)) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(request.OldName) || string.IsNullOrWhiteSpace(request.NewName))
+
+        var oldName = request.OldName?.Trim();
+        var newName = request.NewName?.Trim();
+
+        if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName))
             return BadRequest("OldName and NewName are required.");
 
-        bool success = false;
+        bool success;
+
         if (request.IsFolder)
         {
-            success = await _fileService.RenameFolderAsync(username, request.OldName, request.NewName);
+            success = await _fileService.RenameFolderAsync(username, oldName, newName);
             if (success)
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderRenamed, new { OldName = request.OldName, NewName = request.NewName });
+                await _eventsHub.Clients.User(username)
+                    .SendAsync("Event", (int)EventsType.FolderRenamed, new { OldName = oldName, NewName = newName });
         }
         else
         {
-            success = await _fileService.RenameFileAsync(username, request.OldName, request.NewName);
+            success = await _fileService.RenameFileAsync(username, oldName, newName);
             if (success)
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileRenamed, new { OldName = request.OldName, NewName = request.NewName });
+                await _eventsHub.Clients.User(username)
+                    .SendAsync("Event", (int)EventsType.FileRenamed, new { OldName = oldName, NewName = newName });
         }
 
         if (!success)
-            return Conflict("Rename failed. Check if the source exists and the destination does not already exist.");
+            return Conflict("Rename failed.");
 
-        return Ok(new { Message = "Rename successful", request.OldName, request.NewName });
+        return Ok(new { Message = "Rename successful", OldName = oldName, NewName = newName });
     }
-    
-        public class RenameRequest
+
+    public class RenameRequest
     {
         public string OldName { get; set; } = null!;
         public string NewName { get; set; } = null!;
