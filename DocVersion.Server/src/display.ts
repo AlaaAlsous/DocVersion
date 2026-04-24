@@ -74,6 +74,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
     const downloadBtn = document.createElement("button");
     const delBtn = document.createElement("button");
     const historyBtn = document.createElement("button");
+    const renameBtn = document.createElement("button");
     const itemPath = state.currentPath ? `${state.currentPath}/${name}` : name;
 
     itemLabel.classList.add("item-label");
@@ -115,6 +116,59 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       await getFilesHistory(name);
     });
 
+    renameBtn.textContent = "";
+    renameBtn.classList.add("icon-btn", "icon-btn-rename");
+    renameBtn.title = "Rename";
+    renameBtn.setAttribute("aria-label", "Rename");
+    renameBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (listItem.querySelector("input.rename-input")) return;
+      const currentName = name;
+      const isFolder = !metadata.file;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = currentName;
+      input.className = "rename-input";
+      input.setAttribute("maxlength", "255");
+      input.style.width = "100%";
+      input.style.minWidth = "0";
+      input.style.maxWidth = "100%";
+      input.style.boxSizing = "border-box";
+      input.style.overflow = "hidden";
+      input.style.textOverflow = "ellipsis";
+      input.style.marginLeft = "4px";
+      itemLabel.textContent = "";
+      itemLabel.appendChild(input);
+      input.focus();
+      input.select();
+      input.addEventListener("click", (e) => e.stopPropagation());
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          input.blur();
+        } else if (e.key === "Escape") {
+          itemLabel.textContent = currentName;
+        }
+      });
+      input.addEventListener("blur", () => {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+          const oldPath = state.currentPath
+            ? `${state.currentPath}/${currentName}`
+            : currentName;
+          const newPath = state.currentPath
+            ? `${state.currentPath}/${newName}`
+            : newName;
+          import("./files").then((m) =>
+            m.renameItem(oldPath, newPath, isFolder, currentName, newName),
+          );
+        }
+        itemLabel.textContent =
+          newName && newName !== currentName ? newName : currentName;
+      });
+    });
+
     if (metadata.file) {
       listItem.classList.add("file");
       itemLabel.textContent = name;
@@ -127,7 +181,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
           await getFilesHistory(name);
         }
       });
-      buttonGroup.append(downloadBtn, delBtn, historyBtn);
+      buttonGroup.append(downloadBtn, delBtn, historyBtn, renameBtn);
     } else {
       listItem.classList.add("folder");
       itemLabel.textContent = name;
@@ -147,7 +201,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
         state.currentFileIsEditable = false;
         updateEditorActions();
       });
-      buttonGroup.append(delBtn);
+      buttonGroup.append(delBtn, renameBtn);
     }
 
     listItem.append(itemLabel, buttonGroup);
