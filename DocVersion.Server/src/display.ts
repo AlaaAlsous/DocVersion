@@ -16,6 +16,34 @@ import { getFilesHistory } from "./history";
 export function displayFiles(files: Record<string, { file: boolean }>) {
   dom.fileList.innerHTML = "";
 
+  const fileNames = Object.keys(files);
+  const currentFilePath =
+    state.currentPath && state.currentFileName
+      ? `${state.currentPath}/${state.currentFileName}`
+      : state.currentFileName;
+  const currentHistoryPath =
+    state.currentPath && state.activeHistoryFileName
+      ? `${state.currentPath}/${state.activeHistoryFileName}`
+      : state.activeHistoryFileName;
+  if (state.currentFileName && !fileNames.includes(state.currentFileName)) {
+    if (dom.fileContentTitle) dom.fileContentTitle.textContent = "";
+    if (dom.fileContentBody) dom.fileContentBody.textContent = "";
+    if (dom.fileContentTextarea) dom.fileContentTextarea.value = "";
+    state.currentFileName = "";
+  }
+  if (
+    state.activeHistoryFileName &&
+    !fileNames.includes(state.activeHistoryFileName)
+  ) {
+    if (dom.historyBox) dom.historyBox.style.display = "none";
+    state.activeHistoryFileName = "";
+    state.activeHistoryEntries = [];
+    state.historyCursor = -1;
+  }
+  if (dom.metadataBox && state.currentFileName === "") {
+    dom.metadataBox.style.display = "none";
+  }
+
   function setActiveItem(li: HTMLElement) {
     dom.fileList
       .querySelectorAll("li.active")
