@@ -341,82 +341,136 @@ class Program
         }
 
         var recentlyPushed = new Dictionary<string, DateTime>();
-        var echoCooldownMs = 3000;
 
         void MarkAsPushed(string path)
         {
             lock (recentlyPushed) { recentlyPushed[path] = DateTime.UtcNow; }
         }
 
-        bool IsEcho(string path)
-        {
-            lock (recentlyPushed)
-            {
-                if (recentlyPushed.TryGetValue(path, out var time)
-                    && (DateTime.UtcNow - time).TotalMilliseconds < echoCooldownMs)
-                    return true;
-                recentlyPushed.Remove(path);
-                return false;
-            }
-        }
 
-        connection.On<int, string>("Event", async (eventType, filePath) =>
+        connection.On<int, object>("Event", async (eventType, payload) =>
         {
-            if (IsEcho(filePath)) return;
-
+            string? filePath = null;
+            string? oldName = null;
+            string? newName = null;
             var type = (EventsType)eventType;
-            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
-
             Interlocked.Exchange(ref ignoringLocalChanges, 1);
-
             try
             {
                 switch (type)
                 {
                     case EventsType.FileCreated:
                     case EventsType.FileUpdated:
-                        MessageColor($"[Server] File updated: {filePath}", ConsoleColor.DarkCyan);
-
-                        try
+                    case EventsType.FileDeleted:
+                    case EventsType.FolderCreated:
+                    case EventsType.FolderDeleted:
+                        filePath = payload as string ?? (payload is System.Text.Json.JsonElement el && el.ValueKind == System.Text.Json.JsonValueKind.String ? el.GetString() : null);
+                        break;
+                    case EventsType.FolderRenamed:
+                    case EventsType.FileRenamed:
+                        if (payload is System.Text.Json.JsonElement jel && jel.ValueKind == System.Text.Json.JsonValueKind.Object)
                         {
-                            var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
-                            response.EnsureSuccessStatusCode();
-                            Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
-                            var content = await response.Content.ReadAsByteArrayAsync();
-                            await File.WriteAllBytesAsync(localPath, content);
+                            if (jel.TryGetProperty("OldName", out var oldNameProp) || jel.TryGetProperty("oldName", out oldNameProp))
+                                oldName = oldNameProp.GetString();
+                            if (jel.TryGetProperty("NewName", out var newNameProp) || jel.TryGetProperty("newName", out newNameProp))
+                                newName = newNameProp.GetString();
                         }
-                        catch (Exception ex)
+                        break;
+                }
+
+                switch (type)
+                {
+                    case EventsType.FileCreated:
+                    case EventsType.FileUpdated:
+                        if (!string.IsNullOrEmpty(filePath))
                         {
-                            MessageColor($"[Server] File download failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
-                            EnqueueFailed(async () =>
+                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            MessageColor($"[Server] File updated: {filePath}", ConsoleColor.DarkCyan);
+                            try
                             {
                                 var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
                                 response.EnsureSuccessStatusCode();
                                 Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
                                 var content = await response.Content.ReadAsByteArrayAsync();
                                 await File.WriteAllBytesAsync(localPath, content);
-                            }, filePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Server] File download failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+                                EnqueueFailed(async () =>
+                                {
+                                    var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
+                                    response.EnsureSuccessStatusCode();
+                                    Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
+                                    var content = await response.Content.ReadAsByteArrayAsync();
+                                    await File.WriteAllBytesAsync(localPath, content);
+                                }, filePath);
+                            }
                         }
                         break;
-
                     case EventsType.FileDeleted:
-                        if (File.Exists(localPath))
-                            File.Delete(localPath);
-                        MessageColor($"[Server] File deleted: {filePath}", ConsoleColor.DarkRed);
-                        break;
-
-                    case EventsType.FolderCreated:
-                        Directory.CreateDirectory(localPath);
-                        MessageColor($"[Server] Folder created: {filePath}", ConsoleColor.DarkCyan);
-                        break;
-
-                    case EventsType.FolderDeleted:
-                        if (Directory.Exists(localPath))
+                        if (!string.IsNullOrEmpty(filePath))
                         {
-                            FileHelper.PrepareDirectoryForDelete(localPath);
-                            Directory.Delete(localPath, true);
+                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            if (File.Exists(localPath))
+                                File.Delete(localPath);
+                            MessageColor($"[Server] File deleted: {filePath}", ConsoleColor.DarkRed);
                         }
-                        MessageColor($"[Server] Folder deleted: {filePath}", ConsoleColor.DarkRed);
+                        break;
+                    case EventsType.FolderCreated:
+                        if (!string.IsNullOrEmpty(filePath))
+                        {
+                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            Directory.CreateDirectory(localPath);
+                            MessageColor($"[Server] Folder created: {filePath}", ConsoleColor.DarkCyan);
+                        }
+                        break;
+                    case EventsType.FolderDeleted:
+                        if (!string.IsNullOrEmpty(filePath))
+                        {
+                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            if (Directory.Exists(localPath))
+                            {
+                                FileHelper.PrepareDirectoryForDelete(localPath);
+                                Directory.Delete(localPath, true);
+                            }
+                            MessageColor($"[Server] Folder deleted: {filePath}", ConsoleColor.DarkRed);
+                        }
+                        break;
+                    case EventsType.FolderRenamed:
+                    case EventsType.FileRenamed:
+                        if (!string.IsNullOrEmpty(oldName) && !string.IsNullOrEmpty(newName))
+                        {
+                            var oldPath = Path.Combine(cwd, oldName.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            var newPath = Path.Combine(cwd, newName.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            try
+                            {
+                                if (!File.Exists(oldPath) && !Directory.Exists(oldPath))
+                                {
+                                    MessageColor($"[Server] Rename: Source not found: {oldPath}", ConsoleColor.Red);
+                                }
+                                else if (File.Exists(oldPath))
+                                {
+                                    Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+                                    File.Move(oldPath, newPath, overwrite: true);
+                                    MessageColor($"[Server] File renamed: {oldName} → {newName}", ConsoleColor.Yellow);
+                                }
+                                else if (Directory.Exists(oldPath))
+                                {
+                                    Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+                                    Directory.Move(oldPath, newPath);
+                                    MessageColor($"[Server] Folder renamed: {oldName} → {newName}", ConsoleColor.Yellow);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Server] Rename error: {ex.Message}", ConsoleColor.Red);
+                            }
+                        }
+                        else
+                        {
+                            MessageColor("[Server] Rename event missing OldName or NewName", ConsoleColor.Red);
+                        }
                         break;
                 }
             }

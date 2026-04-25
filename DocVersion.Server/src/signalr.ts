@@ -66,12 +66,12 @@ export async function startSignalR() {
       case 2:
       case 5:
       case 7:
+      case 8:
+      case 9:
         if (shouldRefreshCurrentPath(path)) {
           void getFiles(state.currentPath);
         }
         break;
-      case 8:
-      case 9:
       default:
         console.log("Unknown event type:", type);
     }

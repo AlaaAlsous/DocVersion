@@ -93,10 +93,11 @@ public class FileService
 
     public async Task<bool> CreateFileAsync(string username, string filename, Stream content, CancellationToken cts = default)
     {
+
         var userPath = GetSafePath(username, filename);
         var directory = Path.GetDirectoryName(userPath);
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
-        if (File.Exists(userPath)) return false;
+        if (File.Exists(userPath) || Directory.Exists(userPath)) return false;
 
         try
         {
@@ -286,7 +287,7 @@ public class FileService
         var histories = _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == oldFilename)
             .ToList();
-            
+
         foreach (var history in histories)
         {
             bool duplicateExists = _dbContext.FileHistories.Any(f =>

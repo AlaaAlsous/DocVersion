@@ -168,7 +168,7 @@ export async function uploadFile() {
 
     if (!response.ok) {
       if (response.status === 409) {
-        showErrorMessage("A file with that name already exists");
+        showErrorMessage("A file or folder with that name already exists");
       } else {
         showErrorMessage("Failed to upload file");
       }
@@ -260,7 +260,7 @@ export async function createFolder() {
 
     if (!response.ok) {
       if (response.status === 409) {
-        showErrorMessage("A folder with that name already exists");
+        showErrorMessage("A folder or file with that name already exists");
       } else {
         showErrorMessage("Failed to create folder");
       }
@@ -303,7 +303,7 @@ export async function uploadFolder() {
     }
   } catch {}
   if (exists) {
-    showErrorMessage("A folder with that name already exists");
+    showErrorMessage("A folder or file with that name already exists");
     return;
   }
 
@@ -400,7 +400,7 @@ export async function createFile() {
     }
     if (!response.ok) {
       if (response.status === 409) {
-        showErrorMessage("A file with that name already exists");
+        showErrorMessage("A file or folder with that name already exists");
       } else {
         showErrorMessage("Failed to create file");
       }
