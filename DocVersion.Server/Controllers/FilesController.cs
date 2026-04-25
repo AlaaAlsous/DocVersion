@@ -271,29 +271,44 @@ public class FilesController : ControllerBase
     public async Task<IActionResult> DeleteFileAsync(string filename)
     {
         var username = GetUsername();
-        if (string.IsNullOrEmpty(username)) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(filename)) return NotFound();
+        if (string.IsNullOrEmpty(username))
+            return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(filename))
+            return BadRequest("Filename is required");
 
         try
         {
-            bool isFile = await _fileService.FileExistsAsync(username, filename);
-            bool isFolder = await _fileService.FolderExistsAsync(username, filename);
-            if (!isFile && !isFolder) return NoContent();
+            var isFile = await _fileService.FileExistsAsync(username, filename);
+            var isFolder = await _fileService.FolderExistsAsync(username, filename);
+
+            if (!isFile && !isFolder)
+                return NoContent();
+
             if (isFile)
             {
                 await _fileService.DeleteFileAsync(username, filename);
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileDeleted, filename);
+
+                await _eventsHub.Clients.All.SendAsync(
+                    "Event",
+                    (int)EventsType.FileDeleted,
+                    filename);
             }
-            if (isFolder)
+            else if (isFolder)
             {
                 await _fileService.DeleteFolderAsync(username, filename);
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderDeleted, filename);
+
+                await _eventsHub.Clients.All.SendAsync(
+                    "Event",
+                    (int)EventsType.FolderDeleted,
+                    filename);
             }
+
             return NoContent();
         }
-        catch (InvalidOperationException)
+        catch (Exception ex)
         {
-            return NotFound();
+            return StatusCode(500, new { Message = "Error deleting file/folder", Details = ex.Message });
         }
     }
 

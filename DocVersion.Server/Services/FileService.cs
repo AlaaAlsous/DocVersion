@@ -325,22 +325,43 @@ public class FileService
 
     public Task<bool> DeleteFileAsync(string username, string filename)
     {
-        var userPath = GetSafePath(username, filename);
-        if (!File.Exists(userPath))
+        try
+        {
+            var userPath = GetSafePath(username, filename);
+
+            if (!File.Exists(userPath))
+                return Task.FromResult(false);
+
+            File.SetAttributes(userPath, FileAttributes.Normal);
+            File.Delete(userPath);
+
+            return Task.FromResult(true);
+        }
+        catch
+        {
             return Task.FromResult(false);
-        File.SetAttributes(userPath, FileAttributes.Normal);
-        File.Delete(userPath);
-        return Task.FromResult(true);
+        }
     }
 
     public Task<bool> DeleteFolderAsync(string username, string foldername)
     {
-        var userPath = GetSafePath(username, foldername);
-        if (!Directory.Exists(userPath))
+        try
+        {
+            var userPath = GetSafePath(username, foldername);
+
+            if (!Directory.Exists(userPath))
+                return Task.FromResult(false);
+
+            FileHelper.PrepareDirectoryForDelete(userPath);
+
+            Directory.Delete(userPath, recursive: true);
+
+            return Task.FromResult(true);
+        }
+        catch
+        {
             return Task.FromResult(false);
-        FileHelper.PrepareDirectoryForDelete(userPath);
-        Directory.Delete(userPath, recursive: true);
-        return Task.FromResult(true);
+        }
     }
 
     public Task<bool> FileExistsAsync(string username, string filename)
