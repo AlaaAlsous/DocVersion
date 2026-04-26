@@ -325,42 +325,56 @@ public class FileService
 
     public Task<bool> DeleteFileAsync(string username, string filename)
     {
+        var userPath = GetSafePath(username, filename);
+
+        if (!File.Exists(userPath))
+            return Task.FromResult(false);
+
         try
         {
-            var userPath = GetSafePath(username, filename);
-
-            if (!File.Exists(userPath))
-                return Task.FromResult(false);
-
             File.SetAttributes(userPath, FileAttributes.Normal);
             File.Delete(userPath);
 
             return Task.FromResult(true);
         }
-        catch
+        catch (UnauthorizedAccessException ex)
         {
-            return Task.FromResult(false);
+            throw new IOException($"Access denied deleting '{userPath}': {ex.Message}", ex);
+        }
+        catch (IOException ex)
+        {
+            throw new IOException($"IO error deleting '{userPath}': {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Unexpected error deleting '{userPath}': {ex.Message}", ex);
         }
     }
 
     public Task<bool> DeleteFolderAsync(string username, string foldername)
     {
+        var userPath = GetSafePath(username, foldername);
+
+        if (!Directory.Exists(userPath))
+            return Task.FromResult(false);
+
         try
         {
-            var userPath = GetSafePath(username, foldername);
-
-            if (!Directory.Exists(userPath))
-                return Task.FromResult(false);
-
             FileHelper.PrepareDirectoryForDelete(userPath);
-
             Directory.Delete(userPath, recursive: true);
-
             return Task.FromResult(true);
         }
-        catch
+        catch (UnauthorizedAccessException ex)
         {
-            return Task.FromResult(false);
+            throw new IOException($"Access denied deleting folder '{userPath}': {ex.Message}", ex);
+        }
+        catch (IOException ex)
+        {
+            throw new IOException($"IO error deleting folder '{userPath}': {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Unexpected error deleting folder '{userPath}': {ex.Message}", ex);
         }
     }
 

@@ -287,21 +287,23 @@ public class FilesController : ControllerBase
 
             if (isFile)
             {
-                await _fileService.DeleteFileAsync(username, filename);
+                var deleted = await _fileService.DeleteFileAsync(username, filename);
+                if (!deleted)
+                {
+                    return StatusCode(500, new { Message = "Failed to delete file on server." });
+                }
 
-                await _eventsHub.Clients.All.SendAsync(
-                    "Event",
-                    (int)EventsType.FileDeleted,
-                    filename);
+                _ = _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileDeleted, filename);
             }
             else if (isFolder)
             {
-                await _fileService.DeleteFolderAsync(username, filename);
+                var deleted = await _fileService.DeleteFolderAsync(username, filename);
+                if (!deleted)
+                {
+                    return StatusCode(500, new { Message = "Failed to delete folder on server." });
+                }
 
-                await _eventsHub.Clients.All.SendAsync(
-                    "Event",
-                    (int)EventsType.FolderDeleted,
-                    filename);
+                _ = _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderDeleted, filename);
             }
 
             return NoContent();
@@ -330,19 +332,28 @@ public class FilesController : ControllerBase
         try
         {
             bool success;
+
+            var payload = string.Join("|", oldName, newName);
+
             if (request.IsFolder)
             {
                 success = await _fileService.RenameFolderAsync(username, oldName, newName);
+
                 if (success)
-                    await _eventsHub.Clients.All
-                        .SendAsync("Event", (int)EventsType.FolderRenamed, new { OldName = oldName, NewName = newName });
+                    await _eventsHub.Clients.All.SendAsync(
+                        "Event",
+                        (int)EventsType.FolderRenamed,
+                        payload);
             }
             else
             {
                 success = await _fileService.RenameFileAsync(username, oldName, newName);
+
                 if (success)
-                    await _eventsHub.Clients.All
-                        .SendAsync("Event", (int)EventsType.FileRenamed, new { OldName = oldName, NewName = newName });
+                    await _eventsHub.Clients.All.SendAsync(
+                        "Event",
+                        (int)EventsType.FileRenamed,
+                        payload);
             }
 
             if (!success)
@@ -355,11 +366,5 @@ public class FilesController : ControllerBase
             return Conflict(ex.Message);
         }
     }
-
-    public class RenameRequest
-    {
-        public string OldName { get; set; } = null!;
-        public string NewName { get; set; } = null!;
-        public bool IsFolder { get; set; }
-    }
+    public record RenameRequest(string OldName, string NewName, bool IsFolder);
 }
