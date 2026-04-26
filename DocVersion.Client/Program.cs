@@ -730,6 +730,40 @@ class Program
 
         MessageColor("Stopping sync...", ConsoleColor.Yellow);
         await connection.StopAsync();
+            try { await connection.DisposeAsync(); } catch { }
+
+            try
+            {
+                await Task.WhenAll(batchProcessorTask, processFailedOpsTask);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+    }
+
+    private static string? GetString(object? payload)
+    {
+        if (payload is string s)
+            return s;
+
+        if (payload is JsonElement el)
+        {
+            return el.ValueKind switch
+            {
+                JsonValueKind.String => el.GetString(),
+                JsonValueKind.Number => el.GetRawText(),
+                JsonValueKind.Object => el.GetRawText(),
+                JsonValueKind.Array => el.GetRawText(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                JsonValueKind.Null => null,
+                _ => el.GetRawText()
+            };
+        }
+
+        return payload?.ToString();
     }
 
     private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
