@@ -1,11 +1,19 @@
 ﻿using System.Net.Http.Json;
+using System.Text.Json;
 using DocVersion.Core.Helpers;
+using System.Collections.Concurrent;
 using DocVersion.Core.Models;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.SignalR.Client;
 
 class Program
 {
+    private static readonly ConcurrentQueue<string> pendingDeletes = new();
+    private static readonly ConcurrentDictionary<string, byte> pendingSet = new();
+
+    private const int BATCH_SIZE = 200;
+    private const int BATCH_INTERVAL_MS = 500;
+
     public static async Task<int> Main(string[] args)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -15,7 +23,7 @@ class Program
             MessageColor("Usage: DocVersion.Client [pull|push|sync] <serverUrl> [username] [password]", ConsoleColor.Red);
             return 1;
         }
-        var command = args[0].ToLower();
+        var command = args[0].ToLowerInvariant();
         var serverUrl = NormalizeServerUrl(args[1]);
         var username = args.Length > 2 ? args[2] : null;
         var password = args.Length > 3 ? args[3] : null;
@@ -25,7 +33,7 @@ class Program
 
         try
         {
-            using var client = new HttpClient();
+            using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 
             if (username != null || password != null)
             {
@@ -44,6 +52,7 @@ class Program
                     MessageColor("Login failed: " + loginResponse.StatusCode, ConsoleColor.Red);
                     return 1;
                 }
+
                 var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
                 var token = loginResult?.Token;
                 if (string.IsNullOrEmpty(token))
@@ -51,25 +60,27 @@ class Program
                     MessageColor("Login failed: No token received", ConsoleColor.Red);
                     return 1;
                 }
+
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
-            if (command == "pull")
+            switch (command)
             {
-                await Pull(client, serverUrl, cwd);
-            }
-            else if (command == "push")
-            {
-                await Push(client, serverUrl, cwd);
-            }
-            else if (command == "sync")
-            {
-                await Sync(client, serverUrl, cwd);
-            }
-            else
-            {
-                MessageColor("Unknown command: " + command, ConsoleColor.Red);
-                return 1;
+                case "pull":
+                    await Pull(client, serverUrl, cwd);
+                    break;
+
+                case "push":
+                    await Push(client, serverUrl, cwd);
+                    break;
+
+                case "sync":
+                    await Sync(client, serverUrl, cwd);
+                    break;
+
+                default:
+                    MessageColor("Unknown command: " + command, ConsoleColor.Red);
+                    return 1;
             }
         }
         catch (Exception ex)
@@ -77,31 +88,29 @@ class Program
             MessageColor("Error: " + ex.Message, ConsoleColor.Red);
             return 1;
         }
+
         return 0;
     }
 
     private static async Task Pull(HttpClient client, string serverUrl, string cwd)
     {
         MessageColor("Pulling files from server...", ConsoleColor.Blue);
+
         var response = await client.GetAsync($"{serverUrl}/api/files");
         if (!response.IsSuccessStatusCode)
-        {
             throw new Exception("Failed to pull files: " + response.StatusCode);
-        }
-        var files = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>();
-        if (files == null)
-        {
-            files = new Dictionary<string, FileMetadata>();
-        }
 
-        var flatServerFiles = ToFlatList(files)
-            .ToDictionary(entry => entry.Path, entry => entry.Metadata);
+        var files = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>()
+                   ?? new Dictionary<string, FileMetadata>();
+
+        var flatServerFiles = ToFlatList(files).ToDictionary(entry => entry.Path, entry => entry.Metadata);
 
         foreach (var file in flatServerFiles.OrderBy(entry => entry.Value.IsFile))
         {
             var filename = file.Key;
             var metadata = file.Value;
-            var localPath = Path.Combine(cwd, filename);
+            var localPath = Path.Combine(cwd, filename.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
             if (metadata.IsFile)
             {
                 MessageColor($"Pulling file: {filename} ({metadata.Bytes} bytes)", ConsoleColor.Gray);
@@ -111,9 +120,10 @@ class Program
                     MessageColor($"Failed to pull file {filename}: " + fileResponse.StatusCode, ConsoleColor.Red);
                     continue;
                 }
+
                 MessageColor($"Successfully pulled file: {filename}", ConsoleColor.Green);
                 var content = await fileResponse.Content.ReadAsByteArrayAsync();
-                Directory.CreateDirectory(Path.GetDirectoryName(localPath) ?? "");
+                EnsureDirectoryExists(localPath, cwd);
                 await File.WriteAllBytesAsync(localPath, content);
             }
             else
@@ -130,28 +140,28 @@ class Program
         foreach (var localFile in localFiles)
         {
             var relativePath = Path.GetRelativePath(cwd, localFile).Replace("\\", "/");
-            if (!flatServerFiles.ContainsKey(relativePath))
+            if (flatServerFiles.ContainsKey(relativePath))
+                continue;
+
+            try
             {
-                try
+                if (File.Exists(localFile))
                 {
-                    if (File.Exists(localFile))
-                    {
-                        File.Delete(localFile);
-                        MessageColor($"Deleted file: {localFile}", ConsoleColor.DarkRed);
-                    }
+                    File.Delete(localFile);
+                    MessageColor($"Deleted file: {localFile}", ConsoleColor.DarkRed);
                 }
-                catch (UnauthorizedAccessException)
-                {
-                    MessageColor($"Error: You do not have permission to delete {localFile}", ConsoleColor.Red);
-                }
-                catch (IOException ex)
-                {
-                    MessageColor($"Error: Could not delete {localFile}. It may be in use. {ex.Message}", ConsoleColor.Red);
-                }
-                catch (Exception ex)
-                {
-                    MessageColor($"Unexpected error deleting {localFile}: {ex.Message}", ConsoleColor.Red);
-                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                MessageColor($"Error: You do not have permission to delete {localFile}", ConsoleColor.Red);
+            }
+            catch (IOException ex)
+            {
+                MessageColor($"Error: Could not delete {localFile}. It may be in use. {ex.Message}", ConsoleColor.Red);
+            }
+            catch (Exception ex)
+            {
+                MessageColor($"Unexpected error deleting {localFile}: {ex.Message}", ConsoleColor.Red);
             }
         }
 
@@ -181,16 +191,15 @@ class Program
     private static async Task Push(HttpClient client, string serverUrl, string cwd)
     {
         MessageColor("Pushing files to server...", ConsoleColor.Blue);
+
         var response = await client.GetAsync($"{serverUrl}/api/files");
         if (!response.IsSuccessStatusCode)
-        {
             throw new Exception("Failed to get file list from server: " + response.StatusCode);
-        }
-        var serverFiles = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>();
-        if (serverFiles == null) serverFiles = new Dictionary<string, FileMetadata>();
 
-        var flatServerFiles = ToFlatList(serverFiles)
-            .ToDictionary(entry => entry.Path, entry => entry.Metadata);
+        var serverFiles = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>()
+                         ?? new Dictionary<string, FileMetadata>();
+
+        var flatServerFiles = ToFlatList(serverFiles).ToDictionary(entry => entry.Path, entry => entry.Metadata);
 
         var localTree = FileHelper.GetFolderContent(cwd);
         var flatLocalEntries = ToFlatList(localTree).ToList();
@@ -201,9 +210,13 @@ class Program
                 continue;
 
             MessageColor($"Creating folder on server: {localFolder.Path}", ConsoleColor.DarkYellow);
+
             using var request = new HttpRequestMessage(HttpMethod.Put, $"{serverUrl}/api/files/{EncodePathForApi(localFolder.Path)}");
             request.Headers.Add("X-Type", "folder");
-            request.Content = new ByteArrayContent(Array.Empty<byte>());
+            var content = new ByteArrayContent(Array.Empty<byte>());
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            request.Content = content;
+
             var folderResponse = await client.SendAsync(request);
             if (!folderResponse.IsSuccessStatusCode)
             {
@@ -218,15 +231,31 @@ class Program
         foreach (var localFile in flatLocalEntries.Where(entry => entry.Metadata.IsFile))
         {
             MessageColor($"Pushing file: {localFile.Path}", ConsoleColor.Gray);
-            using var fileStream = File.OpenRead(Path.Combine(cwd, localFile.Path));
-            var content = new StreamContent(fileStream);
-            var putResponse = await client.PutAsync($"{serverUrl}/api/files/{EncodePathForApi(localFile.Path)}", content);
-            if (!putResponse.IsSuccessStatusCode)
+            var fullLocalPath = Path.Combine(cwd, localFile.Path.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+            try
             {
-                MessageColor($"Failed to push file {localFile.Path}: " + putResponse.StatusCode, ConsoleColor.Red);
+                using var fileStream = File.OpenRead(fullLocalPath);
+                using var request = new HttpRequestMessage(HttpMethod.Put, $"{serverUrl}/api/files/{EncodePathForApi(localFile.Path)}");
+                request.Headers.Add("X-Type", "file");
+                var streamContent = new StreamContent(fileStream);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                request.Content = streamContent;
+
+                var putResponse = await client.SendAsync(request);
+                if (!putResponse.IsSuccessStatusCode)
+                {
+                    MessageColor($"Failed to push file {localFile.Path}: " + putResponse.StatusCode, ConsoleColor.Red);
+                }
+                else
+                {
+                    MessageColor($"Successfully pushed file: {localFile.Path}", ConsoleColor.Green);
+                }
             }
-            else
-                MessageColor($"Successfully pushed file: {localFile.Path}", ConsoleColor.Green);
+            catch (Exception ex)
+            {
+                MessageColor($"Failed to push file {localFile.Path}: {ex.Message}", ConsoleColor.Red);
+            }
         }
 
         var localPaths = flatLocalEntries.Select(entry => entry.Path).ToHashSet();
@@ -234,31 +263,35 @@ class Program
         foreach (var serverFile in flatServerFiles.Where(entry => entry.Value.IsFile))
         {
             var filename = serverFile.Key;
-            if (!localPaths.Contains(filename))
+            if (localPaths.Contains(filename))
+                continue;
+
+            var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(filename)}");
+            if (!deleteResponse.IsSuccessStatusCode)
             {
-                var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(filename)}");
-                if (!deleteResponse.IsSuccessStatusCode)
-                {
-                    MessageColor($"Failed to delete file {filename} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
-                }
-                else
-                    MessageColor($"Deleted file from server: {filename}", ConsoleColor.DarkRed);
+                MessageColor($"Failed to delete file {filename} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
+            }
+            else
+            {
+                MessageColor($"Deleted file from server: {filename}", ConsoleColor.DarkRed);
             }
         }
 
         foreach (var serverFile in flatServerFiles.Where(entry => !entry.Value.IsFile)
-        .OrderByDescending(entry => entry.Key.Count(ch => ch == '/')))
+                     .OrderByDescending(entry => entry.Key.Count(ch => ch == '/')))
         {
             var foldername = serverFile.Key;
-            if (!localPaths.Contains(foldername))
+            if (localPaths.Contains(foldername))
+                continue;
+
+            var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(foldername)}");
+            if (!deleteResponse.IsSuccessStatusCode)
             {
-                var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(foldername)}");
-                if (!deleteResponse.IsSuccessStatusCode)
-                {
-                    MessageColor($"Failed to delete folder {foldername} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
-                }
-                else
-                    MessageColor($"Deleted folder from server: {foldername}", ConsoleColor.DarkRed);
+                MessageColor($"Failed to delete folder {foldername} from server: " + deleteResponse.StatusCode, ConsoleColor.Red);
+            }
+            else
+            {
+                MessageColor($"Deleted folder from server: {foldername}", ConsoleColor.DarkRed);
             }
         }
     }
