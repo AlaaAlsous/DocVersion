@@ -5,6 +5,8 @@ using DocVersion.Server.Models;
 using DocVersion.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.SignalR;
+using DocVersion.Server.Hubs;
 namespace DocVersion.Server.Services;
 
 public class FileService
@@ -13,10 +15,12 @@ public class FileService
     private readonly string _historyStoragePath;
     private readonly AppDbContext _dbContext;
     private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();
+    private readonly IHubContext<EventsHub> _hub;
 
-    public FileService(AppDbContext dbContext)
+    public FileService(AppDbContext dbContext, IHubContext<EventsHub> hub)
     {
         _dbContext = dbContext;
+        _hub = hub;
         _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
         _historyStoragePath = Path.Combine(_storagePath, ".history");
         if (!Directory.Exists(_storagePath))
@@ -323,19 +327,21 @@ public class FileService
         return Task.FromResult(true);
     }
 
-    public Task<bool> DeleteFileAsync(string username, string filename)
+    public async Task<bool> DeleteFileAsync(string username, string filename)
     {
         var userPath = GetSafePath(username, filename);
 
         if (!File.Exists(userPath))
-            return Task.FromResult(false);
+            return false;
 
         try
         {
             File.SetAttributes(userPath, FileAttributes.Normal);
             File.Delete(userPath);
 
-            return Task.FromResult(true);
+            await _hub.Clients.User(username).SendAsync("Event", (int)EventsType.FileDeleted, filename);
+
+            return true;
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -351,18 +357,21 @@ public class FileService
         }
     }
 
-    public Task<bool> DeleteFolderAsync(string username, string foldername)
+    public async Task<bool> DeleteFolderAsync(string username, string foldername)
     {
         var userPath = GetSafePath(username, foldername);
 
         if (!Directory.Exists(userPath))
-            return Task.FromResult(false);
+            return false;
 
         try
         {
             FileHelper.PrepareDirectoryForDelete(userPath);
             Directory.Delete(userPath, recursive: true);
-            return Task.FromResult(true);
+
+            await _hub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderDeleted, foldername);
+
+            return true;
         }
         catch (UnauthorizedAccessException ex)
         {
