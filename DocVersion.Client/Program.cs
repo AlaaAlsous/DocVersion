@@ -766,7 +766,9 @@ class Program
         return payload?.ToString();
     }
 
-    private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(Dictionary<string, FileMetadata> source, string currentFolder = "")
+    private static IEnumerable<(string Path, FileMetadata Metadata)> ToFlatList(
+        Dictionary<string, FileMetadata> source,
+        string currentFolder = "")
     {
         foreach (var entry in source)
         {
@@ -774,31 +776,34 @@ class Program
             var normalizedPath = currentPath.Replace("\\", "/");
             yield return (normalizedPath, entry.Value);
 
-            if (entry.Value.Content != null)
-            {
-                foreach (var nested in ToFlatList(entry.Value.Content, normalizedPath))
-                    yield return nested;
-            }
+            if (entry.Value.Content is null)
+                continue;
+
+            foreach (var nested in ToFlatList(entry.Value.Content, normalizedPath))
+                yield return nested;
         }
     }
 
     private static string NormalizeServerUrl(string url)
     {
-        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            url = (url.StartsWith("localhost", StringComparison.OrdinalIgnoreCase)
-            || url.StartsWith("127.0.0.1"))
-                  ? $"http://{url}" : $"https://{url}";
+            url = (url.StartsWith("localhost", StringComparison.OrdinalIgnoreCase) ||
+                   url.StartsWith("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                ? $"http://{url}"
+                : $"https://{url}";
         }
         return url.TrimEnd('/');
     }
 
     private static string EncodePathForApi(string relativePath)
     {
-        return string.Join("/", relativePath
-            .Replace("\\", "/")
-            .Split('/', StringSplitOptions.RemoveEmptyEntries)
-            .Select(Uri.EscapeDataString));
+        return string.Join("/",
+            relativePath
+                .Replace("\\", "/")
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .Select(Uri.EscapeDataString));
     }
 
     private static void MessageColor(string message, ConsoleColor color)
@@ -808,8 +813,104 @@ class Program
         Console.ResetColor();
     }
 
-    class LoginResponse
+    private sealed class LoginResponse
     {
         public string Token { get; set; } = "";
+    }
+
+    private static void EnsureDirectoryExists(string filePath, string cwd)
+    {
+        var dir = Path.GetDirectoryName(filePath);
+        if (string.IsNullOrEmpty(dir))
+            dir = cwd;
+
+        Directory.CreateDirectory(dir);
+    }
+
+    private static void SafeMoveFile(string source, string destination)
+    {
+        if (!File.Exists(source))
+            throw new FileNotFoundException($"Source file not found: {source}");
+
+        var destDir = Path.GetDirectoryName(destination);
+        if (!string.IsNullOrEmpty(destDir))
+            Directory.CreateDirectory(destDir);
+
+        try
+        {
+            File.Move(source, destination, overwrite: true);
+        }
+        catch (IOException ex)
+        {
+            if (File.Exists(destination))
+            {
+                try
+                {
+                    File.Delete(destination);
+                    File.Move(source, destination);
+                }
+                catch (Exception retryEx)
+                {
+                    throw new IOException(
+                        $"Failed to overwrite '{destination}' after retry: {retryEx.Message}",
+                        retryEx);
+                }
+            }
+            else
+            {
+                throw new IOException(
+                    $"IO error moving '{source}' to '{destination}': {ex.Message}",
+                    ex);
+            }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new UnauthorizedAccessException(
+                $"Permission denied moving '{source}' to '{destination}': {ex.Message}",
+                ex);
+        }
+    }
+
+    private static async Task ReconcileServerWithLocalAsync(HttpClient client, string serverUrl, string cwd, CancellationToken token)
+    {
+        var resp = await client.GetAsync($"{serverUrl}/api/files", token);
+        if (!resp.IsSuccessStatusCode)
+            return;
+
+        var serverTree = await resp.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>(cancellationToken: token)
+                        ?? new Dictionary<string, FileMetadata>();
+
+        var flatServerFiles = ToFlatList(serverTree)
+            .Where(x => x.Metadata.IsFile)
+            .Select(x => x.Path)
+            .ToHashSet();
+
+        var localFiles = Directory.GetFiles(cwd, "*", SearchOption.AllDirectories)
+            .Select(p => Path.GetRelativePath(cwd, p).Replace("\\", "/"))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var serverFile in flatServerFiles)
+        {
+            if (localFiles.Contains(serverFile))
+                continue;
+
+            try
+            {
+                var delResp = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(serverFile)}", token);
+                if (delResp.IsSuccessStatusCode || delResp.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    MessageColor($"[Reconcile] Deleted extra server file: {serverFile}", ConsoleColor.DarkRed);
+                }
+                else
+                {
+                    var body = await delResp.Content.ReadAsStringAsync(token);
+                    MessageColor($"[Reconcile] Failed delete {serverFile}: {delResp.StatusCode} - {body}", ConsoleColor.Yellow);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageColor($"[Reconcile] Exception deleting {serverFile}: {ex.Message}", ConsoleColor.Yellow);
+            }
+        }
     }
 }
