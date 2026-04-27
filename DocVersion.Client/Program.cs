@@ -328,14 +328,12 @@ class Program
             .Build();
 
         int ignoringLocalChanges = 0;
-        var failedOps = new Queue<(Func<Task> Op, int Attempts, string? FilePath)>();
-        var failedOpsLock = new object();
 
         var processFailedOpsTask = Task.Run(async () =>
         {
             while (!cts.Token.IsCancellationRequested)
             {
-                (Func<Task> Op, int Attempts, string? FilePath)? item = null;
+                (Func<Task> Op, int Attempts, string? Description)? item = null;
 
                 lock (failedOpsLock)
                 {
@@ -343,57 +341,217 @@ class Program
                         item = failedOps.Dequeue();
                 }
 
-                if (item != null)
+                if (item is null)
                 {
-                    var (op, attempts, filePath) = item.Value;
+                    try
+                    {
+                        await Task.Delay(1000, cts.Token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+
+                    continue;
+                }
+
+                var (op, attempts, description) = item.Value;
+
+                try
+                {
+                    await op();
+                    MessageColor($"[Retry] Success{(description != null ? $" for {description}" : "")}", ConsoleColor.Green);
+                }
+                catch (Exception ex)
+                {
+                    if (attempts >= 10)
+                    {
+                        MessageColor($"[Retry] Failed after 10 attempts{(description != null ? $" for {description}" : "")}: {ex.Message}", ConsoleColor.Red);
+                        continue;
+                    }
+
+                    var delay = Math.Min((int)Math.Pow(2, attempts) * 1000, 30000);
+                    MessageColor($"[Retry] Attempt {attempts + 1} failed{(description != null ? $" for {description}" : "")}. Retrying in {delay} ms", ConsoleColor.Yellow);
 
                     try
                     {
-                        await op();
-                        MessageColor($"[Retry] Success{(filePath != null ? $" for {filePath}" : "")}", ConsoleColor.Green);
+                        await Task.Delay(delay, cts.Token);
                     }
-                    catch (Exception ex)
+                    catch (TaskCanceledException)
                     {
-                        if (attempts >= 10)
-                        {
-                            MessageColor($"[Retry] Failed after 10 attempts{(filePath != null ? $" for {filePath}" : "")}: {ex.Message}", ConsoleColor.Red);
-                            continue;
-                        }
-
-                        var delay = Math.Min((int)Math.Pow(2, attempts) * 1000, 30000);
-
-                        MessageColor($"[Retry] Attempt {attempts + 1} failed{(filePath != null ? $" for {filePath}" : "")}. Retrying in {delay} ms", ConsoleColor.Yellow);
-
-                        await Task.Delay(delay);
-
-                        lock (failedOpsLock)
-                        {
-                            failedOps.Enqueue((op, attempts + 1, filePath));
-                        }
+                        break;
                     }
-                }
-                else
-                {
-                    await Task.Delay(1000, cts.Token);
+
+                    lock (failedOpsLock)
+                    {
+                        failedOps.Enqueue((op, attempts + 1, description));
+                    }
                 }
             }
-        });
+        }, cts.Token);
 
-        void EnqueueFailed(Func<Task> op, string? filePath = null)
+        void EnqueueFailed(Func<Task> op, string? description = null)
         {
             lock (failedOpsLock)
             {
-                failedOps.Enqueue((op, 0, filePath));
+                failedOps.Enqueue((op, 0, description));
             }
         }
 
-        var recentlyPushed = new Dictionary<string, DateTime>();
+        // Parallel limiter för deletes
+        var deleteLimiter = new SemaphoreSlim(MAX_PARALLEL_DELETES, MAX_PARALLEL_DELETES);
 
-        void MarkAsPushed(string path)
+        // Batch‑processor för deletes (klient→server)
+        var batchProcessorTask = Task.Run(async () =>
         {
-            lock (recentlyPushed) { recentlyPushed[path] = DateTime.UtcNow; }
-        }
+            while (!cts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(BATCH_INTERVAL_MS, cts.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
 
+                var batch = new List<string>();
+                while (batch.Count < BATCH_SIZE && pendingDeletes.TryDequeue(out var item))
+                {
+                    if (pendingSet.TryRemove(item, out _))
+                        batch.Add(item);
+                }
+
+                if (batch.Count == 0)
+                    continue;
+
+                var tasks = new List<Task>();
+                foreach (var path in batch)
+                {
+                    await deleteLimiter.WaitAsync(cts.Token);
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            try
+                            {
+                                var resp = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(path)}", cts.Token);
+                                if (resp.IsSuccessStatusCode || resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+                                {
+                                    MessageColor($"[Local->Server] Deleted: {path} (Status: {resp.StatusCode})", ConsoleColor.DarkRed);
+                                }
+                                else
+                                {
+                                    var body = await resp.Content.ReadAsStringAsync();
+                                    MessageColor($"[Local->Server] Delete failed {path}: {resp.StatusCode} - {body}", ConsoleColor.Yellow);
+
+                                    EnqueueFailed(async () =>
+                                    {
+                                        var r = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(path)}", cts.Token);
+                                        if (!r.IsSuccessStatusCode && r.StatusCode != System.Net.HttpStatusCode.NotFound)
+                                            throw new Exception($"Delete failed: {r.StatusCode}");
+                                    }, path);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Local->Server] Delete exception {path}: {ex.Message}", ConsoleColor.Yellow);
+
+                                EnqueueFailed(async () =>
+                                {
+                                    var r = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(path)}", cts.Token);
+                                    if (!r.IsSuccessStatusCode && r.StatusCode != System.Net.HttpStatusCode.NotFound)
+                                        throw new Exception($"Delete failed: {r.StatusCode}");
+                                }, path);
+                            }
+                        }
+                        finally
+                        {
+                            deleteLimiter.Release();
+                        }
+                    }, cts.Token));
+                }
+
+                try
+                {
+                    await Task.WhenAll(tasks);
+                }
+                catch
+                {
+                    // individuella tasks hanteras via retry‑kön
+                }
+            }
+        }, cts.Token);
+
+        // Delete‑verifier: ser till att servern verkligen tog bort allt
+        var deleteVerifierTask = Task.Run(async () =>
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(3000, cts.Token);
+
+                    if (!pendingDeletes.IsEmpty)
+                        continue;
+
+                    var response = await client.GetAsync($"{serverUrl}/api/files", cts.Token);
+                    if (!response.IsSuccessStatusCode)
+                        continue;
+
+                    var serverFiles = await response.Content.ReadFromJsonAsync<Dictionary<string, FileMetadata>>(cancellationToken: cts.Token);
+                    if (serverFiles == null)
+                        continue;
+
+                    var flatServer = ToFlatList(serverFiles).Select(x => x.Path).ToHashSet();
+
+                    lock (deleteLock)
+                    {
+                        foreach (var deleted in processedDeletes.ToList())
+                        {
+                            if (flatServer.Contains(deleted))
+                            {
+                                if (pendingSet.TryAdd(deleted, 0))
+                                    pendingDeletes.Enqueue(deleted);
+
+                                MessageColor($"[Verifier] Server missed delete → retry: {deleted}", ConsoleColor.Yellow);
+                            }
+                            else
+                            {
+                                processedDeletes.Remove(deleted);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignorera
+                }
+            }
+        }, cts.Token);
+
+        // Periodisk reconcile: tvåvägssync (server <-> lokal)
+        var reconcileTask = Task.Run(async () =>
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(5000, cts.Token);
+                    await ReconcileServerWithLocalAsync(client, serverUrl, cwd, cts.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    MessageColor($"[Reconcile] Error: {ex.Message}", ConsoleColor.Yellow);
+                }
+            }
+        }, cts.Token);
+
+        // -------------------- SignalR events (server → klient) --------------------
 
         connection.On<int, object>("Event", async (eventType, payload) =>
         {
