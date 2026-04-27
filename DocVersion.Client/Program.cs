@@ -678,17 +678,54 @@ class Program
                         }
 
                     case EventsType.FolderDeleted:
-                        if (!string.IsNullOrEmpty(filePath))
                         {
-                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
-                            if (Directory.Exists(localPath))
+                            filePath = GetString(payload);
+                            if (string.IsNullOrEmpty(filePath))
+                                break;
+
+                            if ((DateTime.UtcNow - lastLocalDelete).TotalSeconds < 1)
+                                break;
+
+                            if (IsEcho(filePath))
+                                break;
+
+                            var localPath = Path.Combine(Directory.GetCurrentDirectory(), filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                            try
                             {
-                                FileHelper.PrepareDirectoryForDelete(localPath);
-                                Directory.Delete(localPath, true);
+                                if (Directory.Exists(localPath))
+                                {
+                                    FileHelper.PrepareDirectoryForDelete(localPath);
+                                    Directory.Delete(localPath, true);
+                                    MessageColor($"[Server] Folder deleted: {filePath}", ConsoleColor.DarkRed);
+                                }
+                                else
+                                {
+                                    MessageColor($"[Server] Folder already deleted: {filePath}", ConsoleColor.DarkGray);
+                                }
                             }
-                            MessageColor($"[Server] Folder deleted: {filePath}", ConsoleColor.DarkRed);
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Server] Folder delete failed, queued: {filePath}: {ex.Message}", ConsoleColor.Yellow);
+
+                                var capturedPath = filePath;
+                                var capturedLocal = localPath;
+                                EnqueueFailed(async () =>
+                                {
+                                    if (Directory.Exists(capturedLocal))
+                                    {
+                                        FileHelper.PrepareDirectoryForDelete(capturedLocal);
+                                        Directory.Delete(capturedLocal, true);
+                                        MessageColor($"[Retry] Folder deleted: {capturedPath}", ConsoleColor.Green);
+                                    }
+
+                                    await Task.CompletedTask;
+                                }, capturedPath);
+                            }
+
+                            break;
                         }
-                        break;
+
                     case EventsType.FolderRenamed:
                     case EventsType.FileRenamed:
                         if (!string.IsNullOrEmpty(oldName) && !string.IsNullOrEmpty(newName))
