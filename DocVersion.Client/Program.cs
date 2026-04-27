@@ -728,39 +728,68 @@ class Program
 
                     case EventsType.FolderRenamed:
                     case EventsType.FileRenamed:
-                        if (!string.IsNullOrEmpty(oldName) && !string.IsNullOrEmpty(newName))
                         {
-                            var oldPath = Path.Combine(cwd, oldName.Replace("/", Path.DirectorySeparatorChar.ToString()));
-                            var newPath = Path.Combine(cwd, newName.Replace("/", Path.DirectorySeparatorChar.ToString()));
-                            try
+                            var data = GetString(payload);
+                            if (string.IsNullOrWhiteSpace(data))
+                            {
+                                MessageColor("[Server] Rename event missing data", ConsoleColor.Red);
+                                break;
+                            }
+
+                            var parts = data.Split('|', 2);
+                            if (parts.Length != 2)
+                            {
+                                MessageColor("[Server] Invalid rename format", ConsoleColor.Red);
+                                break;
+                            }
+
+                            oldName = parts[0];
+                            newName = parts[1];
+
+                            if (IsEcho(oldName) || IsEcho(newName))
+                                break;
+
+                            var oldPath = Path.Combine(Directory.GetCurrentDirectory(), oldName.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            var newPath = Path.Combine(Directory.GetCurrentDirectory(), newName.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                            async Task RenameOperation()
                             {
                                 if (!File.Exists(oldPath) && !Directory.Exists(oldPath))
                                 {
-                                    MessageColor($"[Server] Rename: Source not found: {oldPath}", ConsoleColor.Red);
+                                    MessageColor($"[Server] Rename source not found: {oldName}", ConsoleColor.Yellow);
+                                    return;
                                 }
-                                else if (File.Exists(oldPath))
+
+                                EnsureDirectoryExists(newPath, Directory.GetCurrentDirectory());
+
+                                if (File.Exists(oldPath))
                                 {
-                                    Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
-                                    File.Move(oldPath, newPath, overwrite: true);
+                                    SafeMoveFile(oldPath, newPath);
                                     MessageColor($"[Server] File renamed: {oldName} → {newName}", ConsoleColor.Yellow);
                                 }
                                 else if (Directory.Exists(oldPath))
                                 {
-                                    Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
                                     Directory.Move(oldPath, newPath);
                                     MessageColor($"[Server] Folder renamed: {oldName} → {newName}", ConsoleColor.Yellow);
                                 }
+
+                                MarkEcho(oldName);
+                                MarkEcho(newName);
+                            }
+
+                            try
+                            {
+                                await RenameOperation();
                             }
                             catch (Exception ex)
                             {
-                                MessageColor($"[Server] Rename error: {ex.Message}", ConsoleColor.Red);
+                                MessageColor($"[Server] Rename failed, queued: {ex.Message}", ConsoleColor.Red);
+
+                                EnqueueFailed(async () => { await RenameOperation(); }, newName);
                             }
+
+                            break;
                         }
-                        else
-                        {
-                            MessageColor("[Server] Rename event missing OldName or NewName", ConsoleColor.Red);
-                        }
-                        break;
                 }
             }
             catch (Exception ex)
@@ -769,7 +798,7 @@ class Program
             }
             finally
             {
-                await Task.Delay(500);
+                try { await Task.Delay(500); } catch { }
                 Interlocked.Exchange(ref ignoringLocalChanges, 0);
             }
         });
