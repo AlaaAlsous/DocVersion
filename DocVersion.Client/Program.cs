@@ -803,48 +803,61 @@ class Program
             }
         });
 
-        await connection.StartAsync();
-        MessageColor("Connected to server.", ConsoleColor.Green);
-
-        using var watcher = new FileSystemWatcher(cwd)
+        try
         {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite
-        };
-
-        var lastEvent = new Dictionary<string, DateTime>();
-        int debounceMs = 1000;
-        var changeSemaphore = new SemaphoreSlim(1, 1);
-
-        var ignoredFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "desktop.ini", "Thumbs.db", ".DS_Store"
-        };
-
-        async Task HandleChange(string fullPath, WatcherChangeTypes type)
-        {
-            if (Volatile.Read(ref ignoringLocalChanges) == 1)
-                return;
-
-            await changeSemaphore.WaitAsync();
             try
             {
-                var fileName = Path.GetFileName(fullPath);
-                if (ignoredFiles.Contains(fileName))
+                await connection.StartAsync(cts.Token);
+                MessageColor("Connected to server.", ConsoleColor.Green);
+            }
+            catch (Exception ex)
+            {
+                MessageColor($"Could not start SignalR connection: {ex.Message}", ConsoleColor.Red);
+                EnqueueFailed(async () => await connection.StartAsync(cts.Token), "SignalR start");
+            }
+
+            using var watcher = new FileSystemWatcher(Directory.GetCurrentDirectory())
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite
+            };
+
+            var lastEvent = new Dictionary<string, DateTime>();
+            const int debounceMs = 1000;
+            var changeSemaphore = new SemaphoreSlim(1, 1);
+
+            var ignoredFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "desktop.ini", "Thumbs.db", ".DS_Store"
+            };
+
+            async Task HandleChange(string fullPath, WatcherChangeTypes type)
+            {
+                if (Volatile.Read(ref ignoringLocalChanges) == 1)
                     return;
 
-                var relative = Path.GetRelativePath(cwd, fullPath).Replace("\\", "/");
-                var key = relative + type;
-                var now = DateTime.UtcNow;
-
-                lock (lastEvent)
+                await changeSemaphore.WaitAsync();
+                try
                 {
-                    if (lastEvent.TryGetValue(key, out var last) &&
-                        (now - last).TotalMilliseconds < debounceMs)
+                    var fileName = Path.GetFileName(fullPath);
+                    if (ignoredFiles.Contains(fileName))
                         return;
 
-                    lastEvent[key] = now;
-                }
+                    var relative = Path.GetRelativePath(Directory.GetCurrentDirectory(), fullPath).Replace("\\", "/");
+                    var key = relative + type + (File.Exists(fullPath) ? File.GetLastWriteTimeUtc(fullPath).Ticks : 0);
+                    var now = DateTime.UtcNow;
+
+                    lock (lastEvent)
+                    {
+                        if (type != WatcherChangeTypes.Deleted &&
+                            lastEvent.TryGetValue(key, out var last) &&
+                            (now - last).TotalMilliseconds < debounceMs)
+                        {
+                            return;
+                        }
+
+                        lastEvent[key] = now;
+                    }
 
                 try
                 {
