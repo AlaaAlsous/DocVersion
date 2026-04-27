@@ -398,10 +398,8 @@ class Program
             }
         }
 
-        // Parallel limiter för deletes
         var deleteLimiter = new SemaphoreSlim(MAX_PARALLEL_DELETES, MAX_PARALLEL_DELETES);
 
-        // Batch‑processor för deletes (klient→server)
         var batchProcessorTask = Task.Run(async () =>
         {
             while (!cts.Token.IsCancellationRequested)
@@ -476,14 +474,10 @@ class Program
                 {
                     await Task.WhenAll(tasks);
                 }
-                catch
-                {
-                    // individuella tasks hanteras via retry‑kön
-                }
+                catch { }
             }
         }, cts.Token);
 
-        // Delete‑verifier: ser till att servern verkligen tog bort allt
         var deleteVerifierTask = Task.Run(async () =>
         {
             while (!cts.Token.IsCancellationRequested)
@@ -523,14 +517,10 @@ class Program
                         }
                     }
                 }
-                catch
-                {
-                    // ignorera
-                }
+                catch { }
             }
         }, cts.Token);
 
-        // Periodisk reconcile: tvåvägssync (server <-> lokal)
         var reconcileTask = Task.Run(async () =>
         {
             while (!cts.Token.IsCancellationRequested)
@@ -551,68 +541,62 @@ class Program
             }
         }, cts.Token);
 
-        // -------------------- SignalR events (server → klient) --------------------
-
         connection.On<int, object>("Event", async (eventType, payload) =>
         {
             string? filePath = null;
             string? oldName = null;
             string? newName = null;
             var type = (EventsType)eventType;
+
             Interlocked.Exchange(ref ignoringLocalChanges, 1);
+
             try
             {
                 switch (type)
                 {
                     case EventsType.FileCreated:
                     case EventsType.FileUpdated:
-                    case EventsType.FileDeleted:
-                    case EventsType.FolderCreated:
-                    case EventsType.FolderDeleted:
-                        filePath = payload as string ?? (payload is System.Text.Json.JsonElement el && el.ValueKind == System.Text.Json.JsonValueKind.String ? el.GetString() : null);
-                        break;
-                    case EventsType.FolderRenamed:
-                    case EventsType.FileRenamed:
-                        if (payload is System.Text.Json.JsonElement jel && jel.ValueKind == System.Text.Json.JsonValueKind.Object)
                         {
-                            if (jel.TryGetProperty("OldName", out var oldNameProp) || jel.TryGetProperty("oldName", out oldNameProp))
-                                oldName = oldNameProp.GetString();
-                            if (jel.TryGetProperty("NewName", out var newNameProp) || jel.TryGetProperty("newName", out newNameProp))
-                                newName = newNameProp.GetString();
-                        }
-                        break;
-                }
+                            filePath = GetString(payload);
 
-                switch (type)
-                {
-                    case EventsType.FileCreated:
-                    case EventsType.FileUpdated:
-                        if (!string.IsNullOrEmpty(filePath))
-                        {
-                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            if (string.IsNullOrWhiteSpace(filePath))
+                                break;
+
+                            if (IsEcho(filePath))
+                                break;
+
+                            var localPath = Path.Combine(Directory.GetCurrentDirectory(), filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
                             MessageColor($"[Server] File updated: {filePath}", ConsoleColor.DarkCyan);
+
                             try
                             {
                                 var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
                                 response.EnsureSuccessStatusCode();
-                                Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
+                                EnsureDirectoryExists(localPath, Directory.GetCurrentDirectory());
                                 var content = await response.Content.ReadAsByteArrayAsync();
                                 await File.WriteAllBytesAsync(localPath, content);
+                                MarkEcho(filePath);
                             }
                             catch (Exception ex)
                             {
                                 MessageColor($"[Server] File download failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+
+                                var capturedPath = filePath;
+                                var capturedLocal = localPath;
                                 EnqueueFailed(async () =>
                                 {
-                                    var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
+                                    var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(capturedPath)}");
                                     response.EnsureSuccessStatusCode();
-                                    Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
+                                    EnsureDirectoryExists(capturedLocal, Directory.GetCurrentDirectory());
                                     var content = await response.Content.ReadAsByteArrayAsync();
-                                    await File.WriteAllBytesAsync(localPath, content);
-                                }, filePath);
+                                    await File.WriteAllBytesAsync(capturedLocal, content);
+                                    MarkEcho(capturedPath);
+                                }, capturedPath);
                             }
+
+                            break;
                         }
-                        break;
+
                     case EventsType.FileDeleted:
                         if (!string.IsNullOrEmpty(filePath))
                         {
