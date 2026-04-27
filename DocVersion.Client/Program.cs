@@ -1056,11 +1056,32 @@ class Program
             {
                 await Task.WhenAll(batchProcessorTask, processFailedOpsTask, deleteVerifierTask, reconcileTask);
             }
-            catch
+            catch { }
+        }
+    }
+
+    private static void MarkEcho(string path)
+    {
+        lock (echoLock)
+        {
+            echoCache[path] = DateTime.UtcNow;
+        }
+    }
+
+    private static bool IsEcho(string path)
+    {
+        lock (echoLock)
+        {
+            if (echoCache.TryGetValue(path, out var time))
             {
-                // ignore
+                if ((DateTime.UtcNow - time).TotalSeconds < 3)
+                    return true;
+
+                echoCache.Remove(path);
             }
         }
+
+        return false;
     }
 
     private static string? GetString(object? payload)
