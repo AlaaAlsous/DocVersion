@@ -859,91 +859,106 @@ class Program
                         lastEvent[key] = now;
                     }
 
-                try
-                {
-                    if (type == WatcherChangeTypes.Deleted)
+                    try
                     {
-                        MessageColor($"[Local] Deleted: {relative}", ConsoleColor.DarkRed);
-                        MarkAsPushed(relative);
-                        try
+                        if (type == WatcherChangeTypes.Deleted)
                         {
-                            await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}");
+                            if (pendingSet.TryAdd(relative, 0))
+                                pendingDeletes.Enqueue(relative);
+
+                            lock (deleteLock)
+                            {
+                                processedDeletes.Add(relative);
+                            }
+
+                            MessageColor($"[Local] Deleted (queued): {relative}", ConsoleColor.DarkRed);
+
+                            lastLocalDelete = DateTime.UtcNow;
                         }
-                        catch (Exception ex)
+                        else if (Directory.Exists(fullPath))
                         {
-                            MessageColor($"[Local] Delete failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
-                            EnqueueFailed(async () => await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(relative)}"), relative);
-                        }
-                    }
-                    else if (Directory.Exists(fullPath))
-                    {
-                        var folderAction = type == WatcherChangeTypes.Created ? "New folder" : "Updated folder";
-                        var folderColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
-                        MessageColor($"[Local] {folderAction}: {relative}", folderColor);
-                        MarkAsPushed(relative);
-                        try
-                        {
-                            using var request = new HttpRequestMessage(HttpMethod.Put,
-                                $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
-                            request.Headers.Add("X-Type", "folder");
-                            request.Content = new ByteArrayContent(Array.Empty<byte>());
-                            await client.SendAsync(request);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageColor($"[Local] Folder operation failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
-                            EnqueueFailed(async () =>
+                            var folderAction = type == WatcherChangeTypes.Created ? "New folder" : "Updated folder";
+                            var folderColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
+                            MessageColor($"[Local] {folderAction}: {relative}", folderColor);
+
+                            try
                             {
                                 using var request = new HttpRequestMessage(HttpMethod.Put,
                                     $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
                                 request.Headers.Add("X-Type", "folder");
-                                request.Content = new ByteArrayContent(Array.Empty<byte>());
+                                var content = new ByteArrayContent(Array.Empty<byte>());
+                                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                                request.Content = content;
                                 await client.SendAsync(request);
-                            }, relative);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Local] Folder operation failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+
+                                var capturedRelative = relative;
+                                EnqueueFailed(async () =>
+                                {
+                                    using var request = new HttpRequestMessage(HttpMethod.Put,
+                                        $"{serverUrl}/api/files/{EncodePathForApi(capturedRelative)}");
+                                    request.Headers.Add("X-Type", "folder");
+                                    var content = new ByteArrayContent(Array.Empty<byte>());
+                                    content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                                    request.Content = content;
+                                    await client.SendAsync(request);
+                                }, capturedRelative);
+                            }
                         }
-                    }
-                    else if (File.Exists(fullPath))
-                    {
-                        await Task.Delay(500);
-                        if (!File.Exists(fullPath)) return;
-                        var fileAction = type == WatcherChangeTypes.Created ? "New file" : "Updated file";
-                        var fileColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
-                        MessageColor($"[Local] {fileAction}: {relative}", fileColor);
-                        MarkAsPushed(relative);
-                        try
+                        else if (File.Exists(fullPath))
                         {
-                            using var stream = File.OpenRead(fullPath);
-                            using var request = new HttpRequestMessage(HttpMethod.Put,
-                                $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
-                            request.Headers.Add("X-Type", "file");
-                            request.Content = new StreamContent(stream);
-                            await client.SendAsync(request);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageColor($"[Local] File operation failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
-                            EnqueueFailed(async () =>
+                            await Task.Delay(500);
+                            if (!File.Exists(fullPath))
+                                return;
+
+                            var fileAction = type == WatcherChangeTypes.Created ? "New file" : "Updated file";
+                            var fileColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
+                            MessageColor($"[Local] {fileAction}: {relative}", fileColor);
+
+                            try
                             {
                                 using var stream = File.OpenRead(fullPath);
                                 using var request = new HttpRequestMessage(HttpMethod.Put,
                                     $"{serverUrl}/api/files/{EncodePathForApi(relative)}");
                                 request.Headers.Add("X-Type", "file");
-                                request.Content = new StreamContent(stream);
+                                var streamContent = new StreamContent(stream);
+                                streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                                request.Content = streamContent;
                                 await client.SendAsync(request);
-                            }, relative);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Local] File operation failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+
+                                var capturedRelative = relative;
+                                var capturedPath = fullPath;
+                                EnqueueFailed(async () =>
+                                {
+                                    using var stream = File.OpenRead(capturedPath);
+                                    using var request = new HttpRequestMessage(HttpMethod.Put,
+                                        $"{serverUrl}/api/files/{EncodePathForApi(capturedRelative)}");
+                                    request.Headers.Add("X-Type", "file");
+                                    var streamContent = new StreamContent(stream);
+                                    streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                                    request.Content = streamContent;
+                                    await client.SendAsync(request);
+                                }, capturedRelative);
+                            }
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        MessageColor($"[Local] Error: {ex.Message}", ConsoleColor.Red);
+                    }
                 }
-                catch (Exception ex)
+                finally
                 {
-                    MessageColor($"[Local] Error: {ex.Message}", ConsoleColor.Red);
+                    changeSemaphore.Release();
                 }
             }
-            finally
-            {
-                changeSemaphore.Release();
-            }
-        }
 
         watcher.Created += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
         watcher.Changed += (_, e) => _ = HandleChange(e.FullPath, e.ChangeType);
