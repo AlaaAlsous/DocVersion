@@ -661,13 +661,22 @@ class Program
                         }
 
                     case EventsType.FolderCreated:
-                        if (!string.IsNullOrEmpty(filePath))
                         {
-                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            var data = GetString(payload);
+                            if (string.IsNullOrEmpty(data))
+                                break;
+
+                            filePath = data;
+                            if (IsEcho(filePath))
+                                break;
+
+                            var localPath = Path.Combine(Directory.GetCurrentDirectory(), filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
                             Directory.CreateDirectory(localPath);
                             MessageColor($"[Server] Folder created: {filePath}", ConsoleColor.DarkCyan);
+                            MarkEcho(filePath);
+                            break;
                         }
-                        break;
+
                     case EventsType.FolderDeleted:
                         if (!string.IsNullOrEmpty(filePath))
                         {
