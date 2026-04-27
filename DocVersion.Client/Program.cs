@@ -1027,30 +1027,34 @@ class Program
                 });
             };
 
-        watcher.EnableRaisingEvents = true;
+            watcher.EnableRaisingEvents = true;
 
-        MessageColor("Sync running... Ctrl+C to stop", ConsoleColor.Cyan);
+            MessageColor("Sync running... Ctrl+C to stop", ConsoleColor.Cyan);
 
+            Console.CancelKeyPress += (_, e) =>
+            {
+                e.Cancel = true;
+                cts.Cancel();
+            };
 
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            cts.Cancel();
-        };
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cts.Token);
+            }
+            catch (TaskCanceledException) { }
 
-        try
-        {
-            await Task.Delay(Timeout.Infinite, cts.Token);
+            MessageColor("Stopping sync...", ConsoleColor.Yellow);
         }
-        catch (TaskCanceledException) { }
+        finally
+        {
+            try { cts.Cancel(); } catch { }
 
-        MessageColor("Stopping sync...", ConsoleColor.Yellow);
-        await connection.StopAsync();
+            try { await connection.StopAsync(); } catch { }
             try { await connection.DisposeAsync(); } catch { }
 
             try
             {
-                await Task.WhenAll(batchProcessorTask, processFailedOpsTask);
+                await Task.WhenAll(batchProcessorTask, processFailedOpsTask, deleteVerifierTask, reconcileTask);
             }
             catch
             {
