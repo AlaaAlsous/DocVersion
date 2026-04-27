@@ -8,11 +8,22 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 class Program
 {
+    private static readonly Dictionary<string, DateTime> echoCache = new();
+    private static readonly object echoLock = new();
+
+    private static DateTime lastLocalDelete = DateTime.MinValue;
+    private static readonly HashSet<string> processedDeletes = new();
+    private static readonly object deleteLock = new();
+
     private static readonly ConcurrentQueue<string> pendingDeletes = new();
     private static readonly ConcurrentDictionary<string, byte> pendingSet = new();
 
+    private static readonly Queue<(Func<Task> Op, int Attempts, string? Description)> failedOps = new();
+    private static readonly object failedOpsLock = new();
+
     private const int BATCH_SIZE = 200;
     private const int BATCH_INTERVAL_MS = 500;
+    private const int MAX_PARALLEL_DELETES = 8;
 
     public static async Task<int> Main(string[] args)
     {
@@ -23,6 +34,7 @@ class Program
             MessageColor("Usage: DocVersion.Client [pull|push|sync] <serverUrl> [username] [password]", ConsoleColor.Red);
             return 1;
         }
+
         var command = args[0].ToLowerInvariant();
         var serverUrl = NormalizeServerUrl(args[1]);
         var username = args.Length > 2 ? args[2] : null;
@@ -121,10 +133,10 @@ class Program
                     continue;
                 }
 
-                MessageColor($"Successfully pulled file: {filename}", ConsoleColor.Green);
                 var content = await fileResponse.Content.ReadAsByteArrayAsync();
                 EnsureDirectoryExists(localPath, cwd);
                 await File.WriteAllBytesAsync(localPath, content);
+                MessageColor($"Successfully pulled file: {filename}", ConsoleColor.Green);
             }
             else
             {
@@ -266,6 +278,7 @@ class Program
             if (localPaths.Contains(filename))
                 continue;
 
+            MarkEcho(filename);
             var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(filename)}");
             if (!deleteResponse.IsSuccessStatusCode)
             {
@@ -299,6 +312,7 @@ class Program
     private static async Task Sync(HttpClient client, string serverUrl, string cwd)
     {
         var cts = new CancellationTokenSource();
+
         MessageColor("Syncing: doing initial pull...", ConsoleColor.Blue);
         await Pull(client, serverUrl, cwd);
 
