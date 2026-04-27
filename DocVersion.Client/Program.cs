@@ -598,14 +598,68 @@ class Program
                         }
 
                     case EventsType.FileDeleted:
-                        if (!string.IsNullOrEmpty(filePath))
                         {
-                            var localPath = Path.Combine(cwd, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
-                            if (File.Exists(localPath))
-                                File.Delete(localPath);
-                            MessageColor($"[Server] File deleted: {filePath}", ConsoleColor.DarkRed);
+                            filePath = GetString(payload);
+                            if (string.IsNullOrEmpty(filePath))
+                                break;
+
+                            bool alreadyProcessed;
+                            lock (deleteLock)
+                            {
+                                alreadyProcessed = processedDeletes.Contains(filePath);
+                                if (!alreadyProcessed)
+                                    processedDeletes.Add(filePath);
+                            }
+
+                            if (alreadyProcessed)
+                            {
+                                MessageColor($"[Server] Already processed delete: {filePath}", ConsoleColor.DarkGray);
+                                break;
+                            }
+
+                            if (IsEcho(filePath))
+                                break;
+
+                            if ((DateTime.UtcNow - lastLocalDelete).TotalMilliseconds < 1500)
+                                break;
+
+                            var localPath = Path.Combine(Directory.GetCurrentDirectory(), filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                            try
+                            {
+                                if (File.Exists(localPath))
+                                {
+                                    File.SetAttributes(localPath, FileAttributes.Normal);
+                                    File.Delete(localPath);
+                                    MessageColor($"[Server] File deleted: {filePath}", ConsoleColor.DarkRed);
+                                }
+                                else
+                                {
+                                    MessageColor($"[Server] File already deleted: {filePath}", ConsoleColor.DarkGray);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Server] Delete failed, queued: {filePath}: {ex.Message}", ConsoleColor.Yellow);
+
+                                var capturedPath = filePath;
+                                var capturedLocal = localPath;
+                                EnqueueFailed(async () =>
+                                {
+                                    if (File.Exists(capturedLocal))
+                                    {
+                                        File.SetAttributes(capturedLocal, FileAttributes.Normal);
+                                        File.Delete(capturedLocal);
+                                        MessageColor($"[Retry] File deleted: {capturedPath}", ConsoleColor.Green);
+                                    }
+
+                                    await Task.CompletedTask;
+                                }, capturedPath);
+                            }
+
+                            break;
                         }
-                        break;
+
                     case EventsType.FolderCreated:
                         if (!string.IsNullOrEmpty(filePath))
                         {
