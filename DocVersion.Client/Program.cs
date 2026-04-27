@@ -1135,6 +1135,7 @@ class Program
                 ? $"http://{url}"
                 : $"https://{url}";
         }
+
         return url.TrimEnd('/');
     }
 
@@ -1170,9 +1171,6 @@ class Program
 
     private static void SafeMoveFile(string source, string destination)
     {
-        if (!File.Exists(source))
-            throw new FileNotFoundException($"Source file not found: {source}");
-
         var destDir = Path.GetDirectoryName(destination);
         if (!string.IsNullOrEmpty(destDir))
             Directory.CreateDirectory(destDir);
@@ -1181,34 +1179,14 @@ class Program
         {
             File.Move(source, destination, overwrite: true);
         }
-        catch (IOException ex)
+        catch
         {
             if (File.Exists(destination))
             {
-                try
-                {
-                    File.Delete(destination);
-                    File.Move(source, destination);
-                }
-                catch (Exception retryEx)
-                {
-                    throw new IOException(
-                        $"Failed to overwrite '{destination}' after retry: {retryEx.Message}",
-                        retryEx);
-                }
+                try { File.Delete(destination); } catch { }
             }
-            else
-            {
-                throw new IOException(
-                    $"IO error moving '{source}' to '{destination}': {ex.Message}",
-                    ex);
-            }
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new UnauthorizedAccessException(
-                $"Permission denied moving '{source}' to '{destination}': {ex.Message}",
-                ex);
+
+            File.Move(source, destination);
         }
     }
 
@@ -1224,7 +1202,7 @@ class Program
         var flatServerFiles = ToFlatList(serverTree)
             .Where(x => x.Metadata.IsFile)
             .Select(x => x.Path)
-            .ToHashSet();
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var localFiles = Directory.GetFiles(cwd, "*", SearchOption.AllDirectories)
             .Select(p => Path.GetRelativePath(cwd, p).Replace("\\", "/"))
@@ -1235,22 +1213,52 @@ class Program
             if (localFiles.Contains(serverFile))
                 continue;
 
+            var localPath = Path.Combine(cwd, serverFile.Replace("/", Path.DirectorySeparatorChar.ToString()));
+            MessageColor($"[Reconcile] Download missing local file: {serverFile}", ConsoleColor.Cyan);
+
             try
             {
-                var delResp = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(serverFile)}", token);
-                if (delResp.IsSuccessStatusCode || delResp.StatusCode == System.Net.HttpStatusCode.NotFound)
+                var fileResp = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(serverFile)}", token);
+                if (!fileResp.IsSuccessStatusCode)
+                    continue;
+
+                var content = await fileResp.Content.ReadAsByteArrayAsync(token);
+                EnsureDirectoryExists(localPath, cwd);
+                await File.WriteAllBytesAsync(localPath, content, token);
+            }
+            catch (Exception ex)
+            {
+                MessageColor($"[Reconcile] Download failed for {serverFile}: {ex.Message}", ConsoleColor.Yellow);
+            }
+        }
+
+        foreach (var localFile in localFiles)
+        {
+            if (flatServerFiles.Contains(localFile))
+                continue;
+
+            var fullLocalPath = Path.Combine(cwd, localFile.Replace("/", Path.DirectorySeparatorChar.ToString()));
+            MessageColor($"[Reconcile] Upload missing server file: {localFile}", ConsoleColor.Cyan);
+
+            try
+            {
+                using var stream = File.OpenRead(fullLocalPath);
+                using var request = new HttpRequestMessage(HttpMethod.Put,
+                    $"{serverUrl}/api/files/{EncodePathForApi(localFile)}");
+                request.Headers.Add("X-Type", "file");
+                var streamContent = new StreamContent(stream);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                request.Content = streamContent;
+
+                var putResp = await client.SendAsync(request, token);
+                if (!putResp.IsSuccessStatusCode)
                 {
-                    MessageColor($"[Reconcile] Deleted extra server file: {serverFile}", ConsoleColor.DarkRed);
-                }
-                else
-                {
-                    var body = await delResp.Content.ReadAsStringAsync(token);
-                    MessageColor($"[Reconcile] Failed delete {serverFile}: {delResp.StatusCode} - {body}", ConsoleColor.Yellow);
+                    MessageColor($"[Reconcile] Upload failed for {localFile}: {putResp.StatusCode}", ConsoleColor.Yellow);
                 }
             }
             catch (Exception ex)
             {
-                MessageColor($"[Reconcile] Exception deleting {serverFile}: {ex.Message}", ConsoleColor.Yellow);
+                MessageColor($"[Reconcile] Upload exception for {localFile}: {ex.Message}", ConsoleColor.Yellow);
             }
         }
     }
