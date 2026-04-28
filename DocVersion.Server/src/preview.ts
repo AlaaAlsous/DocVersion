@@ -58,6 +58,29 @@ export function showTextPreview(
   dom.fileContentBody.style.display = "block";
   dom.fileContentTextarea.style.display = "none";
   updateEditorActions();
+
+  if (text && text.length > 0) {
+    const lines = text.split("\n");
+    const container = document.createElement("div");
+    container.className = "file-preview-lines";
+    lines.forEach((line, idx) => {
+      const row = document.createElement("div");
+      row.className = "file-preview-line";
+      const num = document.createElement("span");
+      num.className = "file-preview-linenum";
+      num.textContent = (idx + 1).toString();
+      const code = document.createElement("span");
+      code.className = "file-preview-code";
+      code.textContent = line || "\u200B";
+      row.appendChild(num);
+      row.appendChild(code);
+      container.appendChild(row);
+    });
+    dom.fileContentBody.innerHTML = "";
+    dom.fileContentBody.appendChild(container);
+  } else {
+    dom.fileContentBody.textContent = text || "This file is empty.";
+  }
 }
 
 export function showBinaryPreviewMessage(message: string) {

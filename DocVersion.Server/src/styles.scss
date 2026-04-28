@@ -1263,3 +1263,44 @@ audio.file-preview-media {
   text-overflow: ellipsis;
   margin-left: 4px;
 }
+
+.file-preview-lines {
+  font-family: var(
+    --gh-editor-font,
+    "Fira Mono",
+    "Consolas",
+    "Menlo",
+    "Monaco",
+    monospace
+  );
+  font-size: 1rem;
+  background: var(--gh-editor-bg, #fff);
+  color: var(--gh-editor-text, #222);
+  border-radius: 6px;
+  overflow-x: auto;
+  padding: 0.5rem 0.5rem 0.5rem 0.2rem;
+}
+.file-preview-line {
+  display: flex;
+  align-items: center;
+  min-height: 1.2em;
+}
+.file-preview-linenum {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 4em;
+  min-width: 4em;
+  text-align: right;
+  color: #2f81f7;
+  opacity: 0.6;
+  user-select: none;
+  padding-right: 1em;
+  font-size: 0.75em;
+  height: 100%;
+}
+.file-preview-code {
+  white-space: pre;
+  flex: 1 1 auto;
+  font-family: inherit;
+}
