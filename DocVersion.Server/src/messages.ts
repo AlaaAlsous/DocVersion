@@ -23,9 +23,8 @@ export function clearErrorMessage() {
     clearTimeout(state.errorMessageTimeoutId);
     state.errorMessageTimeoutId = null;
   }
-
   dom.errorMessage.textContent = "";
-  dom.errorMessage.style.display = "none";
+  dom.errorMessage.classList.add("hidden");
   dom.errorMessage.style.color = "";
   dom.errorMessage.style.backgroundColor = "";
   dom.errorMessage.style.borderColor = "";
@@ -34,7 +33,7 @@ export function clearErrorMessage() {
 export function showErrorMessage(message: string) {
   clearErrorMessage();
   dom.errorMessage.textContent = message;
-  dom.errorMessage.style.display = "block";
+  dom.errorMessage.classList.remove("hidden");
   state.errorMessageTimeoutId = setTimeout(() => {
     clearErrorMessage();
   }, MESSAGE_TIMEOUT_MS);
@@ -46,7 +45,7 @@ export function showSuccessMessage(message: string) {
   dom.errorMessage.style.color = "var(--gh-success-text)";
   dom.errorMessage.style.backgroundColor = "var(--gh-success-bg)";
   dom.errorMessage.style.borderColor = "var(--gh-success-border)";
-  dom.errorMessage.style.display = "block";
+  dom.errorMessage.classList.remove("hidden");
   state.errorMessageTimeoutId = setTimeout(() => {
     clearErrorMessage();
   }, MESSAGE_TIMEOUT_MS);

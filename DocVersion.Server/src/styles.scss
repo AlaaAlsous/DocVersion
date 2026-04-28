@@ -591,6 +591,7 @@ h1 {
   padding: 0.6rem 0.8rem;
   border-bottom: 1px solid var(--gh-border);
   background: var(--gh-subtle-bg);
+  min-height: 48px;
 }
 
 #file-content-meta {
@@ -1111,14 +1112,34 @@ audio.file-preview-media {
 }
 
 #errorMessage {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   width: min(1300px, 100%);
-  margin: 0 auto 0.9rem;
+  height: 2.2em;
+  max-height: 2.5em;
+  min-height: 2.5em;
+  overflow: hidden;
+  margin: 0.5rem auto 1rem auto;
   padding: 0.55rem 0.7rem;
   border-radius: 6px;
   border: 1px solid var(--gh-danger-border);
   background: var(--gh-danger-bg);
   font-size: 0.9rem;
   color: var(--gh-danger);
+  transition:
+    opacity 0.2s,
+    visibility 0.2s;
+  opacity: 1;
+  visibility: visible;
+  box-sizing: border-box;
+  min-width: 250px;
+}
+
+#errorMessage.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .confirm-actions {
@@ -1126,13 +1147,16 @@ audio.file-preview-media {
   gap: 0.7rem;
   margin-left: 0.7rem;
   vertical-align: middle;
+  min-width: 120px;
+  min-height: 1.8em;
 
   button {
     border: 1px solid var(--gh-border);
     border-radius: 6px;
     padding: 0.2rem 0.65rem;
-    font-size: 0.82rem;
+    font-size: 0.7rem;
     font-weight: 600;
+    text-align: center;
     cursor: pointer;
     width: 3rem;
     transition:

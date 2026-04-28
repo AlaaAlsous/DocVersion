@@ -497,12 +497,15 @@ export async function showItemMetadata(itemName: string) {
 
 export function showDeleteConfirmation(itemName: string, itemPath: string) {
   clearErrorMessage();
-
-  dom.errorMessage.style.display = "block";
+  dom.errorMessage.classList.remove("hidden");
+  dom.errorMessage.textContent = "";
   dom.errorMessage.style.color = "var(--gh-text)";
   dom.errorMessage.style.backgroundColor = "var(--gh-canvas)";
   dom.errorMessage.style.borderColor = "var(--gh-border)";
-  dom.errorMessage.textContent = `Delete \"${itemName}\"?`;
+
+  const question = document.createElement("span");
+  question.textContent = `Delete \"${itemName}\"?`;
+  dom.errorMessage.appendChild(question);
 
   const actions = document.createElement("div");
   actions.className = "confirm-actions";
