@@ -33,6 +33,9 @@ export function clearErrorMessage() {
 export function showErrorMessage(message: string) {
   clearErrorMessage();
   dom.errorMessage.textContent = message;
+  dom.errorMessage.style.color = "var(--gh-danger)";
+  dom.errorMessage.style.backgroundColor = "var(--gh-danger-bg)";
+  dom.errorMessage.style.borderColor = "var(--gh-danger-border)";
   dom.errorMessage.classList.remove("hidden");
   state.errorMessageTimeoutId = setTimeout(() => {
     clearErrorMessage();

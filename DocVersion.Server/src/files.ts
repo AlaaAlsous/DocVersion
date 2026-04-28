@@ -442,7 +442,9 @@ export async function deleteItem(item: string) {
 
     resetDetailsPanels();
     await getFiles(state.currentPath);
-    showSuccessMessage(`Deleted: ${item.split("/").pop()}`);
+    setTimeout(() => {
+      showSuccessMessage(`Deleted: ${item.split("/").pop()}`);
+    }, 200);
   } catch (error) {
     console.error("Error deleting item:", error);
     showErrorMessage("Error deleting item");
@@ -499,9 +501,9 @@ export function showDeleteConfirmation(itemName: string, itemPath: string) {
   clearErrorMessage();
   dom.errorMessage.classList.remove("hidden");
   dom.errorMessage.textContent = "";
-  dom.errorMessage.style.color = "var(--gh-text)";
-  dom.errorMessage.style.backgroundColor = "var(--gh-canvas)";
-  dom.errorMessage.style.borderColor = "var(--gh-border)";
+  dom.errorMessage.style.color = "#b38600";
+  dom.errorMessage.style.backgroundColor = "#fef3ba44";
+  dom.errorMessage.style.borderColor = "#ffe066";
 
   const question = document.createElement("span");
   question.textContent = `Delete \"${itemName}\"?`;
