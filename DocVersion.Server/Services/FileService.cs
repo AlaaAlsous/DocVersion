@@ -442,8 +442,18 @@ public class FileService
 
     private string GetContentType(string filename)
     {
+        var ext = Path.GetExtension(filename).ToLowerInvariant();
+        if (ext == ".ts" || ext == ".tsx") return "text/plain";
+        if (ext == ".js" || ext == ".jsx") return "application/javascript";
+
         if (_contentTypeProvider.TryGetContentType(filename, out var contentType))
             return contentType;
+
+        string[] textExts = new[] {
+            ".txt", ".md", ".markdown", ".csv", ".log", ".json", ".xml", ".yml", ".yaml", ".ini", ".conf", ".config", ".env", ".bat", ".sh", ".ps1", ".cmd", ".c", ".cpp", ".h", ".hpp", ".cs", ".vb", ".java", ".py", ".rb", ".php", ".go", ".rs", ".swift", ".kt", ".kts", ".scala", ".clj", ".cljs", ".groovy", ".dart", ".sql", ".scss", ".sass", ".less", ".css", ".tex", ".r", ".m", ".pl", ".lua", ".fs", ".fsx", ".erl", ".ex", ".exs", ".f90", ".f", ".f77", ".f95", ".asm", ".s", ".mak", ".cmake", ".dockerfile", ".gitignore", ".gitattributes", ".editorconfig", ".properties", ".toml"
+        };
+        if (textExts.Contains(ext))
+            return "text/plain";
 
         return "application/octet-stream";
     }
