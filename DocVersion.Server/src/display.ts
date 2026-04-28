@@ -103,6 +103,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
     const delBtn = document.createElement("button");
     const historyBtn = document.createElement("button");
     const renameBtn = document.createElement("button");
+    const metaBtn = document.createElement("button");
     const itemPath = state.currentPath ? `${state.currentPath}/${name}` : name;
 
     itemLabel.classList.add("item-label");
@@ -160,13 +161,6 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       input.value = currentName;
       input.className = "rename-input";
       input.setAttribute("maxlength", "255");
-      input.style.width = "100%";
-      input.style.minWidth = "0";
-      input.style.maxWidth = "100%";
-      input.style.boxSizing = "border-box";
-      input.style.overflow = "hidden";
-      input.style.textOverflow = "ellipsis";
-      input.style.marginLeft = "4px";
       itemLabel.textContent = "";
       itemLabel.appendChild(input);
       input.focus();
@@ -197,6 +191,16 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       });
     });
 
+    metaBtn.textContent = "";
+    metaBtn.classList.add("icon-btn", "icon-btn-metadata");
+    metaBtn.title = "Show metadata";
+    metaBtn.setAttribute("aria-label", "Show metadata");
+    metaBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      showItemMetadata(name);
+    });
+
     if (metadata.file) {
       listItem.classList.add("file");
       itemLabel.textContent = name;
@@ -209,11 +213,12 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
           await getFilesHistory(name);
         }
       });
-      buttonGroup.append(downloadBtn, delBtn, historyBtn, renameBtn);
+      buttonGroup.append(downloadBtn, historyBtn, renameBtn, delBtn);
     } else {
       listItem.classList.add("folder");
       itemLabel.textContent = name;
       listItem.style.cursor = "pointer";
+      listItem.style.background = "#ffd04f05";
       listItem.addEventListener("click", async () => {
         setActiveItem(listItem);
         await showItemMetadata(name);
@@ -229,7 +234,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
         state.currentFileIsEditable = false;
         updateEditorActions();
       });
-      buttonGroup.append(delBtn, renameBtn);
+      buttonGroup.append(metaBtn, renameBtn, delBtn);
     }
 
     listItem.append(itemLabel, buttonGroup);
