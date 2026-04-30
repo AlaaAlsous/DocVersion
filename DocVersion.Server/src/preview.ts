@@ -1,6 +1,166 @@
 import { dom, state } from "./state";
 import { getResponseContentType, isTextContentType } from "./utils";
 
+declare global {
+  interface Window {
+    monacoEditorInstance?: any;
+    monaco?: any;
+    require?: any;
+  }
+}
+
+function getLanguage(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+
+  switch (ext) {
+    case "js":
+      return "javascript";
+    case "ts":
+      return "typescript";
+    case "json":
+      return "json";
+    case "css":
+      return "css";
+    case "scss":
+      return "scss";
+    case "html":
+      return "html";
+    case "md":
+      return "markdown";
+    case "xml":
+      return "xml";
+    case "cs":
+      return "csharp";
+    case "py":
+      return "python";
+    case "java":
+      return "java";
+    case "cpp":
+      return "cpp";
+    case "c":
+      return "c";
+    case "sh":
+      return "shell";
+    case "yml":
+    case "yaml":
+      return "yaml";
+    default:
+      return "plaintext";
+  }
+}
+
+function initMonaco(
+  monacoDiv: HTMLElement,
+  value: string,
+  language: string,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (window.monacoEditorInstance) {
+      resolve();
+      return;
+    }
+
+    if (!window.require) {
+      reject("Monaco loader (require) saknas");
+      return;
+    }
+
+    if (window.require.config) {
+      window.require.config({
+        paths: {
+          vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs",
+        },
+      });
+    }
+
+    try {
+      window.require(["vs/editor/editor.main"], () => {
+        if (!window.monaco) {
+          reject("Monaco API saknas");
+          return;
+        }
+
+        window.monacoEditorInstance = window.monaco.editor.create(monacoDiv, {
+          value,
+          language,
+          theme: "vs-dark",
+          automaticLayout: true,
+        });
+
+        resolve();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+export async function editFile() {
+  if (!state.currentFileName || !state.currentFileIsEditable) return;
+
+  state.isEditMode = true;
+
+  dom.fileContentBody.style.display = "none";
+  dom.fileContentTextarea.style.display = "none";
+
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (!monacoDiv) return;
+
+  monacoDiv.style.display = "block";
+
+  const language = getLanguage(state.currentFileName);
+
+  const content =
+    dom.fileContentTextarea.value || dom.fileContentBody.textContent || "";
+
+  try {
+    await initMonaco(monacoDiv, content, language);
+  } catch (e) {
+    console.error("Monaco failed:", e);
+    return;
+  }
+
+  const editor = window.monacoEditorInstance;
+  if (!editor) return;
+
+  const model = editor.getModel();
+  if (model) {
+    if (editor.getValue() !== content) {
+      editor.setValue(content);
+    }
+
+    window.monaco.editor.setModelLanguage(model, language);
+  }
+
+  window.monaco.editor.setTheme("vs-dark");
+
+  dom.editBtn.style.display = "none";
+  dom.saveBtn.style.display = "inline-block";
+  dom.cancelBtn.style.display = "inline-block";
+}
+
+export function cancelEdit() {
+  state.isEditMode = false;
+
+  const editor = window.monacoEditorInstance;
+
+  if (editor && state.originalContent !== undefined) {
+    editor.setValue(state.originalContent);
+  }
+
+  dom.fileContentBody.style.display = "block";
+  dom.fileContentTextarea.style.display = "none";
+
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (monacoDiv) {
+    monacoDiv.style.display = "none";
+  }
+
+  dom.editBtn.style.display = "inline-block";
+  dom.saveBtn.style.display = "none";
+  dom.cancelBtn.style.display = "none";
+}
+
 export function revokePreviewObjectUrl(): void {
   if (!state.activePreviewObjectUrl) return;
   URL.revokeObjectURL(state.activePreviewObjectUrl);
@@ -15,6 +175,16 @@ export function resetPreviewSurface(): void {
     "binary-preview",
     "word-preview",
   );
+
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (monacoDiv) {
+    monacoDiv.style.display = "none";
+    if (window.monacoEditorInstance) {
+      window.monacoEditorInstance.dispose();
+      window.monacoEditorInstance = null;
+    }
+    monacoDiv.innerHTML = "";
+  }
 }
 
 export function updateEditorActions() {
@@ -58,6 +228,16 @@ export function showTextPreview(
   dom.fileContentBody.style.display = "block";
   dom.fileContentTextarea.style.display = "none";
   updateEditorActions();
+
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (monacoDiv) {
+    monacoDiv.style.display = "none";
+    if (window.monacoEditorInstance) {
+      window.monacoEditorInstance.dispose();
+      window.monacoEditorInstance = null;
+    }
+    monacoDiv.innerHTML = "";
+  }
 
   if (text && text.length > 0) {
     const lines = text.split("\n");

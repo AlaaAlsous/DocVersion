@@ -6,6 +6,8 @@ import {
   showSuccessMessage,
 } from "./messages";
 import { renderFilePreview, showTextPreview } from "./preview";
+import { editFile, cancelEdit } from "./preview";
+export { editFile, cancelEdit };
 import {
   handleUnauthorizedResponse,
   logout,
@@ -101,7 +103,17 @@ export async function saveFile() {
     ? `${state.currentPath}/${state.currentFileName}`
     : state.currentFileName;
   const encodedFilePath = toApiPath(filePath);
-  const content = dom.fileContentTextarea.value;
+  let content = "";
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (
+    monacoDiv &&
+    monacoDiv.style.display !== "none" &&
+    window.monacoEditorInstance
+  ) {
+    content = window.monacoEditorInstance.getValue();
+  } else {
+    content = dom.fileContentTextarea.value;
+  }
 
   try {
     const response = await fetch(`/api/files/${encodedFilePath}`, {
@@ -562,31 +574,6 @@ export function showMetadata(
 
 export function closeMetadata() {
   dom.metadataBox.style.display = "none";
-}
-
-export function editFile() {
-  if (!state.currentFileName || !state.currentFileIsEditable) return;
-
-  state.isEditMode = true;
-  dom.fileContentBody.style.display = "none";
-  dom.fileContentTextarea.style.display = "block";
-
-  dom.editBtn.style.display = "none";
-  dom.saveBtn.style.display = "inline-block";
-  dom.cancelBtn.style.display = "inline-block";
-
-  dom.fileContentTextarea.focus();
-}
-
-export function cancelEdit() {
-  state.isEditMode = false;
-
-  dom.fileContentBody.style.display = "block";
-  dom.fileContentTextarea.style.display = "none";
-
-  dom.editBtn.style.display = "inline-block";
-  dom.saveBtn.style.display = "none";
-  dom.cancelBtn.style.display = "none";
 }
 
 export async function renameItem(

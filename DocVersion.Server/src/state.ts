@@ -43,6 +43,7 @@ export const state = {
   errorMessageTimeoutId: null as any,
   modalErrorTimeoutId: null as any,
   activePreviewObjectUrl: null as string | null,
+  originalContent: null as string | null,
 };
 
 export const MESSAGE_TIMEOUT_MS = 5000;

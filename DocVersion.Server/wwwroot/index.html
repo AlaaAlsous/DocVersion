@@ -9,6 +9,7 @@
     <script type="module" src="js/index.js" defer></script>
     <script src="js/vendor/signalr.min.js"></script>
     <script src="js/vendor/mammoth.browser.min.js"></script>
+    <script src="js/vendor/monaco-loader.js"></script>
   </head>
   <body>
     <div id="topBar">
@@ -69,7 +70,7 @@
       </div>
     </section>
 
-    <p id="errorMessage" class="hidden" ></p>
+    <p id="errorMessage" class="hidden"></p>
 
     <main id="workspaceLayout">
       <aside id="treePane">
@@ -106,6 +107,10 @@
           </div>
           <pre id="fileContentBody">Select a file to preview its content.</pre>
           <textarea id="fileContentTextarea" style="display: none"></textarea>
+          <div
+            id="monacoEditor"
+            style="width: 100%; height: 100%; display: none"
+          ></div>
         </div>
       </section>
     </main>
