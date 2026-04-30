@@ -139,6 +139,27 @@ export async function editFile() {
   dom.cancelBtn.style.display = "inline-block";
 }
 
+export function cancelEdit() {
+  state.isEditMode = false;
+
+  const editor = window.monacoEditorInstance;
+
+  if (editor && state.originalContent !== undefined) {
+    editor.setValue(state.originalContent);
+  }
+
+  dom.fileContentBody.style.display = "block";
+  dom.fileContentTextarea.style.display = "none";
+
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (monacoDiv) {
+    monacoDiv.style.display = "none";
+  }
+
+  dom.editBtn.style.display = "inline-block";
+  dom.saveBtn.style.display = "none";
+  dom.cancelBtn.style.display = "none";
+}
 
 export function revokePreviewObjectUrl(): void {
   if (!state.activePreviewObjectUrl) return;
