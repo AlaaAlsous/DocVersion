@@ -49,6 +49,51 @@ function getLanguage(fileName: string): string {
   }
 }
 
+function initMonaco(
+  monacoDiv: HTMLElement,
+  value: string,
+  language: string,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (window.monacoEditorInstance) {
+      resolve();
+      return;
+    }
+
+    if (!window.require) {
+      reject("Monaco loader (require) saknas");
+      return;
+    }
+
+    if (window.require.config) {
+      window.require.config({
+        paths: {
+          vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs",
+        },
+      });
+    }
+
+    try {
+      window.require(["vs/editor/editor.main"], () => {
+        if (!window.monaco) {
+          reject("Monaco API saknas");
+          return;
+        }
+
+        window.monacoEditorInstance = window.monaco.editor.create(monacoDiv, {
+          value,
+          language,
+          theme: "vs-dark",
+          automaticLayout: true,
+        });
+
+        resolve();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
 
 
