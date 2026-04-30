@@ -144,7 +144,7 @@ export function cancelEdit() {
 
   const editor = window.monacoEditorInstance;
 
-  if (editor && state.originalContent !== undefined) {
+  if (editor && typeof state.originalContent === "string") {
     editor.setValue(state.originalContent);
   }
 
