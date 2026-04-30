@@ -92,6 +92,11 @@
   box-sizing: border-box;
 }
 
+.auto-direction {
+  direction: auto;
+  unicode-bidi: plaintext;
+}
+
 html {
   scrollbar-gutter: stable;
 }
@@ -172,6 +177,7 @@ h1 {
   background: var(--gh-header);
   color: var(--gh-header-text);
   border-bottom: 1px solid var(--gh-header-border);
+  user-select: none;
 }
 
 #sessionControls {
@@ -253,6 +259,8 @@ h1 {
   display: grid;
   grid-template-rows: 2fr 2fr 2fr;
   gap: 0.8rem;
+  overflow-wrap: anywhere;
+  user-select: none;
 }
 
 #explorerPane,
@@ -341,12 +349,12 @@ h1 {
   }
 
   &.folder .item-label::before {
-    content: "▸ ";
+    content: "\1F4C1 ▸ ";
     color: var(--gh-muted);
   }
 
   &.file .item-label::before {
-    content: "  ";
+    content: "\1F4C4 ▸ ";
   }
 
   &:last-child {
@@ -444,6 +452,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.8rem;
+  user-select: none;
 }
 
 .action-group {
@@ -592,6 +601,7 @@ h1 {
   border-bottom: 1px solid var(--gh-border);
   background: var(--gh-subtle-bg);
   min-height: 48px;
+  user-select: none;
 }
 
 #file-content-meta {
@@ -1129,6 +1139,7 @@ audio.file-preview-media {
   visibility: visible;
   box-sizing: border-box;
   min-width: 250px;
+  user-select: none;
 }
 
 #errorMessage.hidden {
@@ -1146,7 +1157,6 @@ audio.file-preview-media {
   min-height: 1.8em;
 
   button {
-    border: 1px solid var(--gh-border);
     border-radius: 6px;
     padding: 0.2rem 0.65rem;
     font-size: 0.7rem;
@@ -1163,20 +1173,19 @@ audio.file-preview-media {
 .confirm-yes-btn {
   background: var(--gh-success);
   color: #ffffff;
-  border-color: #1a7f37;
-
+  border: 2px solid #2ea043;
   &:hover {
-    filter: brightness(0.95);
+    filter: brightness(0.75);
   }
 }
 
 .confirm-no-btn {
   background: var(--gh-btn-bg);
   color: var(--gh-text);
-  border: 1px solid var(--gh-border);
+  border: 2px solid var(--gh-border);
 
   &:hover {
-    background: var(--gh-button-hover);
+    filter: brightness(0.75);
   }
 }
 
