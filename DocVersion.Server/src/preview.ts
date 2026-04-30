@@ -1,6 +1,57 @@
 import { dom, state } from "./state";
 import { getResponseContentType, isTextContentType } from "./utils";
 
+declare global {
+  interface Window {
+    monacoEditorInstance?: any;
+    monaco?: any;
+    require?: any;
+  }
+}
+
+function getLanguage(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+
+  switch (ext) {
+    case "js":
+      return "javascript";
+    case "ts":
+      return "typescript";
+    case "json":
+      return "json";
+    case "css":
+      return "css";
+    case "scss":
+      return "scss";
+    case "html":
+      return "html";
+    case "md":
+      return "markdown";
+    case "xml":
+      return "xml";
+    case "cs":
+      return "csharp";
+    case "py":
+      return "python";
+    case "java":
+      return "java";
+    case "cpp":
+      return "cpp";
+    case "c":
+      return "c";
+    case "sh":
+      return "shell";
+    case "yml":
+    case "yaml":
+      return "yaml";
+    default:
+      return "plaintext";
+  }
+}
+
+
+
+
 export function revokePreviewObjectUrl(): void {
   if (!state.activePreviewObjectUrl) return;
   URL.revokeObjectURL(state.activePreviewObjectUrl);
@@ -15,6 +66,16 @@ export function resetPreviewSurface(): void {
     "binary-preview",
     "word-preview",
   );
+
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (monacoDiv) {
+    monacoDiv.style.display = "none";
+    if (window.monacoEditorInstance) {
+      window.monacoEditorInstance.dispose();
+      window.monacoEditorInstance = null;
+    }
+    monacoDiv.innerHTML = "";
+  }
 }
 
 export function updateEditorActions() {
@@ -58,6 +119,16 @@ export function showTextPreview(
   dom.fileContentBody.style.display = "block";
   dom.fileContentTextarea.style.display = "none";
   updateEditorActions();
+
+  const monacoDiv = document.getElementById("monacoEditor");
+  if (monacoDiv) {
+    monacoDiv.style.display = "none";
+    if (window.monacoEditorInstance) {
+      window.monacoEditorInstance.dispose();
+      window.monacoEditorInstance = null;
+    }
+    monacoDiv.innerHTML = "";
+  }
 
   if (text && text.length > 0) {
     const lines = text.split("\n");
