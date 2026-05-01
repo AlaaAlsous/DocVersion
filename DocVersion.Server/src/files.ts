@@ -351,6 +351,51 @@ export async function uploadFolder() {
   }
 }
 
+export async function downloadFolderAsZip(folder: string) {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return;
+  }
+  const folderPath = state.currentPath
+    ? `${state.currentPath}/${folder}`
+    : folder;
+  const encodedFolderPath = toApiPath(folderPath);
+  try {
+    const response = await fetch(`/api/files/zip/${encodedFolderPath}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (handleUnauthorizedResponse(response)) {
+      return;
+    }
+    if (!response.ok) {
+      showErrorMessage("Failed to download folder");
+      return;
+    }
+    const blob = await response.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+  
+    let filename = folder + ".zip";
+    const disposition = response.headers.get("Content-Disposition");
+    if (disposition) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+    showSuccessMessage(`Download started: ${filename}`);
+  } catch (error) {
+    showErrorMessage("Error downloading folder");
+  }
+}
+
 if (
   dom.folderInput &&
   dom.folderInputLabel &&
