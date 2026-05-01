@@ -9,6 +9,7 @@ import {
   showFileContent,
   showItemMetadata,
   downloadFile,
+  downloadFolderAsZip,
   showDeleteConfirmation,
 } from "./files";
 import { getFilesHistory } from "./history";
@@ -145,6 +146,20 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       await getFilesHistory(name);
     });
 
+    if (metadata.file) {
+      downloadBtn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        await downloadFile(name);
+      });
+    } else {
+      downloadBtn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        await downloadFolderAsZip(name);
+      });
+    }
+
     renameBtn.textContent = "";
     renameBtn.classList.add("icon-btn", "icon-btn-rename");
     renameBtn.title = "Rename";
@@ -218,7 +233,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       listItem.classList.add("folder");
       itemLabel.textContent = name;
       listItem.style.cursor = "pointer";
-      listItem.style.background = "#ffd04f05";
+      listItem.style.background = "rgba(188, 153, 56, 0.10)";
       listItem.addEventListener("click", async () => {
         setActiveItem(listItem);
         await showItemMetadata(name);
@@ -234,7 +249,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
         state.currentFileIsEditable = false;
         updateEditorActions();
       });
-      buttonGroup.append(metaBtn, renameBtn, delBtn);
+      buttonGroup.append(downloadBtn, metaBtn, renameBtn, delBtn);
     }
 
     listItem.append(itemLabel, buttonGroup);
