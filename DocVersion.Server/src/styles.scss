@@ -337,7 +337,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.38rem 0.6rem;
+  padding: 0.38rem 0.6rem 0.38rem 0;
   border-bottom: 1px solid var(--gh-divider-soft);
   line-height: 1.35;
   font-size: 0.86rem;
@@ -349,12 +349,13 @@ h1 {
   }
 
   &.folder .item-label::before {
-    content: "\1F4C1 ▸ ";
+    content: "\01F4C1\00A0";
     color: var(--gh-muted);
   }
 
   &.file .item-label::before {
-    content: "\1F4C4 ▸ ";
+    content: "\01F4C4\00A0";
+    color: var(--gh-muted);
   }
 
   &:last-child {

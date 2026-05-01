@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.SignalR;
 using DocVersion.Server.Hubs;
 namespace DocVersion.Server.Services;
+using System.IO.Compression;
 
 public class FileService
 {
@@ -325,6 +326,27 @@ public class FileService
             return Task.FromResult(false);
         Directory.Move(oldPath, newPath);
         return Task.FromResult(true);
+    }
+
+    public async Task<Stream?> GetFolderAsZipAsync(string username, string foldername)
+    {
+        var userPath = GetSafePath(username, foldername);
+        if (!Directory.Exists(userPath))
+            return null;
+
+        var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+        {
+            var baseFolder = new DirectoryInfo(userPath);
+            var basePathLength = baseFolder.FullName.Length + (baseFolder.FullName.EndsWith(Path.DirectorySeparatorChar) ? 0 : 1);
+            foreach (var filePath in Directory.GetFiles(userPath, "*", SearchOption.AllDirectories))
+            {
+                var entryName = filePath.Substring(basePathLength).Replace("\\", "/");
+                archive.CreateEntryFromFile(filePath, entryName);
+            }
+        }
+        zipStream.Position = 0;
+        return zipStream;
     }
 
     public async Task<bool> DeleteFileAsync(string username, string filename)
