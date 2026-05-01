@@ -13,6 +13,7 @@ import {
   showDeleteConfirmation,
 } from "./files";
 import { getFilesHistory } from "./history";
+import { showSpinner, hideSpinner } from "./index";
 
 export function displayFiles(files: Record<string, { file: boolean }>) {
   dom.fileList.innerHTML = "";
@@ -63,6 +64,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
     backItem.append(backLabel);
     backItem.style.cursor = "pointer";
     backItem.addEventListener("click", async () => {
+      showSpinner();
       const pathParts = state.currentPath.split("/");
       if (pathParts.length > 0) pathParts.pop();
 
@@ -75,6 +77,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       state.currentFileName = "";
       state.currentFileIsEditable = false;
       updateEditorActions();
+      hideSpinner();
     });
 
     dom.fileList.appendChild(backItem);
@@ -124,11 +127,6 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
     downloadBtn.classList.add("icon-btn", "icon-btn-download");
     downloadBtn.title = "Download";
     downloadBtn.setAttribute("aria-label", "Download");
-    downloadBtn.addEventListener("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      await downloadFile(name);
-    });
 
     historyBtn.textContent = "";
     historyBtn.classList.add("icon-btn", "icon-btn-history");
@@ -137,26 +135,30 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
     historyBtn.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
-
+      showSpinner();
       if (metadata.file) {
         await showItemMetadata(name);
         await showFileContent(name);
       }
-
       await getFilesHistory(name);
+      hideSpinner();
     });
 
     if (metadata.file) {
       downloadBtn.addEventListener("click", async (event) => {
         event.preventDefault();
         event.stopPropagation();
+        showSpinner();
         await downloadFile(name);
+        hideSpinner();
       });
     } else {
       downloadBtn.addEventListener("click", async (event) => {
         event.preventDefault();
         event.stopPropagation();
+        showSpinner();
         await downloadFolderAsZip(name);
+        hideSpinner();
       });
     }
 
@@ -221,12 +223,14 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       itemLabel.textContent = name;
       listItem.style.cursor = "pointer";
       listItem.addEventListener("click", async () => {
+        showSpinner();
         setActiveItem(listItem);
         await showItemMetadata(name);
         await showFileContent(name);
         if (dom.historyBox.style.display !== "none") {
           await getFilesHistory(name);
         }
+        hideSpinner();
       });
       buttonGroup.append(downloadBtn, historyBtn, renameBtn, delBtn);
     } else {
@@ -235,6 +239,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
       listItem.style.cursor = "pointer";
       listItem.style.background = "rgba(188, 153, 56, 0.10)";
       listItem.addEventListener("click", async () => {
+        showSpinner();
         setActiveItem(listItem);
         await showItemMetadata(name);
         state.currentPath = state.currentPath
@@ -248,6 +253,7 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
         state.currentFileName = "";
         state.currentFileIsEditable = false;
         updateEditorActions();
+        hideSpinner();
       });
       buttonGroup.append(downloadBtn, metaBtn, renameBtn, delBtn);
     }

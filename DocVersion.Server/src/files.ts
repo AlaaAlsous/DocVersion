@@ -16,6 +16,7 @@ import {
 } from "./auth";
 import { getFilesHistory } from "./history";
 import { displayFiles } from "./display";
+import { showSpinner, hideSpinner } from "./index";
 
 export async function getFiles(path = "") {
   const token = localStorage.getItem("jwt");
@@ -28,6 +29,7 @@ export async function getFiles(path = "") {
   setExplorerPath(state.currentPath);
   dom.logoutBtn.style.display = "inline-block";
 
+  showSpinner();
   try {
     const encodedPath = toApiPath(path);
     const url = encodedPath ? `/api/files/${encodedPath}` : "/api/files";
@@ -38,10 +40,12 @@ export async function getFiles(path = "") {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       showErrorMessage("Failed to fetch files");
       return;
     }
@@ -49,7 +53,9 @@ export async function getFiles(path = "") {
     const files = await response.json();
     clearErrorMessage();
     displayFiles(files);
+    hideSpinner();
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error fetching files");
   }
 }
@@ -66,6 +72,7 @@ export async function showFileContent(fileName: string, contextLabel = "") {
     : fileName;
   const encodedFilePath = toApiPath(filePath);
 
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedFilePath}`, {
       headers: {
@@ -74,18 +81,22 @@ export async function showFileContent(fileName: string, contextLabel = "") {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       showErrorMessage("Failed to load file content");
       return;
     }
 
     await renderFilePreview(response, fileName, contextLabel);
 
+    hideSpinner();
     clearErrorMessage();
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error loading file content");
   }
 }
@@ -115,6 +126,7 @@ export async function saveFile() {
     content = dom.fileContentTextarea.value;
   }
 
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedFilePath}`, {
       method: "PUT",
@@ -126,10 +138,12 @@ export async function saveFile() {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       showErrorMessage("Failed to save file");
       return;
     }
@@ -140,8 +154,10 @@ export async function saveFile() {
       await getFilesHistory(state.currentFileName);
     }
 
+    hideSpinner();
     showSuccessMessage("File saved successfully");
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error saving file");
   }
 }
@@ -164,6 +180,7 @@ export async function uploadFile() {
     : file.name;
   const encodedPath = toApiPath(path);
 
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedPath}`, {
       method: "PUT",
@@ -175,10 +192,12 @@ export async function uploadFile() {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       if (response.status === 409) {
         showErrorMessage("A file or folder with that name already exists");
       } else {
@@ -190,8 +209,10 @@ export async function uploadFile() {
     dom.fileInput.value = "";
     dom.fileInputName.textContent = "";
     await getFiles(state.currentPath);
+    hideSpinner();
     showSuccessMessage(`File uploaded: ${file.name}`);
   } catch (error) {
+    hideSpinner();
     console.error("Error uploading file:", error);
     showErrorMessage("Error uploading file");
   }
@@ -206,7 +227,7 @@ export async function downloadFile(file: string) {
 
   const filePath = state.currentPath ? `${state.currentPath}/${file}` : file;
   const encodedFilePath = toApiPath(filePath);
-
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedFilePath}`, {
       headers: {
@@ -215,10 +236,12 @@ export async function downloadFile(file: string) {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       showErrorMessage("Failed to download file");
       return;
     }
@@ -233,8 +256,10 @@ export async function downloadFile(file: string) {
     link.remove();
     URL.revokeObjectURL(downloadUrl);
 
+    hideSpinner();
     showSuccessMessage(`Download started: ${file}`);
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error downloading file");
   }
 }
@@ -257,6 +282,7 @@ export async function createFolder() {
     : folderName;
   const encodedPath = toApiPath(path);
 
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedPath}`, {
       method: "POST",
@@ -267,10 +293,12 @@ export async function createFolder() {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       if (response.status === 409) {
         showErrorMessage("A folder or file with that name already exists");
       } else {
@@ -281,8 +309,10 @@ export async function createFolder() {
 
     dom.folderNameInput.value = "";
     await getFiles(state.currentPath);
+    hideSpinner();
     showSuccessMessage(`Folder created: ${folderName}`);
   } catch (error) {
+    hideSpinner();
     console.error("Error creating folder:", error);
     showErrorMessage("Error creating folder");
   }
@@ -328,6 +358,7 @@ export async function uploadFolder() {
     }
     formData.append("files", f, relPath);
   }
+  showSpinner();
   try {
     const response = await fetch("/api/files/upload-folder", {
       method: "POST",
@@ -336,8 +367,12 @@ export async function uploadFolder() {
       },
       body: formData,
     });
-    if (handleUnauthorizedResponse(response)) return;
+    if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
+      return;
+    }
     if (!response.ok) {
+      hideSpinner();
       const data = await response.json().catch(() => ({}));
       showErrorMessage(data?.Message || "Failed to upload folder");
       return;
@@ -345,8 +380,10 @@ export async function uploadFolder() {
     dom.folderInput.value = "";
     dom.folderInputName.textContent = "";
     await getFiles(state.currentPath);
+    hideSpinner();
     showSuccessMessage("Folder uploaded!");
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error uploading folder");
   }
 }
@@ -361,6 +398,7 @@ export async function downloadFolderAsZip(folder: string) {
     ? `${state.currentPath}/${folder}`
     : folder;
   const encodedFolderPath = toApiPath(folderPath);
+  showSpinner();
   try {
     const response = await fetch(`/api/files/zip/${encodedFolderPath}`, {
       headers: {
@@ -368,9 +406,11 @@ export async function downloadFolderAsZip(folder: string) {
       },
     });
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
     if (!response.ok) {
+      hideSpinner();
       showErrorMessage("Failed to download folder");
       return;
     }
@@ -378,7 +418,7 @@ export async function downloadFolderAsZip(folder: string) {
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = downloadUrl;
-  
+
     let filename = folder + ".zip";
     const disposition = response.headers.get("Content-Disposition");
     if (disposition) {
@@ -390,8 +430,10 @@ export async function downloadFolderAsZip(folder: string) {
     link.click();
     link.remove();
     URL.revokeObjectURL(downloadUrl);
+    hideSpinner();
     showSuccessMessage(`Download started: ${filename}`);
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error downloading folder");
   }
 }
@@ -443,6 +485,7 @@ export async function createFile() {
     ? `${state.currentPath}/${fileName}`
     : fileName;
   const encodedPath = toApiPath(path);
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedPath}`, {
       method: "POST",
@@ -453,9 +496,11 @@ export async function createFile() {
       body: "",
     });
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
     if (!response.ok) {
+      hideSpinner();
       if (response.status === 409) {
         showErrorMessage("A file or folder with that name already exists");
       } else {
@@ -465,8 +510,10 @@ export async function createFile() {
     }
     dom.fileNameInput.value = "";
     await getFiles(state.currentPath);
+    hideSpinner();
     showSuccessMessage(`File created: ${fileName}`);
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error creating file");
   }
 }
@@ -480,6 +527,7 @@ export async function deleteItem(item: string) {
 
   const encodedPath = toApiPath(item);
 
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedPath}`, {
       method: "DELETE",
@@ -489,20 +537,24 @@ export async function deleteItem(item: string) {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       showErrorMessage(`Failed to delete item (${response.status})`);
       return;
     }
 
     resetDetailsPanels();
     await getFiles(state.currentPath);
+    hideSpinner();
     setTimeout(() => {
       showSuccessMessage(`Deleted: ${item.split("/").pop()}`);
     }, 200);
   } catch (error) {
+    hideSpinner();
     console.error("Error deleting item:", error);
     showErrorMessage("Error deleting item");
   }
@@ -633,6 +685,7 @@ export async function renameItem(
     logout();
     return;
   }
+  showSpinner();
   try {
     const response = await fetch("/api/files/rename", {
       method: "POST",
@@ -646,8 +699,12 @@ export async function renameItem(
         IsFolder: isFolder,
       }),
     });
-    if (handleUnauthorizedResponse(response)) return;
+    if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
+      return;
+    }
     if (!response.ok) {
+      hideSpinner();
       const data = await response.json().catch(() => ({}));
       if (data?.Message && prevName && nextName) {
         showErrorMessage(`${data.Message} (${prevName} → ${nextName})`);
@@ -666,12 +723,14 @@ export async function renameItem(
       await showFileContent(newName);
       await getFilesHistory(newName);
     }
+    hideSpinner();
     if (prevName && nextName) {
       showSuccessMessage(`Renamed: ${prevName} → ${nextName}`);
     } else {
       showSuccessMessage(`Renamed to: ${newName}`);
     }
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error renaming item");
   }
 }
