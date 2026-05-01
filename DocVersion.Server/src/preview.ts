@@ -1,5 +1,6 @@
 import { dom, state } from "./state";
 import { getResponseContentType, isTextContentType } from "./utils";
+import { showSpinner, hideSpinner } from "./index";
 
 declare global {
   interface Window {
@@ -96,69 +97,79 @@ function initMonaco(
 }
 
 export async function editFile() {
-  if (!state.currentFileName || !state.currentFileIsEditable) return;
-
-  state.isEditMode = true;
-
-  dom.fileContentBody.style.display = "none";
-  dom.fileContentTextarea.style.display = "none";
-
-  const monacoDiv = document.getElementById("monacoEditor");
-  if (!monacoDiv) return;
-
-  monacoDiv.style.display = "block";
-
-  const language = getLanguage(state.currentFileName);
-
-  const content =
-    dom.fileContentTextarea.value || dom.fileContentBody.textContent || "";
-
+  showSpinner();
   try {
-    await initMonaco(monacoDiv, content, language);
-  } catch (e) {
-    console.error("Monaco failed:", e);
-    return;
-  }
+    if (!state.currentFileName || !state.currentFileIsEditable) return;
 
-  const editor = window.monacoEditorInstance;
-  if (!editor) return;
+    state.isEditMode = true;
 
-  const model = editor.getModel();
-  if (model) {
-    if (editor.getValue() !== content) {
-      editor.setValue(content);
+    dom.fileContentBody.style.display = "none";
+    dom.fileContentTextarea.style.display = "none";
+
+    const monacoDiv = document.getElementById("monacoEditor");
+    if (!monacoDiv) return;
+
+    monacoDiv.style.display = "block";
+
+    const language = getLanguage(state.currentFileName);
+
+    const content =
+      dom.fileContentTextarea.value || dom.fileContentBody.textContent || "";
+
+    try {
+      await initMonaco(monacoDiv, content, language);
+    } catch (e) {
+      console.error("Monaco failed:", e);
+      return;
     }
 
-    window.monaco.editor.setModelLanguage(model, language);
+    const editor = window.monacoEditorInstance;
+    if (!editor) return;
+
+    const model = editor.getModel();
+    if (model) {
+      if (editor.getValue() !== content) {
+        editor.setValue(content);
+      }
+
+      window.monaco.editor.setModelLanguage(model, language);
+    }
+
+    window.monaco.editor.setTheme("vs-dark");
+
+    dom.editBtn.style.display = "none";
+    dom.saveBtn.style.display = "inline-block";
+    dom.cancelBtn.style.display = "inline-block";
+  } finally {
+    hideSpinner();
   }
-
-  window.monaco.editor.setTheme("vs-dark");
-
-  dom.editBtn.style.display = "none";
-  dom.saveBtn.style.display = "inline-block";
-  dom.cancelBtn.style.display = "inline-block";
 }
 
 export function cancelEdit() {
-  state.isEditMode = false;
+  showSpinner();
+  try {
+    state.isEditMode = false;
 
-  const editor = window.monacoEditorInstance;
+    const editor = window.monacoEditorInstance;
 
-  if (editor && typeof state.originalContent === "string") {
-    editor.setValue(state.originalContent);
+    if (editor && typeof state.originalContent === "string") {
+      editor.setValue(state.originalContent);
+    }
+
+    dom.fileContentBody.style.display = "block";
+    dom.fileContentTextarea.style.display = "none";
+
+    const monacoDiv = document.getElementById("monacoEditor");
+    if (monacoDiv) {
+      monacoDiv.style.display = "none";
+    }
+
+    dom.editBtn.style.display = "inline-block";
+    dom.saveBtn.style.display = "none";
+    dom.cancelBtn.style.display = "none";
+  } finally {
+    hideSpinner();
   }
-
-  dom.fileContentBody.style.display = "block";
-  dom.fileContentTextarea.style.display = "none";
-
-  const monacoDiv = document.getElementById("monacoEditor");
-  if (monacoDiv) {
-    monacoDiv.style.display = "none";
-  }
-
-  dom.editBtn.style.display = "inline-block";
-  dom.saveBtn.style.display = "none";
-  dom.cancelBtn.style.display = "none";
 }
 
 export function revokePreviewObjectUrl(): void {

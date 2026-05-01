@@ -155,7 +155,9 @@ export async function saveFile() {
     }
 
     hideSpinner();
-    showSuccessMessage("File saved successfully");
+    setTimeout(() => {
+      showSuccessMessage("File saved successfully");
+    }, 350);
   } catch (error) {
     hideSpinner();
     showErrorMessage("Error saving file");
@@ -572,6 +574,7 @@ export async function showItemMetadata(itemName: string) {
     : itemName;
   const encodedItemPath = toApiPath(itemPath);
 
+  showSpinner();
   try {
     const response = await fetch(`/api/files/${encodedItemPath}`, {
       method: "HEAD",
@@ -581,10 +584,12 @@ export async function showItemMetadata(itemName: string) {
     });
 
     if (handleUnauthorizedResponse(response)) {
+      hideSpinner();
       return;
     }
 
     if (!response.ok) {
+      hideSpinner();
       showErrorMessage("Failed to fetch metadata");
       return;
     }
@@ -600,8 +605,10 @@ export async function showItemMetadata(itemName: string) {
     };
 
     showMetadata(itemName, metadata);
+    hideSpinner();
     clearErrorMessage();
   } catch (error) {
+    hideSpinner();
     showErrorMessage("Error fetching metadata");
   }
 }
