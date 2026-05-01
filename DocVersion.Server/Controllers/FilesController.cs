@@ -366,5 +366,23 @@ public class FilesController : ControllerBase
             return Conflict(ex.Message);
         }
     }
+
+    [HttpGet("zip/{**foldername}")]
+    public async Task<IActionResult> DownloadFolderAsZip(string foldername)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(foldername)) return NotFound();
+
+        var zipStream = await _fileService.GetFolderAsZipAsync(username, foldername);
+        if (zipStream == null) return NotFound();
+
+        var zipFileName = Path.GetFileName(foldername.TrimEnd('/', '\\'));
+        if (string.IsNullOrWhiteSpace(zipFileName)) zipFileName = "folder";
+        zipFileName += ".zip";
+
+        return File(zipStream, "application/zip", zipFileName);
+    }
+
     public record RenameRequest(string OldName, string NewName, bool IsFolder);
 }
