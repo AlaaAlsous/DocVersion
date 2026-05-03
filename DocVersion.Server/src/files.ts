@@ -569,21 +569,48 @@ export function showMetadata(
   },
 ) {
   dom.metadataBox.style.display = "block";
-  dom.metadataBox.innerHTML = `
-    <div class="metadata-header">
-      <h3>Metadata</h3>
-      <button id="closeMetadataBtn" class="metadata-close-btn" type="button" aria-label="Close metadata">X</button>
-    </div>
-    <p><strong>Name:</strong> ${file}</p>
-    <p><strong>Type:</strong> ${metadata.type}</p>
-    <p><strong>Size:</strong> ${formatBytes(typeof metadata.bytes === "number" ? metadata.bytes : Number(metadata.bytes))}</p>
-    <p><strong>Created:</strong> ${metadata.created}</p>
-    <p><strong>Modified:</strong> ${metadata.changed}</p>
-    <p><strong>Extension:</strong> ${metadata.extension || "-"}</p>
-  `;
+  dom.metadataBox.innerHTML = "";
 
-  const closeBtn = dom.metadataBox.querySelector("#closeMetadataBtn");
-  if (closeBtn) closeBtn.addEventListener("click", closeMetadata);
+  const header = document.createElement("div");
+  header.className = "metadata-header";
+
+  const title = document.createElement("h3");
+  title.textContent = "Metadata";
+
+  const closeBtn = document.createElement("button");
+  closeBtn.id = "closeMetadataBtn";
+  closeBtn.className = "metadata-close-btn";
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Close metadata");
+  closeBtn.textContent = "X";
+
+  header.append(title, closeBtn);
+  dom.metadataBox.appendChild(header);
+
+  const addRow = (label: string, value: string) => {
+    const row = document.createElement("p");
+    const strong = document.createElement("strong");
+    strong.textContent = `${label}:`;
+    row.appendChild(strong);
+    row.append(` ${value}`);
+    dom.metadataBox.appendChild(row);
+  };
+
+  addRow("Name", file);
+  addRow("Type", metadata.type);
+  addRow(
+    "Size",
+    formatBytes(
+      typeof metadata.bytes === "number"
+        ? metadata.bytes
+        : Number(metadata.bytes),
+    ),
+  );
+  addRow("Created", metadata.created);
+  addRow("Modified", metadata.changed);
+  addRow("Extension", metadata.extension || "-");
+
+  closeBtn.addEventListener("click", closeMetadata);
 }
 
 export function closeMetadata() {
