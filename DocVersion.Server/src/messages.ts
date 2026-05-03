@@ -6,13 +6,13 @@ export function clearModalError() {
     state.modalErrorTimeoutId = null;
   }
   dom.modalError.textContent = "";
-  dom.modalError.style.display = "none";
+  dom.modalError.classList.add("hidden");
 }
 
 export function showModalError(message: string) {
   clearModalError();
   dom.modalError.textContent = message;
-  dom.modalError.style.display = "block";
+  dom.modalError.classList.remove("hidden");
   state.modalErrorTimeoutId = setTimeout(() => {
     clearModalError();
   }, MESSAGE_TIMEOUT_MS);

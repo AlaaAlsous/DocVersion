@@ -9,6 +9,61 @@ import { startSignalR } from "./signalr";
 import { getFiles } from "./files";
 
 let refreshInFlight: Promise<string | null> | null = null;
+const textSwapTimers = new WeakMap<
+  HTMLElement,
+  { swap: number; cleanup: number }
+>();
+
+function ensureRollingLabel(element: HTMLElement): HTMLSpanElement {
+  const firstChild = element.firstElementChild;
+  if (
+    firstChild instanceof HTMLSpanElement &&
+    firstChild.classList.contains("roll-text")
+  ) {
+    return firstChild;
+  }
+
+  const label = document.createElement("span");
+  label.className = "roll-text";
+  label.textContent = (element.textContent ?? "").trim();
+  element.textContent = "";
+  element.appendChild(label);
+  return label;
+}
+
+function setRollingText(element: HTMLElement, nextText: string) {
+  if (!element) return;
+
+  const label = ensureRollingLabel(element);
+  const currentText = (label.textContent ?? "").trim();
+  if (currentText === nextText) return;
+
+  if (!currentText) {
+    label.textContent = nextText;
+    return;
+  }
+
+  const activeTimers = textSwapTimers.get(label);
+  if (activeTimers) {
+    window.clearTimeout(activeTimers.swap);
+    window.clearTimeout(activeTimers.cleanup);
+  }
+
+  label.classList.remove("text-roll");
+  void label.offsetWidth;
+  label.classList.add("text-roll");
+
+  const swap = window.setTimeout(() => {
+    label.textContent = nextText;
+  }, 140);
+
+  const cleanup = window.setTimeout(() => {
+    label.classList.remove("text-roll");
+    textSwapTimers.delete(label);
+  }, 300);
+
+  textSwapTimers.set(label, { swap, cleanup });
+}
 
 function getTokenFromResponse(data: any): string | null {
   return data?.token ?? data?.Token ?? null;
@@ -20,6 +75,37 @@ function storeTokens(accessToken: string) {
 
 function clearTokens() {
   localStorage.removeItem("jwt");
+}
+
+function applyAuthModeUi() {
+  const isRegisterMode = state.authMode === "register";
+  setRollingText(dom.modalTitle, isRegisterMode ? "Create Account" : "Sign In");
+  setRollingText(dom.modalSubmit, isRegisterMode ? "Create Account" : "Log In");
+  setRollingText(
+    dom.modalModeToggle,
+    isRegisterMode ? "Back to Sign In" : "Create Account",
+  );
+}
+
+export function toggleAuthMode() {
+  state.authMode = state.authMode === "login" ? "register" : "login";
+  clearModalError();
+  applyAuthModeUi();
+}
+
+export function setAuthMode(mode: "login" | "register") {
+  state.authMode = mode;
+  clearModalError();
+  applyAuthModeUi();
+}
+
+export async function submitAuthForm() {
+  if (state.authMode === "register") {
+    await register();
+    return;
+  }
+
+  await login();
 }
 
 async function requestTokenRefresh(): Promise<string | null> {
@@ -263,6 +349,7 @@ export function logout() {
   dom.logoutBtn.style.display = "none";
   setCurrentUser("");
 
+  setAuthMode("login");
   dom.loginModal.style.display = "flex";
   dom.modalPassword.value = "";
   dom.modalUserName.focus();

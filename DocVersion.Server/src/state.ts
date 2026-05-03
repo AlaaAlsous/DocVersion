@@ -1,9 +1,10 @@
 export const dom = {
   loginModal: document.getElementById("loginModal") as any,
+  modalTitle: document.getElementById("modalTitle") as any,
   modalUserName: document.getElementById("modalUserName") as any,
   modalPassword: document.getElementById("modalPassword") as any,
   modalSubmit: document.getElementById("modalSubmit") as any,
-  modalRegister: document.getElementById("modalRegister") as any,
+  modalModeToggle: document.getElementById("modalModeToggle") as any,
   logoutBtn: document.getElementById("logoutBtn") as any,
   currentUser: document.getElementById("currentUser") as any,
   modalError: document.getElementById("modalError") as any,
@@ -33,6 +34,7 @@ export const dom = {
 };
 
 export const state = {
+  authMode: "login" as "login" | "register",
   connection: null as any,
   currentPath: "",
   currentFileName: "",

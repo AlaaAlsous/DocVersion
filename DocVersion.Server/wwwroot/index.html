@@ -122,7 +122,7 @@ Select a file to preview its content.</pre
     </main>
     <div id="loginModal">
       <div>
-        <h2>Sign In</h2>
+        <h2 id="modalTitle">Sign In</h2>
         <input
           id="modalUserName"
           name="username"
@@ -138,9 +138,9 @@ Select a file to preview its content.</pre
           placeholder="Password"
           autocomplete="current-password"
         />
+        <p id="modalError" class="hidden"></p>
         <button id="modalSubmit">Log In</button>
-        <button id="modalRegister" type="button">Create Account</button>
-        <p id="modalError" style="display: none"></p>
+        <button id="modalModeToggle" type="button">Create Account</button>
       </div>
     </div>
     <div id="spinner-overlay" style="display: none">

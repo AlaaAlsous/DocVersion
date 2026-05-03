@@ -23,6 +23,8 @@ import {
 } from "./preview";
 import {
   handleUnauthorizedResponse,
+  submitAuthForm,
+  toggleAuthMode,
   setCurrentUser,
   setExplorerPath,
   resetDetailsPanels,
@@ -59,8 +61,8 @@ import { displayFiles } from "./display";
 
 dom.uploadBtn.addEventListener("click", uploadFile);
 dom.createFolderBtn.addEventListener("click", createFolder);
-dom.modalSubmit.addEventListener("click", login);
-dom.modalRegister.addEventListener("click", register);
+dom.modalSubmit.addEventListener("click", submitAuthForm);
+dom.modalModeToggle.addEventListener("click", toggleAuthMode);
 dom.logoutBtn.addEventListener("click", logout);
 
 dom.editBtn.addEventListener("click", editFile);
@@ -127,11 +129,11 @@ document.addEventListener("keydown", (event) => {
 });
 
 dom.modalUserName.addEventListener("keydown", (event: KeyboardEvent) => {
-  if (event.key === "Enter") login();
+  if (event.key === "Enter") submitAuthForm();
 });
 
 dom.modalPassword.addEventListener("keydown", (event: KeyboardEvent) => {
-  if (event.key === "Enter") login();
+  if (event.key === "Enter") submitAuthForm();
 });
 
 window.addEventListener("storage", (event) => {
@@ -178,6 +180,8 @@ export {
   downloadFile,
   displayFiles,
   setCurrentUser,
+  submitAuthForm,
+  toggleAuthMode,
   login,
   register,
   logout,
