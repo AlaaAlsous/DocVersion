@@ -31,7 +31,7 @@ class Program
 
         if (args.Length < 2)
         {
-            MessageColor("Usage: DocVersion.Client [pull|push|sync] <serverUrl> [username] [password]", ConsoleColor.Red);
+            MessageColor("Usage: DocVersion.Client [pull|push|sync] <serverUrl> [email] [password]", ConsoleColor.Red);
             return 1;
         }
 
@@ -57,7 +57,7 @@ class Program
 
                 var loginResponse = await client.PostAsJsonAsync(
                     $"{serverUrl}/api/login",
-                    new { User = username, Password = password });
+                    new { Email = username, User = username, Password = password });
 
                 if (!loginResponse.IsSuccessStatusCode)
                 {

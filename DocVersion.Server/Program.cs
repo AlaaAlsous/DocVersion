@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text.Json.Serialization;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using DocVersion.Server.Services;
 using DocVersion.Server.Security;
 using DocVersion.Server.Hubs;
+using DocVersion.Server.Models;
 using DocVersion.Server.Data;
 
 
@@ -19,6 +21,7 @@ var dbPath = Path.Combine(dataDirectory, "DocVersion.db");
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddDbContext<AppDbContext>(Options => Options.UseSqlite($"Data Source={dbPath}"));
+builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 builder.Services.AddScoped<FileService>();
 
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")

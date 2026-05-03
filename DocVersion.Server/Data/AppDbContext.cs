@@ -8,5 +8,6 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     public DbSet<FileHistory> FileHistories { get; set; }
+    public DbSet<UserAccount> UserAccounts { get; set; }
 
 }

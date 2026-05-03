@@ -1,47 +1,104 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Net.Mail;
 using Microsoft.Extensions.Options;
+using DocVersion.Server.Data;
+using DocVersion.Server.Models;
 using DocVersion.Server.Security;
+
 namespace DocVersion.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class LoginController : ControllerBase
 {
-    private readonly Dictionary<string, string> users = new Dictionary<string, string>()
-{
-    { "Alaa", "1234" },
-    { "admin", "12345678" },
-    { "test-user", "So Long, and Thanks for All the Fish" }
-};
+    private readonly AppDbContext _db;
+    private readonly IPasswordHasher<UserAccount> _passwordHasher;
     private readonly JwtOptions _jwtOptions;
 
-    public LoginController(IOptions<JwtOptions> jwtOptions)
+    public LoginController(
+        AppDbContext db,
+        IPasswordHasher<UserAccount> passwordHasher,
+        IOptions<JwtOptions> jwtOptions
+    )
     {
+        _db = db;
+        _passwordHasher = passwordHasher;
         _jwtOptions = jwtOptions.Value;
     }
 
     [HttpPost]
-    public IActionResult Login(LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] AuthRequest request)
     {
-        if (!users.TryGetValue(request.User, out var password) || password != request.Password)
-            return Unauthorized();
+        var email = NormalizeEmail(request.Email);
+        if (email is null || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest(new { message = "Email and password are required." });
+        }
 
+        var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Email == email);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+        if (verifyResult == PasswordVerificationResult.Failed)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(new { Token = CreateToken(user.Email) });
+    }
+
+    private string CreateToken(string email)
+    {
         var jwtKey = _jwtOptions.Key
             ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
+
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var token = new JwtSecurityToken(
             issuer: _jwtOptions.Issuer,
             audience: _jwtOptions.Audience,
-            claims: new[] { new Claim(ClaimTypes.Name, request.User) },
+            claims: new[]
+            {
+                new Claim(ClaimTypes.Name, email),
+                new Claim(ClaimTypes.Email, email)
+            },
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)
         );
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-        return Ok(new { Token = tokenString });
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
-    public record LoginRequest(string User, string Password);
+
+    private static string? NormalizeEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var candidate = value.Trim();
+        try
+        {
+            var parsed = new MailAddress(candidate);
+            if (!string.Equals(parsed.Address, candidate, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return parsed.Address.ToLowerInvariant();
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    public record AuthRequest(string Email, string Password);
 }
