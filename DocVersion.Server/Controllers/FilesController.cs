@@ -149,13 +149,13 @@ public class FilesController : ControllerBase
             {
                 var folderCreated = await _fileService.CreateFolderAsync(username, filename);
                 if (!folderCreated) return Conflict("Folder already exists.");
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderCreated, filename);
+                await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderCreated, filename);
                 return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
             }
 
             var created = await _fileService.CreateFileAsync(username, filename, Request.Body, HttpContext.RequestAborted);
             if (!created) return Conflict("File already exists.");
-            await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileCreated, filename);
+            await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FileCreated, filename);
             return CreatedAtAction(nameof(GetFileContent), new { filename }, null);
         }
         catch (InvalidOperationException)
@@ -179,7 +179,7 @@ public class FilesController : ControllerBase
         {
             await _fileService.RestoreFileHistoryAsync(username, filename, version, HttpContext.RequestAborted);
 
-            await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileUpdated, filename);
+            await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FileUpdated, filename);
             return Ok(new { Message = "File restored to version ", version, filename });
         }
         catch (InvalidOperationException)
@@ -203,12 +203,12 @@ public class FilesController : ControllerBase
             {
                 var created = await _fileService.CreateFolderAsync(username, filename);
                 if (created)
-                    await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderCreated, filename);
+                    await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderCreated, filename);
                 return NoContent();
             }
             bool fileExists = await _fileService.FileExistsAsync(username, filename);
             await _fileService.SaveFileAsync(username, filename, Request.Body, HttpContext.RequestAborted);
-            await _eventsHub.Clients.All.SendAsync("Event", fileExists ? (int)EventsType.FileUpdated : (int)EventsType.FileCreated, filename);
+            await _eventsHub.Clients.User(username).SendAsync("Event", fileExists ? (int)EventsType.FileUpdated : (int)EventsType.FileCreated, filename);
             return NoContent();
         }
         catch (InvalidOperationException)
@@ -249,7 +249,7 @@ public class FilesController : ControllerBase
             if (!string.IsNullOrWhiteSpace(folder))
             {
                 await _fileService.CreateFolderAsync(username, folder);
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderCreated, folder);
+                await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderCreated, folder);
             }
         }
 
@@ -258,7 +258,7 @@ public class FilesController : ControllerBase
         foreach (var result in results)
         {
             if (result.Success)
-                await _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileCreated, result.File);
+                await _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FileCreated, result.File);
         }
 
         var failed = results.Where(r => !r.Success).ToList();
@@ -293,7 +293,7 @@ public class FilesController : ControllerBase
                     return StatusCode(500, new { Message = "Failed to delete file on server." });
                 }
 
-                _ = _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FileDeleted, filename);
+                _ = _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FileDeleted, filename);
             }
             else if (isFolder)
             {
@@ -303,7 +303,7 @@ public class FilesController : ControllerBase
                     return StatusCode(500, new { Message = "Failed to delete folder on server." });
                 }
 
-                _ = _eventsHub.Clients.All.SendAsync("Event", (int)EventsType.FolderDeleted, filename);
+                _ = _eventsHub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderDeleted, filename);
             }
 
             return NoContent();
@@ -340,7 +340,7 @@ public class FilesController : ControllerBase
                 success = await _fileService.RenameFolderAsync(username, oldName, newName);
 
                 if (success)
-                    await _eventsHub.Clients.All.SendAsync(
+                    await _eventsHub.Clients.User(username).SendAsync(
                         "Event",
                         (int)EventsType.FolderRenamed,
                         payload);
@@ -350,7 +350,7 @@ public class FilesController : ControllerBase
                 success = await _fileService.RenameFileAsync(username, oldName, newName);
 
                 if (success)
-                    await _eventsHub.Clients.All.SendAsync(
+                    await _eventsHub.Clients.User(username).SendAsync(
                         "Event",
                         (int)EventsType.FileRenamed,
                         payload);
