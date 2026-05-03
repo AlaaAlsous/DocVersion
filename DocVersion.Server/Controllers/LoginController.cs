@@ -56,6 +56,40 @@ public class LoginController : ControllerBase
         return Ok(new { Token = CreateToken(user.Email) });
     }
 
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] AuthRequest request)
+    {
+        var email = NormalizeEmail(request.Email);
+        if (email is null)
+        {
+            return BadRequest(new { message = "Email must be a valid email address." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        {
+            return BadRequest(new { message = "Password must be at least 8 characters." });
+        }
+
+        var exists = await _db.UserAccounts.AnyAsync(x => x.Email == email);
+        if (exists)
+        {
+            return Conflict(new { message = "User already exists." });
+        }
+
+        var user = new UserAccount
+        {
+            Email = email,
+            PasswordHash = string.Empty
+        };
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+
+        _db.UserAccounts.Add(user);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { Token = CreateToken(user.Email) });
+    }
+
     private string CreateToken(string email)
     {
         var jwtKey = _jwtOptions.Key
