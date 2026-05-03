@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using System.Net.Mail;
-using Microsoft.Extensions.Options;
 using DocVersion.Server.Data;
 using DocVersion.Server.Models;
 using DocVersion.Server.Security;
@@ -15,21 +13,22 @@ namespace DocVersion.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class LoginController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<UserAccount> _passwordHasher;
-    private readonly JwtOptions _jwtOptions;
+    private readonly JwtService _jwtService;
 
     public LoginController(
         AppDbContext db,
         IPasswordHasher<UserAccount> passwordHasher,
-        IOptions<JwtOptions> jwtOptions
+        JwtService jwtService
     )
     {
         _db = db;
         _passwordHasher = passwordHasher;
-        _jwtOptions = jwtOptions.Value;
+        _jwtService = jwtService;
     }
 
     [HttpPost]
@@ -53,7 +52,7 @@ public class LoginController : ControllerBase
             return Unauthorized();
         }
 
-        return Ok(new { Token = CreateToken(user.Email) });
+        return Ok(CreateAuthResponse(user));
     }
 
     [HttpPost("register")]
@@ -87,28 +86,51 @@ public class LoginController : ControllerBase
         _db.UserAccounts.Add(user);
         await _db.SaveChangesAsync();
 
-        return Ok(new { Token = CreateToken(user.Email) });
+        return Ok(CreateAuthResponse(user));
     }
 
-    private string CreateToken(string email)
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh()
     {
-        var jwtKey = _jwtOptions.Key
-            ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
+        var refreshToken = Request.Cookies["refreshToken"];
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return Unauthorized();
+        }
 
-        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-        var token = new JwtSecurityToken(
-            issuer: _jwtOptions.Issuer,
-            audience: _jwtOptions.Audience,
-            claims: new[]
-            {
-                new Claim(ClaimTypes.Name, email),
-                new Claim(ClaimTypes.Email, email)
-            },
-            expires: DateTime.UtcNow.AddHours(1),
-            signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)
-        );
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var principal = _jwtService.ValidateRefreshToken(refreshToken);
+        if (principal is null)
+        {
+            return Unauthorized();
+        }
+
+        var tokenType = principal.FindFirstValue("token_type");
+        if (!string.Equals(tokenType, "refresh", StringComparison.Ordinal))
+        {
+            return Unauthorized();
+        }
+
+        var email = NormalizeEmail(principal.FindFirstValue(ClaimTypes.Email));
+        if (email is null)
+        {
+            return Unauthorized();
+        }
+
+        var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Email == email);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var versionClaim = principal.FindFirstValue("rtv");
+        if (!int.TryParse(versionClaim, out var tokenVersion) || tokenVersion != user.RefreshTokenVersion)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(CreateAuthResponse(user));
     }
+
 
     private static string? NormalizeEmail(string? value)
     {
