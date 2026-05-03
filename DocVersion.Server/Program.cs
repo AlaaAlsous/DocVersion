@@ -25,6 +25,7 @@ builder.Services.AddDbContext<AppDbContext>(Options => Options.UseSqlite($"Data 
 builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<FileService>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, DocVersion.Server.Security.NameUserIdProvider>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

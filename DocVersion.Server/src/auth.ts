@@ -148,7 +148,7 @@ async function refreshAccessToken(): Promise<string | null> {
 function withBearerHeader(init: RequestInit, token: string): RequestInit {
   const headers = new Headers(init.headers ?? {});
   headers.set("Authorization", `Bearer ${token}`);
-  return { ...init, headers };
+  return { ...init, headers, credentials: "same-origin" };
 }
 
 export async function fetchWithAuth(
@@ -232,6 +232,7 @@ export async function login() {
   try {
     response = await fetch("/api/login", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email,
@@ -279,6 +280,7 @@ export async function register() {
   try {
     response = await fetch("/api/login/register", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });

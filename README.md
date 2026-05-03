@@ -17,12 +17,11 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 <p align="center">
-	<img src="DocVersion.Server/wwwroot/Assets/Favicon.png" alt="DocVersion" width="90"/>
+	<img src="DocVersion.Server/wwwroot/Assets/DocVersion-login.png" alt="DocVersion-Login" width="250"/>
 </p>
 
 <p align="center">
-	<img src="DocVersion.Server/wwwroot/Assets/History.png" alt="History" width="180"/>
-	<img src="DocVersion.Server/wwwroot/Assets/MetaData.png" alt="Metadata" width="180"/>
+	<img src="DocVersion.Server/wwwroot/Assets/DocVersion-startsida.png" alt="DocVersion-Startsida" width="600"/>
 </p>
 
 ## Beskrivning

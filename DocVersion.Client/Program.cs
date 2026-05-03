@@ -437,6 +437,7 @@ class Program
                                 if (resp.IsSuccessStatusCode || resp.StatusCode == System.Net.HttpStatusCode.NotFound)
                                 {
                                     MessageColor($"[Local->Server] Deleted: {path} (Status: {resp.StatusCode})", ConsoleColor.DarkRed);
+                                    MarkEcho(path);
                                 }
                                 else
                                 {
@@ -889,7 +890,10 @@ class Program
                                 var content = new ByteArrayContent(Array.Empty<byte>());
                                 content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                                 request.Content = content;
-                                await client.SendAsync(request);
+                                var response = await client.SendAsync(request);
+                                if (!response.IsSuccessStatusCode)
+                                    throw new Exception($"Server returned {response.StatusCode}");
+                                MarkEcho(relative);
                             }
                             catch (Exception ex)
                             {
@@ -927,7 +931,10 @@ class Program
                                 var streamContent = new StreamContent(stream);
                                 streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                                 request.Content = streamContent;
-                                await client.SendAsync(request);
+                                var response = await client.SendAsync(request);
+                                if (!response.IsSuccessStatusCode)
+                                    throw new Exception($"Server returned {response.StatusCode}");
+                                MarkEcho(relative);
                             }
                             catch (Exception ex)
                             {
@@ -977,7 +984,11 @@ class Program
                     {
                         MessageColor($"[Local] Rename: {oldPathRel} → {newPathRel}", ConsoleColor.White);
 
-                        await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(oldPathRel)}");
+                        var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(oldPathRel)}");
+                        if (deleteResponse.IsSuccessStatusCode || deleteResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            MarkEcho(oldPathRel);
+                        }
 
                         if (Directory.Exists(e.FullPath))
                         {
@@ -987,7 +998,10 @@ class Program
                             var content = new ByteArrayContent(Array.Empty<byte>());
                             content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                             folderRequest.Content = content;
-                            await client.SendAsync(folderRequest);
+                            var folderResp = await client.SendAsync(folderRequest);
+                            if (!folderResp.IsSuccessStatusCode)
+                                throw new Exception($"Server returned {folderResp.StatusCode} for folder rename");
+                            MarkEcho(newPathRel);
 
                             foreach (var file in Directory.GetFiles(e.FullPath, "*", SearchOption.AllDirectories))
                             {
@@ -1000,7 +1014,10 @@ class Program
                                 var streamContent = new StreamContent(stream);
                                 streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                                 fileRequest.Content = streamContent;
-                                await client.SendAsync(fileRequest);
+                                var fileResp = await client.SendAsync(fileRequest);
+                                if (!fileResp.IsSuccessStatusCode)
+                                    throw new Exception($"Server returned {fileResp.StatusCode} for file rename upload");
+                                MarkEcho(relFile);
                             }
                         }
                         else if (File.Exists(e.FullPath))
@@ -1012,7 +1029,10 @@ class Program
                             var streamContent = new StreamContent(stream);
                             streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                             fileRequest.Content = streamContent;
-                            await client.SendAsync(fileRequest);
+                            var fileResp = await client.SendAsync(fileRequest);
+                            if (!fileResp.IsSuccessStatusCode)
+                                throw new Exception($"Server returned {fileResp.StatusCode} for file rename");
+                            MarkEcho(newPathRel);
                         }
                     }
                     catch (Exception ex)

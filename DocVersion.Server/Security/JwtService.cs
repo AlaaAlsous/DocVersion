@@ -60,6 +60,7 @@ public class JwtService
         var claims = new List<Claim>
         {
             new Claim("token_type", tokenType),
+            new Claim(ClaimTypes.NameIdentifier, email),
             new Claim(ClaimTypes.Name, email),
             new Claim(ClaimTypes.Email, email)
         };
