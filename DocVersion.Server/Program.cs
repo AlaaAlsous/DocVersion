@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.SignalR;
@@ -24,6 +25,16 @@ builder.Services.AddDbContext<AppDbContext>(Options => Options.UseSqlite($"Data 
 builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<FileService>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+    });
+});
 
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
              ?? builder.Configuration["Jwt:Key"]
@@ -103,6 +114,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
