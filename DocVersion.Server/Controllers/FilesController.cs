@@ -198,7 +198,7 @@ public class FilesController : ControllerBase
         try
         {
             var xTypePut = Request.Headers["X-Type"].FirstOrDefault();
-            bool isFolderPut = xTypePut == "folder" || (xTypePut != "file" && Request.ContentLength.GetValueOrDefault() == 0);
+            bool isFolderPut = xTypePut == "folder";
             if (isFolderPut)
             {
                 var created = await _fileService.CreateFolderAsync(username, filename);

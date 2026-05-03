@@ -106,6 +106,7 @@ export async function saveFile() {
       method: "PUT",
       headers: {
         "Content-Type": "text/plain",
+        "X-Type": "file",
       },
       body: content,
     });

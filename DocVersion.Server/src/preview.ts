@@ -69,7 +69,7 @@ function initMonaco(
     if (window.require.config) {
       window.require.config({
         paths: {
-          vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs",
+          vs: "/js/vendor/monaco/vs",
         },
       });
     }
@@ -112,9 +112,7 @@ export async function editFile() {
     monacoDiv.style.display = "block";
 
     const language = getLanguage(state.currentFileName);
-
-    const content =
-      dom.fileContentTextarea.value || dom.fileContentBody.textContent || "";
+    const content = dom.fileContentTextarea.value ?? "";
 
     try {
       await initMonaco(monacoDiv, content, language);
