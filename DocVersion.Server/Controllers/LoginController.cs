@@ -131,6 +131,58 @@ public class LoginController : ControllerBase
         return Ok(CreateAuthResponse(user));
     }
 
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var email = NormalizeEmail(User.FindFirstValue(ClaimTypes.Email));
+        if (email is null)
+        {
+            return Unauthorized();
+        }
+
+        var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Email == email);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        user.RefreshTokenVersion += 1;
+        await _db.SaveChangesAsync();
+
+        ClearRefreshCookie();
+        return Ok();
+    }
+
+    private object CreateAuthResponse(UserAccount user)
+    {
+        var tokens = _jwtService.CreateAuthTokens(user.Email, user.RefreshTokenVersion);
+        SetRefreshCookie(tokens.RefreshToken);
+        return new { Token = tokens.Token };
+    }
+
+    private void SetRefreshCookie(string refreshToken)
+    {
+        Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = HttpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddDays(_jwtService.GetRefreshTokenDays()),
+            Path = "/api/login"
+        });
+    }
+
+    private void ClearRefreshCookie()
+    {
+        Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            Path = "/api/login",
+            SameSite = SameSiteMode.Strict,
+            Secure = HttpContext.Request.IsHttps,
+            HttpOnly = true
+        });
+    }
 
     private static string? NormalizeEmail(string? value)
     {
