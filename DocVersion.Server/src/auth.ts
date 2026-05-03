@@ -311,16 +311,20 @@ export async function register() {
   await getFiles();
 }
 
-export function logout() {
+export async function logout() {
   const token = localStorage.getItem("jwt");
   if (token) {
-    void fetch("/api/login/logout", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-    }).catch(() => {});
+    try {
+      await fetch("/api/login/logout", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "same-origin",
+      });
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    }
   }
 
   clearErrorMessage();
