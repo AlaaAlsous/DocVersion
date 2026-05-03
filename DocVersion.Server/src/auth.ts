@@ -8,6 +8,87 @@ import {
 import { startSignalR } from "./signalr";
 import { getFiles } from "./files";
 
+let refreshInFlight: Promise<string | null> | null = null;
+
+function getTokenFromResponse(data: any): string | null {
+  return data?.token ?? data?.Token ?? null;
+}
+
+function storeTokens(accessToken: string) {
+  localStorage.setItem("jwt", accessToken);
+}
+
+function clearTokens() {
+  localStorage.removeItem("jwt");
+}
+
+async function requestTokenRefresh(): Promise<string | null> {
+  try {
+    const response = await fetch("/api/login/refresh", {
+      method: "POST",
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const nextAccessToken = getTokenFromResponse(data);
+    if (!nextAccessToken) {
+      return null;
+    }
+
+    storeTokens(nextAccessToken);
+    return nextAccessToken;
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    return null;
+  }
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = requestTokenRefresh().finally(() => {
+    refreshInFlight = null;
+  });
+
+  return refreshInFlight;
+}
+
+function withBearerHeader(init: RequestInit, token: string): RequestInit {
+  const headers = new Headers(init.headers ?? {});
+  headers.set("Authorization", `Bearer ${token}`);
+  return { ...init, headers };
+}
+
+export async function fetchWithAuth(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const token = localStorage.getItem("jwt");
+  if (!token) {
+    logout();
+    return new Response(null, { status: 401 });
+  }
+
+  const firstResponse = await fetch(input, withBearerHeader(init, token));
+  if (firstResponse.status !== 401) {
+    return firstResponse;
+  }
+
+  const refreshedToken = await refreshAccessToken();
+  if (!refreshedToken) {
+    logout();
+    return firstResponse;
+  }
+
+  return fetch(input, withBearerHeader(init, refreshedToken));
+}
+
 export function handleUnauthorizedResponse(response: Response): boolean {
   if (response.status !== 401) return false;
   logout();
@@ -83,10 +164,13 @@ export async function login() {
   }
 
   const data = await response.json();
-  const token = data.token ?? data.Token;
-  if (!token) return;
+  const token = getTokenFromResponse(data);
+  if (!token) {
+    showModalError("Invalid login response");
+    return;
+  }
 
-  localStorage.setItem("jwt", token);
+  storeTokens(token);
   localStorage.setItem("username", email);
   setCurrentUser(email);
 
@@ -125,10 +209,13 @@ export async function register() {
   }
 
   const data = await response.json();
-  const token = data.token ?? data.Token;
-  if (!token) return;
+  const token = getTokenFromResponse(data);
+  if (!token) {
+    showModalError("Invalid register response");
+    return;
+  }
 
-  localStorage.setItem("jwt", token);
+  storeTokens(token);
   localStorage.setItem("username", email);
   setCurrentUser(email);
 
@@ -139,11 +226,22 @@ export async function register() {
 }
 
 export function logout() {
+  const token = localStorage.getItem("jwt");
+  if (token) {
+    void fetch("/api/login/logout", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "same-origin",
+    }).catch(() => {});
+  }
+
   clearErrorMessage();
   clearModalError();
   resetDetailsPanels();
 
-  localStorage.removeItem("jwt");
+  clearTokens();
   localStorage.removeItem("username");
 
   state.currentPath = "";

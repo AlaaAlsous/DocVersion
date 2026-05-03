@@ -9,8 +9,8 @@ import { renderFilePreview, showTextPreview } from "./preview";
 import { editFile, cancelEdit } from "./preview";
 export { editFile, cancelEdit };
 import {
+  fetchWithAuth,
   handleUnauthorizedResponse,
-  logout,
   setExplorerPath,
   resetDetailsPanels,
 } from "./auth";
@@ -19,12 +19,6 @@ import { displayFiles } from "./display";
 import { showSpinner, hideSpinner } from "./index";
 
 export async function getFiles(path = "") {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   state.currentPath = path || "";
   setExplorerPath(state.currentPath);
   dom.logoutBtn.style.display = "inline-block";
@@ -33,11 +27,7 @@ export async function getFiles(path = "") {
   try {
     const encodedPath = toApiPath(path);
     const url = encodedPath ? `/api/files/${encodedPath}` : "/api/files";
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetchWithAuth(url);
 
     if (handleUnauthorizedResponse(response)) {
       hideSpinner();
@@ -61,12 +51,6 @@ export async function getFiles(path = "") {
 }
 
 export async function showFileContent(fileName: string, contextLabel = "") {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   const filePath = state.currentPath
     ? `${state.currentPath}/${fileName}`
     : fileName;
@@ -74,11 +58,7 @@ export async function showFileContent(fileName: string, contextLabel = "") {
 
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedFilePath}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetchWithAuth(`/api/files/${encodedFilePath}`);
 
     if (handleUnauthorizedResponse(response)) {
       hideSpinner();
@@ -102,12 +82,6 @@ export async function showFileContent(fileName: string, contextLabel = "") {
 }
 
 export async function saveFile() {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   if (!state.currentFileName) return;
 
   const filePath = state.currentPath
@@ -128,10 +102,9 @@ export async function saveFile() {
 
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedFilePath}`, {
+    const response = await fetchWithAuth(`/api/files/${encodedFilePath}`, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "text/plain",
       },
       body: content,
@@ -165,11 +138,6 @@ export async function saveFile() {
 }
 
 export async function uploadFile() {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
   const file = dom.fileInput.files[0];
 
   if (!file) {
@@ -184,10 +152,9 @@ export async function uploadFile() {
 
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedPath}`, {
+    const response = await fetchWithAuth(`/api/files/${encodedPath}`, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${token}`,
         "X-Type": "file",
       },
       body: file,
@@ -221,21 +188,11 @@ export async function uploadFile() {
 }
 
 export async function downloadFile(file: string) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   const filePath = state.currentPath ? `${state.currentPath}/${file}` : file;
   const encodedFilePath = toApiPath(filePath);
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedFilePath}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetchWithAuth(`/api/files/${encodedFilePath}`);
 
     if (handleUnauthorizedResponse(response)) {
       hideSpinner();
@@ -267,11 +224,6 @@ export async function downloadFile(file: string) {
 }
 
 export async function createFolder() {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
   const folderName = dom.folderNameInput.value.trim();
 
   if (!folderName) {
@@ -286,10 +238,9 @@ export async function createFolder() {
 
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedPath}`, {
+    const response = await fetchWithAuth(`/api/files/${encodedPath}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "X-Type": "folder",
       },
     });
@@ -321,11 +272,6 @@ export async function createFolder() {
 }
 
 export async function uploadFolder() {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
   const files = dom.folderInput.files;
   if (!files || files.length === 0) {
     showErrorMessage("No folder selected");
@@ -338,9 +284,8 @@ export async function uploadFolder() {
     const encodedPath = toApiPath(
       state.currentPath ? `${state.currentPath}/${first}` : first,
     );
-    const res = await fetch(`/api/files/${encodedPath}`, {
+    const res = await fetchWithAuth(`/api/files/${encodedPath}`, {
       method: "HEAD",
-      headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok && res.headers.get("X-Type") === "folder") {
       exists = true;
@@ -362,11 +307,8 @@ export async function uploadFolder() {
   }
   showSpinner();
   try {
-    const response = await fetch("/api/files/upload-folder", {
+    const response = await fetchWithAuth("/api/files/upload-folder", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
       body: formData,
     });
     if (handleUnauthorizedResponse(response)) {
@@ -391,22 +333,13 @@ export async function uploadFolder() {
 }
 
 export async function downloadFolderAsZip(folder: string) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
   const folderPath = state.currentPath
     ? `${state.currentPath}/${folder}`
     : folder;
   const encodedFolderPath = toApiPath(folderPath);
   showSpinner();
   try {
-    const response = await fetch(`/api/files/zip/${encodedFolderPath}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetchWithAuth(`/api/files/zip/${encodedFolderPath}`);
     if (handleUnauthorizedResponse(response)) {
       hideSpinner();
       return;
@@ -473,11 +406,6 @@ if (
 }
 
 export async function createFile() {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
   const fileName = dom.fileNameInput.value.trim();
   if (!fileName) {
     showErrorMessage("File name cannot be empty");
@@ -489,10 +417,9 @@ export async function createFile() {
   const encodedPath = toApiPath(path);
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedPath}`, {
+    const response = await fetchWithAuth(`/api/files/${encodedPath}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "X-Type": "file",
       },
       body: "",
@@ -521,21 +448,12 @@ export async function createFile() {
 }
 
 export async function deleteItem(item: string) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   const encodedPath = toApiPath(item);
 
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedPath}`, {
+    const response = await fetchWithAuth(`/api/files/${encodedPath}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
 
     if (handleUnauthorizedResponse(response)) {
@@ -563,12 +481,6 @@ export async function deleteItem(item: string) {
 }
 
 export async function showItemMetadata(itemName: string) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   const itemPath = state.currentPath
     ? `${state.currentPath}/${itemName}`
     : itemName;
@@ -576,11 +488,8 @@ export async function showItemMetadata(itemName: string) {
 
   showSpinner();
   try {
-    const response = await fetch(`/api/files/${encodedItemPath}`, {
+    const response = await fetchWithAuth(`/api/files/${encodedItemPath}`, {
       method: "HEAD",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
 
     if (handleUnauthorizedResponse(response)) {
@@ -687,17 +596,11 @@ export async function renameItem(
   prevName?: string,
   nextName?: string,
 ) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
   showSpinner();
   try {
-    const response = await fetch("/api/files/rename", {
+    const response = await fetchWithAuth("/api/files/rename", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

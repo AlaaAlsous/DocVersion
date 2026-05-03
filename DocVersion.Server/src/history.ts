@@ -6,7 +6,7 @@ import {
   showSuccessMessage,
 } from "./messages";
 import { renderFilePreview } from "./preview";
-import { handleUnauthorizedResponse, logout } from "./auth";
+import { fetchWithAuth, handleUnauthorizedResponse } from "./auth";
 import { showFileContent, getFiles } from "./files";
 
 export function closeFileHistory() {
@@ -40,25 +40,14 @@ export async function showHistoryVersionContent(
   fileName: string,
   version: number,
 ) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   const filePath = state.currentPath
     ? `${state.currentPath}/${fileName}`
     : fileName;
   const encodedFilePath = toApiPath(filePath);
 
   try {
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/files/history/${encodedFilePath}?version=${version}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
     );
 
     if (handleUnauthorizedResponse(response)) {
@@ -108,23 +97,15 @@ export async function navigateHistory(direction: number) {
 }
 
 export async function getFilesHistory(filename: string) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   const filePath = state.currentPath
     ? `${state.currentPath}/${filename}`
     : filename;
   const encodedFilePath = toApiPath(filePath);
 
   try {
-    const response = await fetch(`/api/files/history/${encodedFilePath}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetchWithAuth(
+      `/api/files/history/${encodedFilePath}`,
+    );
 
     if (handleUnauthorizedResponse(response)) {
       return;
@@ -151,25 +132,16 @@ export async function getFilesHistory(filename: string) {
 }
 
 export async function restoreFileVersion(filename: string, version: number) {
-  const token = localStorage.getItem("jwt");
-  if (!token) {
-    logout();
-    return;
-  }
-
   const filePath = state.currentPath
     ? `${state.currentPath}/${filename}`
     : filename;
   const encodedFilePath = toApiPath(filePath);
 
   try {
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/files/restore/${encodedFilePath}?version=${version}`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       },
     );
 
