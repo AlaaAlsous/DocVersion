@@ -170,58 +170,84 @@ export function displayFileHistory(
   state.activeHistoryFileName = filename;
   state.activeHistoryEntries = history;
   state.historyCursor = -1;
-  dom.historyBox.innerHTML = `
-    <div class="history-header">
-      <h3>History: ${filename}</h3>
-      <button id="closeHistoryBtn" class="metadata-close-btn" type="button" aria-label="Close history">X</button>
-    </div>
-    <div class="history-nav" role="group" aria-label="History navigation">
-      <button id="historyBackBtn" class="history-nav-btn" type="button">← Older</button>
-      <span id="historyNavStatus" class="history-nav-status">Current version</span>
-      <button id="historyForwardBtn" class="history-nav-btn" type="button">Newer →</button>
-    </div>
-    <ul class="history-list"></ul>
-  `;
+  dom.historyBox.innerHTML = "";
 
-  const closeBtn = dom.historyBox.querySelector("#closeHistoryBtn");
-  if (closeBtn) closeBtn.addEventListener("click", closeFileHistory);
-  const backBtn = dom.historyBox.querySelector("#historyBackBtn");
-  if (backBtn) backBtn.addEventListener("click", () => navigateHistory(-1));
-  const forwardBtn = dom.historyBox.querySelector("#historyForwardBtn");
-  if (forwardBtn)
-    forwardBtn.addEventListener("click", () => navigateHistory(1));
+  const header = document.createElement("div");
+  header.className = "history-header";
 
-  const list = dom.historyBox.querySelector(".history-list");
-  if (list) {
-    if (history.length === 0) {
-      const li = document.createElement("li");
-      li.className = "history-item";
-      li.textContent = "No previous versions";
-      list.appendChild(li);
-    }
-    history.forEach((h) => {
-      const li = document.createElement("li");
-      li.className = "history-item";
+  const title = document.createElement("h3");
+  title.textContent = `History: ${filename}`;
 
-      const versionSpan = document.createElement("span");
-      versionSpan.className = "history-version";
-      versionSpan.textContent = `V.${h.version}`;
+  const closeBtn = document.createElement("button");
+  closeBtn.id = "closeHistoryBtn";
+  closeBtn.className = "metadata-close-btn";
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Close history");
+  closeBtn.textContent = "X";
 
-      const dateSpan = document.createElement("span");
-      dateSpan.className = "history-date";
-      dateSpan.textContent = new Date(h.createdAt).toLocaleString();
+  header.append(title, closeBtn);
 
-      const restoreBtn = document.createElement("button");
-      restoreBtn.className = "history-restore-btn";
-      restoreBtn.textContent = "Restore";
-      restoreBtn.addEventListener("click", () =>
-        restoreFileVersion(filename, h.version),
-      );
+  const nav = document.createElement("div");
+  nav.className = "history-nav";
+  nav.setAttribute("role", "group");
+  nav.setAttribute("aria-label", "History navigation");
 
-      li.append(versionSpan, dateSpan, restoreBtn);
-      list.appendChild(li);
-    });
+  const backBtn = document.createElement("button");
+  backBtn.id = "historyBackBtn";
+  backBtn.className = "history-nav-btn";
+  backBtn.type = "button";
+  backBtn.textContent = "← Older";
+
+  const navStatus = document.createElement("span");
+  navStatus.id = "historyNavStatus";
+  navStatus.className = "history-nav-status";
+  navStatus.textContent = "Current version";
+
+  const forwardBtn = document.createElement("button");
+  forwardBtn.id = "historyForwardBtn";
+  forwardBtn.className = "history-nav-btn";
+  forwardBtn.type = "button";
+  forwardBtn.textContent = "Newer →";
+
+  nav.append(backBtn, navStatus, forwardBtn);
+
+  const list = document.createElement("ul");
+  list.className = "history-list";
+
+  dom.historyBox.append(header, nav, list);
+
+  closeBtn.addEventListener("click", closeFileHistory);
+  backBtn.addEventListener("click", () => navigateHistory(-1));
+  forwardBtn.addEventListener("click", () => navigateHistory(1));
+
+  if (history.length === 0) {
+    const li = document.createElement("li");
+    li.className = "history-item";
+    li.textContent = "No previous versions";
+    list.appendChild(li);
   }
+  history.forEach((h) => {
+    const li = document.createElement("li");
+    li.className = "history-item";
+
+    const versionSpan = document.createElement("span");
+    versionSpan.className = "history-version";
+    versionSpan.textContent = `V.${h.version}`;
+
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "history-date";
+    dateSpan.textContent = new Date(h.createdAt).toLocaleString();
+
+    const restoreBtn = document.createElement("button");
+    restoreBtn.className = "history-restore-btn";
+    restoreBtn.textContent = "Restore";
+    restoreBtn.addEventListener("click", () =>
+      restoreFileVersion(filename, h.version),
+    );
+
+    li.append(versionSpan, dateSpan, restoreBtn);
+    list.appendChild(li);
+  });
 
   dom.historyBox.style.display = "block";
   updateHistoryNavigationUi();
