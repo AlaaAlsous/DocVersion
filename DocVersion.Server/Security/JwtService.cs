@@ -15,11 +15,11 @@ public class JwtService
         _jwtOptions = jwtOptions.Value;
     }
 
-    public AuthTokens CreateAuthTokens(string email)
+    public AuthTokens CreateAuthTokens(string email, int refreshTokenVersion)
     {
         return new AuthTokens(
-            AccessToken: CreateToken(email, "access", GetAccessTokenLifetime()),
-            RefreshToken: CreateToken(email, "refresh", GetRefreshTokenLifetime())
+            AccessToken: CreateToken(email, "access", GetAccessTokenLifetime(), null),
+            RefreshToken: CreateToken(email, "refresh", GetRefreshTokenLifetime(), refreshTokenVersion)
         );
     }
 
@@ -48,19 +48,31 @@ public class JwtService
         }
     }
 
-    private string CreateToken(string email, string tokenType, TimeSpan lifetime)
+    public int GetRefreshTokenDays()
+    {
+        return GetValidatedRefreshTokenDays();
+    }
+
+    private string CreateToken(string email, string tokenType, TimeSpan lifetime, int? refreshTokenVersion)
     {
         var issuedAt = DateTime.UtcNow;
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key));
+        var claims = new List<Claim>
+        {
+            new Claim("token_type", tokenType),
+            new Claim(ClaimTypes.Name, email),
+            new Claim(ClaimTypes.Email, email)
+        };
+
+        if (refreshTokenVersion.HasValue)
+        {
+            claims.Add(new Claim("rtv", refreshTokenVersion.Value.ToString()));
+        }
+
         var token = new JwtSecurityToken(
             issuer: _jwtOptions.Issuer,
             audience: _jwtOptions.Audience,
-            claims: new[]
-            {
-                new Claim("token_type", tokenType),
-                new Claim(ClaimTypes.Name, email),
-                new Claim(ClaimTypes.Email, email)
-            },
+            claims: claims,
             notBefore: issuedAt,
             expires: issuedAt.Add(lifetime),
             signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)
@@ -87,18 +99,24 @@ public class JwtService
 
     private TimeSpan GetRefreshTokenLifetime()
     {
+        var days = GetValidatedRefreshTokenDays();
+        return TimeSpan.FromDays(days);
+    }
+
+    private int GetValidatedRefreshTokenDays()
+    {
         var days = _jwtOptions.RefreshTokenDays;
         if (days < 1)
         {
-            days = 1;
+            return 1;
         }
 
         if (days > 90)
         {
-            days = 90;
+            return 90;
         }
 
-        return TimeSpan.FromDays(days);
+        return days;
     }
 }
 
