@@ -211,8 +211,13 @@ DocVersion/
 ├─ package.json
 ├─ package-lock.json
 ├─ README.md
-├─ scripts/
-│  └─ sync-monaco.mjs
+├─ DocVersion.Server/
+│  ├─ wwwroot/
+│  │  ├─ js/
+│  │  │  └─ vendor/
+│  │  │     └─ scripts/
+│  │  │        └─ sync-monaco.mjs
+│  └─ ...
 ├─ DocVersion.Core/
 │  ├─ Helpers/
 │  └─ Models/

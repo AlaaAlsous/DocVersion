@@ -6,7 +6,7 @@
     "build": "npm run sync:monaco && esbuild DocVersion.Server/src/index.ts --bundle --outfile=DocVersion.Server/wwwroot/js/index.js --format=esm --target=es2020",
     "build:check": "tsc -p DocVersion.Server --noEmit",
     "dev-css": "npx sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --watch --no-source-map",
-    "sync:monaco": "node scripts/sync-monaco.mjs"
+    "sync:monaco": "node DocVersion.Server/wwwroot/js/vendor/scripts/sync-monaco.mjs"
   },
   "keywords": [],
   "author": "",
