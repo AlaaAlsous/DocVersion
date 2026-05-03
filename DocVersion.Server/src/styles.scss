@@ -1369,7 +1369,18 @@ audio.file-preview-media {
   box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-left: 4px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--gh-divider-soft);
+  border-radius: 0.5rem;
+  background: var(--gh-surface);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  color: white;
+}
+.rename-input:focus {
+  outline: none;
+  border-color: var(--gh-accent);
 }
 
 .file-preview-line {
