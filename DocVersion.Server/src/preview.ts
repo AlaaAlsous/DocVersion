@@ -96,6 +96,37 @@ function initMonaco(
   });
 }
 
+function sanitizePreviewHtml(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc
+    .querySelectorAll(
+      "script, style, iframe, object, embed, link, form, input, button, textarea, select",
+    )
+    .forEach((node) => node.remove());
+
+  doc.querySelectorAll("*").forEach((element) => {
+    for (const attr of Array.from(element.attributes)) {
+      const name = attr.name.toLowerCase();
+      const value = attr.value.trim().toLowerCase();
+      if (name.startsWith("on")) {
+        element.removeAttribute(attr.name);
+        continue;
+      }
+
+      if (
+        (name === "href" || name === "src") &&
+        value.startsWith("javascript:")
+      ) {
+        element.removeAttribute(attr.name);
+      }
+    }
+  });
+
+  return doc.body.innerHTML;
+}
+
 export async function editFile() {
   showSpinner();
   try {
@@ -341,7 +372,7 @@ export async function showWordPreview(blob: Blob) {
     const result = await (window as any).mammoth.convertToHtml({ arrayBuffer });
     const container = document.createElement("div");
     container.className = "word-preview-content";
-    container.innerHTML = result.value;
+    container.innerHTML = sanitizePreviewHtml(result.value);
     dom.fileContentBody.appendChild(container);
   } catch {
     dom.fileContentBody.classList.remove("word-preview");
