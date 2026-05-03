@@ -27,6 +27,7 @@ import {
   setExplorerPath,
   resetDetailsPanels,
   login,
+  register,
   logout,
 } from "./auth";
 import {
@@ -59,6 +60,7 @@ import { displayFiles } from "./display";
 dom.uploadBtn.addEventListener("click", uploadFile);
 dom.createFolderBtn.addEventListener("click", createFolder);
 dom.modalSubmit.addEventListener("click", login);
+dom.modalRegister.addEventListener("click", register);
 dom.logoutBtn.addEventListener("click", logout);
 
 dom.editBtn.addEventListener("click", editFile);
@@ -177,6 +179,7 @@ export {
   displayFiles,
   setCurrentUser,
   login,
+  register,
   logout,
   startSignalR,
   showSuccessMessage,

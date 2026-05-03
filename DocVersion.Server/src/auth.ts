@@ -53,11 +53,11 @@ export function resetDetailsPanels() {
 }
 
 export async function login() {
-  const username = dom.modalUserName.value.trim();
+  const email = dom.modalUserName.value.trim();
   const password = dom.modalPassword.value.trim();
 
-  if (!username || !password) {
-    showModalError("Username and password are required");
+  if (!email || !password) {
+    showModalError("Email and password are required");
     return;
   }
 
@@ -67,13 +67,13 @@ export async function login() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user: username,
+        email,
         password: password,
       }),
     });
 
     if (!response.ok) {
-      showModalError("Wrong username or password");
+      showModalError("Wrong email or password");
       return;
     }
   } catch (error) {
@@ -87,8 +87,50 @@ export async function login() {
   if (!token) return;
 
   localStorage.setItem("jwt", token);
-  localStorage.setItem("username", username);
-  setCurrentUser(username);
+  localStorage.setItem("username", email);
+  setCurrentUser(email);
+
+  dom.loginModal.style.display = "none";
+  clearModalError();
+  await startSignalR();
+  await getFiles();
+}
+
+export async function register() {
+  const email = dom.modalUserName.value.trim();
+  const password = dom.modalPassword.value.trim();
+
+  if (!email || !password) {
+    showModalError("Email and password are required");
+    return;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch("/api/login/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (error) {
+    console.error("Register error:", error);
+    showModalError("Could not reach server");
+    return;
+  }
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    showModalError(data.message ?? "Could not create account");
+    return;
+  }
+
+  const data = await response.json();
+  const token = data.token ?? data.Token;
+  if (!token) return;
+
+  localStorage.setItem("jwt", token);
+  localStorage.setItem("username", email);
+  setCurrentUser(email);
 
   dom.loginModal.style.display = "none";
   clearModalError();

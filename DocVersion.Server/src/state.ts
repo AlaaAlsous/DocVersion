@@ -3,6 +3,7 @@ export const dom = {
   modalUserName: document.getElementById("modalUserName") as any,
   modalPassword: document.getElementById("modalPassword") as any,
   modalSubmit: document.getElementById("modalSubmit") as any,
+  modalRegister: document.getElementById("modalRegister") as any,
   logoutBtn: document.getElementById("logoutBtn") as any,
   currentUser: document.getElementById("currentUser") as any,
   modalError: document.getElementById("modalError") as any,
