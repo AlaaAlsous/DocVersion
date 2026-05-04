@@ -1,18 +1,18 @@
 # DocVersion
 
-![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
 ![.NET 10](https://img.shields.io/badge/.NET%2010-512BD4?logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-5C2D91?logo=dotnet&logoColor=white)
+![SignalR](https://img.shields.io/badge/SignalR-512BD4?logo=dotnet&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white)
 ![Entity Framework Core](https://img.shields.io/badge/EF%20Core-68217A?logo=dotnet&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![SignalR](https://img.shields.io/badge/SignalR-512BD4?logo=dotnet&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white)
 ![Sass](https://img.shields.io/badge/Sass-CC6699?logo=sass&logoColor=white)
-![Monaco Editor](https://img.shields.io/badge/Monaco%20Editor-007ACC?logo=visualstudiocode&logoColor=white)
 ![esbuild](https://img.shields.io/badge/esbuild-FFCF00?logo=esbuild&logoColor=black)
 ![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white)
 ![NPM](https://img.shields.io/badge/NPM-CB3837?logo=npm&logoColor=white)
+![Monaco Editor](https://img.shields.io/badge/Monaco%20Editor-007ACC?logo=visualstudiocode&logoColor=white)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5391FE?logo=powershell&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -24,61 +24,60 @@
 	<img src="DocVersion.Server/wwwroot/Assets/DocVersion-startsida.png" alt="DocVersion-Startsida" width="600"/>
 </p>
 
+<p align="center">
+	<img src="DocVersion.Server/wwwroot/Assets/DocVersion-Sync.png" alt="DocVersion-Sync" width="600"/>
+</p>
+
 ## Beskrivning
 
-DocVersion är en fullstack-applikation för säker dokument- och filhantering med versionshistorik per användare.
+DocVersion är en komplett lösning för filhantering och versionshistorik. Systemet låter användare lagra, redigera och hantera dokument och filer på ett säkert sätt, där varje ändring automatiskt sparas som en ny version.
 
-Backend är byggd i ASP.NET Core med EF Core och SQLite. Frontend är en TypeScript-klient som bundlas med esbuild och körs som statiska filer från serverns wwwroot.
+**Funktioner:** Ladda upp och ladda ner filer och mappar samt redigera filer direkt i webbläsaren. Skapa, hantera, byta namn på och ta bort filer och mappar. Visa tidigare versioner och återställ dem. Förhandsgranska textfiler, bilder, video, ljud, PDF- och Word-dokument samt se ändringshistorik med möjlighet att navigera mellan versioner.
 
-Systemet innehåller:
+**Säkerhet:** Varje användare loggar in med e-post och lösenord. Du ser bara dina egna filer. Lösenord är hashade, sessioner förblir aktiva med automatisk tokenuppdatering, och inloggningar kan avslutas för att ta bort åtkomst.
 
-- Inloggning och registrering med e-post och hashade lösenord
-- JWT access token i klienten och refresh token i HttpOnly-cookie
-- Automatisk token-refresh i klienten vid 401
-- Fil- och mapphantering med upload, download, rename, delete och zip
-- Versionshistorik med visning och återställning av tidigare versioner
-- Preview för text, bild, video, ljud, PDF och Word
-- Realtidsuppdateringar via SignalR
-- Lokal Monaco Editor för edit-läge utan CDN
+**Realtid och synkronisering:** Alla ändringar uppdateras direkt för aktiva användare. Systemet återansluter automatiskt vid anslutningsbrott. Du kan synkronisera mappar och filer mellan din dator och servern via kommandoradsverktyg (pull, push, sync).
+
+**Teknik:** Backend är byggd med ASP.NET Core och SQLite. Frontend är en webbapplikation med TypeScript. Inbyggd texteditor (Monaco) är integrerad lokalt utan CDN. Autentisering använder JWT med access token i klienten och refresh token i HttpOnly-cookie. Realtidsuppdateringar sker via SignalR.
 
 ## Arkitektur
 
 Projektet består av tre delar:
 
-- DocVersion.Server: API, auth, SignalR, statiska filer och körning
-- DocVersion.Core: delade modeller och helpers
-- DocVersion.Client: CLI-klient för pull, push och sync mot servern
+- **DocVersion.Server**: Webbservern som hanterar inloggning, filer och uppdateringar
+- **DocVersion.Core**: Gemensad kod och hjälpfunktioner
+- **DocVersion.Client**: Verktyg för att synkronisera mappar och filer mellan din dator och servern
 
 ### Server
 
-- ASP.NET Core controllers för auth och filer
-- EF Core DbContext med UserAccounts och FileHistories
-- JWT-baserad autentisering och authorization
-- Rate limiter för auth endpoints
-- SignalR-hub för användarspecifika event
+- API som tar emot begäranden (login, ladda upp filer, osv)
+- Databas som sparar användare och filversioner
+- Säker inloggning med lösenord
+- Realtidsuppdateringar så att alla ser ändringar direkt
+- Begränsning på hur många inloggningsförsök som tillåts
 
-### Web-frontend
+### Webbläsargränssnittet
 
-- TypeScript-moduler under DocVersion.Server/src
-- Bundling till DocVersion.Server/wwwroot/js/index.js med esbuild
-- SCSS till DocVersion.Server/wwwroot/css/styles.css
-- Monaco laddas lokalt från DocVersion.Server/wwwroot/js/vendor/monaco/vs
+- Skrivet med TypeScript (programmering)
+- Kombineras till en enda JavaScript-fil
+- Design med SCSS (stilar)
+- Texteditor (Monaco) laddas från servern, inte från internet
 
 ### Lagring och versionering
 
-- Filinnehåll per användare i DocVersion.Server/Storage
-- Historikfiler i DocVersion.Server/Storage/.history
-- Metadata om versioner i tabellen FileHistories
+- Varje användares filer sparas i sina egna mappar på servern
+- Gamla versioner av filer sparas i en historik-mapp
+- Information om vilken version som är vilken sparas i databasen
 
 ## Komplett funktionell översikt
 
 ### Auth-funktioner
 
-- Login med e-post och lösenord
+- Logga in med e-post och lösenord.
 - Register med e-postvalidering och minimilängd för lösenord
-- Refresh endpoint med token type-kontroll och refresh-version-kontroll
-- Logout som revokerar refresh genom versioninkrement
-- Modal i UI med växling mellan Sign In och Create Account
+- Uppdatera inloggning med säker token-kontroll.
+- Logga ut och stäng av tidigare inloggningar.
+- En ruta i gränssnittet där du kan växla mellan inloggning och skapa konto.
 
 ### Filfunktioner
 
@@ -87,7 +86,7 @@ Projektet består av tre delar:
 - Hämta metadata via HEAD
 - Skapa fil
 - Skapa mapp
-- Spara fil (inklusive tom fil)
+- Spara fil (inklusive tom fil), tangentbordskortkommando (Ctrl + S) eller save-knapp
 - Ladda upp fil
 - Ladda upp mapp
 - Ladda ner fil
@@ -100,7 +99,7 @@ Projektet består av tre delar:
 - Skapa ny version när filinnehåll ändras
 - Lista versioner
 - Öppna specifik historikversion
-- Navigera historik med tangentbord
+- Navigera historik med tangentbord (Ctrl + Z och Ctrl + Y)
 - Återställ vald version
 
 ### Preview-funktioner
@@ -151,15 +150,28 @@ Projektet består av tre delar:
 
 - Hub: /api/events/signalr
 
-## DocVersion.Client: användning och sync-flöde
+## DocVersion.Client: Synkroniseringssverktyg
 
-DocVersion.Client är ett kommandoradsverktyg för synk mellan lokal mapp och servern.
+DocVersion.Client är ett verktyg du kör från kommandoraden (terminal) för att automatiskt synkronisera mappar och filer mellan din dator och servern.
 
-Kommandoformat:
+### Så här använder du det:
 
-- DocVersion.Client pull <serverUrl> [email] [password]
-- DocVersion.Client push <serverUrl> [email] [password]
-- DocVersion.Client sync <serverUrl> [email] [password]
+1. Bygg programmet som en körbar fil:
+
+   ```powershell
+   dotnet publish -c Release --self-contained true -p:PublishSingleFile=true
+   ```
+
+2. Gå till `Release` mappen i projektet och kopiera den skapade filen till en valfri mapp.
+
+3. Lägg till den mappen i din miljövariabel (PATH) så att du kan köra kommandot från var som helst.
+
+4. Öppna terminalen i den mapp du vill synkronisera med servern.
+
+5. Kör ett av följande kommandon:
+   - `DocVersion.Client pull <serverUrl> [email] [password]`
+   - `DocVersion.Client push <serverUrl> [email] [password]`
+   - `DocVersion.Client sync <serverUrl> [email] [password]`
 
 Beteende:
 
@@ -167,40 +179,14 @@ Beteende:
 - push: laddar upp lokala filer/mappar till servern
 - sync: kombinerar pull och push-flöden med event-baserad synklogik
 - login sker om email och password skickas med
-- X-Type headers används för korrekt fil eller mapphantering
 
 Exempel:
 
 ```powershell
-cd DocVersion.Client
-dotnet run -- pull http://localhost:3000 user@example.com MyPass123
-dotnet run -- push http://localhost:3000 user@example.com MyPass123
-dotnet run -- sync http://localhost:3000 user@example.com MyPass123
+DocVersion.Client pull http://localhost:3000 user@example.com MyPass123
+DocVersion.Client push http://localhost:3000 user@example.com MyPass123
+DocVersion.Client sync http://localhost:3000 user@example.com MyPass123
 ```
-
-## Frontend build och sync-funktioner
-
-Projektet använder en separat sync-funktion för Monaco-filer.
-
-NPM-scripts:
-
-- npm run sync:monaco
-- npm run build
-- npm run build:check
-- npm run dev-css
-
-Vad sync:monaco gör:
-
-- Källa: node_modules/monaco-editor/min/vs
-- Mål: DocVersion.Server/wwwroot/js/vendor/monaco/vs
-- Tar bort tidigare mål, skapar mapp och kopierar om allt
-
-Byggordning i npm run build:
-
-1. npm run sync:monaco
-2. esbuild bundlar TypeScript till index.js
-
-Detta säkerställer att Monaco alltid finns lokalt och att ingen CDN krävs.
 
 ## Projektstruktur
 
@@ -209,14 +195,8 @@ DocVersion/
 ├─ DocVersion.sln
 ├─ package.json
 ├─ package-lock.json
+├─ .gitignore
 ├─ README.md
-├─ DocVersion.Server/
-│  ├─ wwwroot/
-│  │  ├─ js/
-│  │  │  └─ vendor/
-│  │  │     └─ scripts/
-│  │  │        └─ sync-monaco.mjs
-│  └─ ...
 ├─ DocVersion.Core/
 │  ├─ Helpers/
 │  └─ Models/
@@ -226,11 +206,13 @@ DocVersion/
 	 ├─ Program.cs
 	 ├─ appsettings.json
 	 ├─ appsettings.Development.json
+	 ├─ tsconfig.json
 	 ├─ Controllers/
 	 │  ├─ LoginController.cs
 	 │  └─ FilesController.cs
 	 ├─ Data/
 	 │  └─ AppDbContext.cs
+	 │  └─ DocVersion.db
 	 ├─ Hubs/
 	 │  └─ EventHub.cs
 	 ├─ Models/
@@ -238,7 +220,8 @@ DocVersion/
 	 │  └─ FileHistory.cs
 	 ├─ Security/
 	 │  ├─ JwtOptions.cs
-	 │  └─ JwtService.cs
+	 │  ├─ JwtService.cs
+	 │  └─ NameUserIdProvider.cs
 	 ├─ Services/
 	 │  └─ FileService.cs
 	 ├─ src/
@@ -251,47 +234,50 @@ DocVersion/
 	 │  ├─ preview.ts
 	 │  ├─ signalr.ts
 	 │  ├─ state.ts
-	 │  ├─ styles.scss
-	 │  └─ utils.ts
+	 │  ├─ utils.ts
+	 │  └─ styles.scss
 	 └─ wwwroot/
 			├─ index.html
 			├─ css/
 			├─ js/
+			│  └─ vendor/
+			│	  └─ scripts/
+			│		 └─ sync-monaco.mjs
 			└─ Assets/
 ```
 
 ## Lokal utveckling
 
-Krav:
+Vad du behöver:
 
 - .NET SDK 10
 - Node.js och npm
 
-Installera beroenden:
+Steg 1: Installera allt som behövs
 
 ```powershell
 npm install
 ```
 
-Bygg frontend:
+Steg 2: Bygg frontend:
 
 ```powershell
 npm run build
 ```
 
-Bygg CSS:
+Steg 3: Bygg CSS:
 
 ```powershell
 npx sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --no-source-map
 ```
 
-Bygg backend:
+Steg 4: Bygg backend:
 
 ```powershell
 dotnet build DocVersion.Server/DocVersion.Server.csproj -c Release
 ```
 
-Kör server:
+Steg 5: Starta servern
 
 ```powershell
 cd DocVersion.Server
@@ -304,14 +290,12 @@ Server URL:
 
 ## Konfiguration
 
-JWT-nyckel hämtas i denna ordning:
+Servern behöver en hemlig nyckel för att kryptera inloggningar. Den söker efter den här:
 
-1. Miljövariabel JWT_KEY
-2. Jwt:Key i appsettings
+1. Miljövariabel JWT_KEY (bäst)
+2. Inställningen Jwt:Key i appsettings-filen
 
-Rekommendation:
-
-- Sätt JWT_KEY i miljön i stället för att använda dev-nycklar i appsettings.
+Rekommendation: Sätt JWT_KEY som miljövariabel istället för hemlig nyckel i filer.
 
 ## Säkerhet
 
@@ -324,8 +308,8 @@ Rekommendation:
 
 ## English Summary
 
-DocVersion is a .NET 10 and TypeScript fullstack file management system with JWT auth, refresh cookies, file version history, local Monaco integration, SignalR real-time updates, and a CLI client for pull, push, and sync.
+DocVersion is a system for storing files with version history. It has a web interface where you can upload, edit and download files and folders. The system saves old versions so you can restore earlier versions if needed. It's secure with login and password, and uses real-time updates so changes appear immediately.
 
-## Licens
+## Utvecklare
 
-MIT
+Alaa Alsous
