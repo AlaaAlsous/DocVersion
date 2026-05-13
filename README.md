@@ -3,10 +3,14 @@
 ![.NET 10](https://img.shields.io/badge/.NET%2010-512BD4?logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-5C2D91?logo=dotnet&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-0078D4?logo=microsoftazure&logoColor=white)
+![Azure SQL](https://img.shields.io/badge/Azure%20SQL-CC2927?logo=microsoftsqlserver&logoColor=white)
+![Blob Storage](https://img.shields.io/badge/Azure%20Blob%20Storage-0089D6?logo=microsoftazure&logoColor=white)
+![Azure Key Vault](https://img.shields.io/badge/Azure%20Key%20Vault-0078D4?logo=microsoftazure&logoColor=white)
+![Azure SQL Database](https://img.shields.io/badge/Azure%20SQL%20Database-CC2927?logo=microsoftsqlserver&logoColor=white)
 ![SignalR](https://img.shields.io/badge/SignalR-512BD4?logo=dotnet&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white)
 ![Entity Framework Core](https://img.shields.io/badge/EF%20Core-68217A?logo=dotnet&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![Sass](https://img.shields.io/badge/Sass-CC6699?logo=sass&logoColor=white)
@@ -39,46 +43,69 @@ DocVersion är en komplett lösning för filhantering och versionshistorik. Syst
 
 **Realtid och synkronisering:** Alla ändringar uppdateras direkt för aktiva användare. Systemet återansluter automatiskt vid anslutningsbrott. Du kan synkronisera mappar och filer mellan din dator och servern via kommandoradsverktyg (pull, push, sync).
 
-**Teknik:** Backend är byggd med ASP.NET Core och SQLite. Frontend är en webbapplikation med TypeScript. Inbyggd texteditor (Monaco) är integrerad lokalt utan CDN. Autentisering använder JWT med access token i klienten och refresh token i HttpOnly-cookie. Realtidsuppdateringar sker via SignalR.
+**Teknik:** Backend är byggd med ASP.NET Core, Entity Framework Core och Azure SQL Database. Filhantering sker via Azure Blob Storage. Applikationen körs i Azure App Service. Hemligheter och konfiguration hanteras via Azure Key Vault. Frontend är en webbapplikation med TypeScript. Inbyggd texteditor (Monaco) är integrerad lokalt. Autentisering använder JWT med access token och refresh token i HttpOnly-cookie. Realtidsuppdateringar sker via SignalR.
+
+---
 
 ## Arkitektur
 
 Projektet består av tre delar:
 
-- **DocVersion.Server**: Webbservern som hanterar inloggning, filer och uppdateringar
-- **DocVersion.Core**: Gemensad kod och hjälpfunktioner
-- **DocVersion.Client**: Verktyg för att synkronisera mappar och filer mellan din dator och servern
+- **DocVersion.Server**: Webbservern som hanterar API, autentisering, filer och realtidskommunikation
+- **DocVersion.Core**: Gemensam kod och hjälpfunktioner
+- **DocVersion.Client**: CLI-verktyg för synkronisering mellan lokal dator och server
+
+### Azure-baserad arkitektur
+
+Systemet använder följande Azure-tjänster:
+
+- **Azure App Service** → Hosting av backend API och webbläsargränssnitt
+- **Azure SQL Database** → Databas för användare, metadata och versionshistorik
+- **Azure Blob Storage** → Lagring av filer och filversioner
+- **Azure Key Vault** → Säker lagring av connection strings, JWT-nycklar och secrets
+
+---
 
 ### Server
 
-- API som tar emot begäranden (login, ladda upp filer, osv)
-- Databas som sparar användare och filversioner
-- Säker inloggning med lösenord
-- Realtidsuppdateringar så att alla ser ändringar direkt
-- Begränsning på hur många inloggningsförsök som tillåts
+- API för inloggning, filhantering och versioner
+- Azure SQL Database via Entity Framework Core
+- Filuppladdning och hämtning via Azure Blob Storage
+- JWT-baserad autentisering
+- SignalR för realtidsuppdateringar
+- Säkerhetslager med rate limiting och token-revocation
 
-### Webbläsargränssnittet
+---
 
-- Skrivet med TypeScript (programmering)
-- Kombineras till en enda JavaScript-fil
-- Design med SCSS (stilar)
-- Texteditor (Monaco) laddas från servern, inte från internet
+### Webbläsargränssnitt
+
+- Skrivet i TypeScript
+- Bundlas till en enda JavaScript-fil
+- SCSS för styling
+- Monaco Editor hostas lokalt från servern
+- Ingen extern CDN-användning
+
+---
 
 ### Lagring och versionering
 
-- Varje användares filer sparas i sina egna mappar på servern
-- Gamla versioner av filer sparas i en historik-mapp
-- Information om vilken version som är vilken sparas i databasen
+- Metadata lagras i Azure SQL Database
+- Filer och versioner lagras i Azure Blob Storage
+- Varje användares filer separeras logiskt i containers/folders
+- Versionshistorik kopplas via databasen
+
+---
 
 ## Komplett funktionell översikt
 
 ### Auth-funktioner
 
-- Logga in med e-post och lösenord.
-- Register med e-postvalidering och minimilängd för lösenord
-- Uppdatera inloggning med säker token-kontroll.
-- Logga ut och stäng av tidigare inloggningar.
-- En ruta i gränssnittet där du kan växla mellan inloggning och skapa konto.
+- Logga in med e-post och lösenord
+- Registrera konto med validering
+- Refresh token-flöde
+- Logout och token-invalidation
+
+---
 
 ### Filfunktioner
 
@@ -115,22 +142,22 @@ Projektet består av tre delar:
 
 ### Realtidsfunktioner
 
-- SignalR-anslutning med access token
-- Automatiskt återanslutningsstöd
-- Eventhantering per användare
-- UI-uppdatering av explorer, preview och history efter events
+- SignalR med Azure App Service
+- Automatisk reconnect
+- User-scoped events
+- UI sync vid filändringar
+
+---
 
 ## API-endpoints
 
 ### Auth: api/login
-
 - POST /api/login
 - POST /api/login/register
 - POST /api/login/refresh
 - POST /api/login/logout
 
 ### Filer: api/files
-
 - GET /api/files
 - GET /api/files/{path}
 - HEAD /api/files/{path}
@@ -142,13 +169,11 @@ Projektet består av tre delar:
 - POST /api/files/upload-folder
 
 ### Historik
-
 - GET /api/files/history/{path}
 - GET /api/files/history/{path}?version={n}
 - POST /api/files/restore/{path}?version={n}
 
 ### SignalR
-
 - Hub: /api/events/signalr
 
 ## DocVersion.Client: Synkroniseringssverktyg
@@ -246,13 +271,12 @@ DocVersion/
 			│		 └─ sync-monaco.mjs
 			└─ Assets/
 ```
-
 ## Lokal utveckling
 
-Vad du behöver:
-
+### Krav
 - .NET SDK 10
 - Node.js och npm
+- Azure resurser (eller emulatorer lokalt)
 
 Steg 1: Installera allt som behövs
 
@@ -284,11 +308,15 @@ Steg 5: Starta servern
 cd DocVersion.Server
 dotnet run
 ```
+## Deployment
 
-Server URL:
+**Automatisk deploy (PowerShell)**
 
-- http://localhost:3000/
+Projektet innehåller även en deploy-fil för enklare distribution:
 
+```powershell
+./deploy.ps1
+```
 ## Konfiguration
 
 Servern behöver en hemlig nyckel för att kryptera inloggningar. Den söker efter den här:
@@ -309,7 +337,11 @@ Rekommendation: Sätt JWT_KEY som miljövariabel istället för hemlig nyckel i 
 
 ## English Summary
 
-DocVersion is a system for storing files with version history. It has a web interface where you can upload, edit and download files and folders. The system saves old versions so you can restore earlier versions if needed. It's secure with login and password, and uses real-time updates so changes appear immediately.
+DocVersion is a cloud-based document management system that provides file storage with full version history. It allows users to upload, edit, download, and organize files and folders through a web interface. Every change is automatically saved as a new version, making it possible to restore previous states at any time.
+
+The system is secure and uses authentication with login and password. It also supports real-time updates so that all changes are instantly reflected for active users.
+
+The backend is hosted on Azure App Service and uses Azure SQL Database for storing metadata and version history. Files are stored in Azure Blob Storage, and sensitive configuration such as connection strings and security keys are managed securely using Azure Key Vault.
 
 ## Utvecklare
 
