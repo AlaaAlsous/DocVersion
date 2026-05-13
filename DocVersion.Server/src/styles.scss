@@ -1283,6 +1283,9 @@ audio.file-preview-media {
   #file-content-box {
     height: min(var(--file-content-height), calc((100vh - 110px) * 1.5));
   }
+  #fileContentBody {
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1325,10 +1328,6 @@ audio.file-preview-media {
     grid-template-columns: 1fr;
   }
 
-  .action-group {
-    flex-wrap: wrap;
-  }
-
   #file-content-box {
     height: min(var(--file-content-height), calc((100vh - 125px) * 1.5));
     min-height: 320px;
@@ -1340,9 +1339,15 @@ audio.file-preview-media {
   }
 
   #file-content-header {
-    grid-template-columns: 1fr;
     row-gap: 0.55rem;
     align-items: start;
+  }
+  #fileContentBody {
+    font-size: 0.8rem;
+  }
+
+  #currentUser {
+    max-width: 150px;
   }
 
   #file-content-actions {
@@ -1356,7 +1361,6 @@ audio.file-preview-media {
   }
 
   .item-actions {
-    width: 100%;
     margin-left: 0;
     justify-content: flex-end;
   }

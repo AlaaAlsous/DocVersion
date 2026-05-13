@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.StaticFiles;
-using DocVersion.Core.Helpers;
 using DocVersion.Core.Models;
 using DocVersion.Server.Models;
 using DocVersion.Server.Data;
@@ -8,213 +7,308 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.SignalR;
 using DocVersion.Server.Hubs;
 namespace DocVersion.Server.Services;
+
 using System.IO.Compression;
 
 public class FileService
 {
-    private readonly string _storagePath;
-    private readonly string _historyStoragePath;
     private readonly AppDbContext _dbContext;
     private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();
     private readonly IHubContext<EventsHub> _hub;
+    private readonly BlobStorageService _blob;
 
-    public FileService(AppDbContext dbContext, IHubContext<EventsHub> hub)
+    public FileService(AppDbContext dbContext, IHubContext<EventsHub> hub, BlobStorageService blob)
     {
         _dbContext = dbContext;
         _hub = hub;
-        _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-        _historyStoragePath = Path.Combine(_storagePath, ".history");
-        if (!Directory.Exists(_storagePath))
-            Directory.CreateDirectory(_storagePath);
-        if (!Directory.Exists(_historyStoragePath))
-            Directory.CreateDirectory(_historyStoragePath);
+        _blob = blob;
     }
 
-    public Task<Dictionary<string, FileMetadata>> GetAllFilesAsync(string username)
+    private static readonly HashSet<string> IgnoredFiles = new(StringComparer.OrdinalIgnoreCase)
     {
-        var userPath = GetSafePath(username, "");
-        if (!Directory.Exists(userPath))
-            Directory.CreateDirectory(userPath);
+        "desktop.ini",
+        ".folder",
+        "thumbs.db",
+        ".ds_store",
+        "ehthumbs.db",
+        "icon\r",
+        "icon\r\n",
+        "__folder_placeholder"
+    };
 
-        var result = FileHelper.GetFolderContent(userPath);
-        return Task.FromResult(result);
+    private static readonly HashSet<string> IgnoredFolders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "$recycle.bin",
+        "system volume information"
+    };
+
+    private static bool ShouldIgnoreFile(string filename)
+    {
+        var name = Path.GetFileName(filename);
+        return IgnoredFiles.Contains(name);
     }
 
-    public Task<FileMetadata?> GetFileMetadataAsync(string username, string filename)
+    private static bool ShouldIgnoreFolder(string folderName)
     {
-        var userPath = GetSafePath(username, filename);
-
-        if (File.Exists(userPath))
-        {
-            var fileInfo = new FileInfo(userPath);
-            var metadata = new FileMetadata
-            {
-                Created = fileInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                IsFile = true,
-                Bytes = fileInfo.Length,
-                Extension = fileInfo.Extension
-            };
-            return Task.FromResult<FileMetadata?>(metadata);
-        }
-
-        if (Directory.Exists(userPath))
-        {
-            var dirInfo = new DirectoryInfo(userPath);
-            var metadata = new FileMetadata
-            {
-                Created = dirInfo.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = dirInfo.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss"),
-                IsFile = false,
-                Bytes = FileHelper.CalculateDirectorySize(userPath),
-                Extension = null
-            };
-            return Task.FromResult<FileMetadata?>(metadata);
-        }
-
-        return Task.FromResult<FileMetadata?>(null);
+        return IgnoredFolders.Contains(folderName);
     }
 
-    public Task<(Stream, string)> GetFileContentAsync(string username, string filename)
+    private static string NormalizePath(string path)
     {
-        var userPath = GetSafePath(username, filename);
-        if (!File.Exists(userPath))
-            return Task.FromResult<(Stream, string)>((null!, null!));
+        path = path.Replace("\\", "/").TrimStart('/');
 
-        var fileStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
-
-        var contentType = GetContentType(filename);
-        return Task.FromResult<(Stream, string)>((fileStream, contentType));
-    }
-
-    public Task<Dictionary<string, FileMetadata>?> GetFolderContentAsync(string username, string foldername)
-    {
-        var userPath = GetSafePath(username, foldername);
-        if (!Directory.Exists(userPath))
-            return Task.FromResult<Dictionary<string, FileMetadata>?>(null);
-
-        return Task.FromResult<Dictionary<string, FileMetadata>?>(FileHelper.GetFolderContent(userPath));
-    }
-
-    public async Task<bool> CreateFileAsync(string username, string filename, Stream content, CancellationToken cts = default)
-    {
-
-        var userPath = GetSafePath(username, filename);
-        var directory = Path.GetDirectoryName(userPath);
-        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
-        if (File.Exists(userPath) || Directory.Exists(userPath)) return false;
-
-        try
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 1 && parts[0].Contains("@"))
         {
-            using (var fileStream = new FileStream(userPath, FileMode.CreateNew, FileAccess.Write))
-            {
-                await content.CopyToAsync(fileStream, cts);
-            }
-
-            await SaveFileVersionAsync(username, filename, userPath, cts);
-            return true;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException($"Access denied to path '{userPath}'. Check permissions and that there is no file/folder name conflict. Error: {ex.Message}", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException($"IO error when creating file '{userPath}': {ex.Message}", ex);
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Unknown error when creating file '{userPath}': {ex.Message}", ex);
-        }
-    }
-
-    public Task<bool> CreateFolderAsync(string username, string foldername)
-    {
-        var userPath = GetSafePath(username, foldername);
-        if (Directory.Exists(userPath) || File.Exists(userPath))
-            return Task.FromResult(false);
-
-        Directory.CreateDirectory(userPath);
-        return Task.FromResult(true);
-    }
-
-    public async Task SaveFileAsync(string username, string filename, Stream content, CancellationToken cts = default)
-    {
-        var userPath = GetSafePath(username, filename);
-        var directory = Path.GetDirectoryName(userPath);
-        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
-
-        string? oldHash = null;
-        bool fileExisted = File.Exists(userPath);
-        if (fileExisted)
-        {
-            using var oldStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
-            oldHash = ComputeSha256Hash(oldStream);
+            parts = parts.Skip(1).ToArray();
+            path = string.Join("/", parts);
         }
 
-        using (var fileStream = new FileStream(userPath, FileMode.Create, FileAccess.Write))
-        {
-            await content.CopyToAsync(fileStream, cts);
-        }
-
-        using var newStream = new FileStream(userPath, FileMode.Open, FileAccess.Read);
-        var newHash = ComputeSha256Hash(newStream);
-
-        if (!fileExisted || oldHash != newHash)
-        {
-            await SaveFileVersionAsync(username, filename, userPath, cts);
-        }
-
+        return path;
     }
 
     private static string ComputeSha256Hash(Stream stream)
     {
-        using var sha256 = SHA256.Create();
-        stream.Position = 0;
-        var hash = sha256.ComputeHash(stream);
-        stream.Position = 0;
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        ms.Position = 0;
+
+        using var sha = SHA256.Create();
+        var hash = sha.ComputeHash(ms);
+
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
-    private async Task SaveFileVersionAsync(string username, string filename, string sourceFilePath, CancellationToken cts = default)
+    public async Task<Dictionary<string, FileMetadata>> GetAllFilesAsync(string username)
     {
-        if (!File.Exists(sourceFilePath)) return;
+        var list = await _blob.ListFolderAsync(username, null);
+        var dict = new Dictionary<string, FileMetadata>();
 
-        using var transaction = await _dbContext.Database.BeginTransactionAsync(cts);
-
-        var lastVersion = await _dbContext.FileHistories
-            .Where(f => f.Username == username && f.FilePath == filename)
-            .OrderByDescending(f => f.Version)
-            .Select(f => f.Version)
-            .FirstOrDefaultAsync(cts);
-
-        var nextVersion = lastVersion + 1;
-        var historyDirectory = GetSafeHistoryDirectoryPath(username, filename);
-        if (!Directory.Exists(historyDirectory))
-            Directory.CreateDirectory(historyDirectory);
-
-        var versionFilePath = Path.Combine(historyDirectory, $"{nextVersion}.bin");
-        await CopyFileAsync(sourceFilePath, versionFilePath, cts);
-
-        var versionFileInfo = new FileInfo(versionFilePath);
-
-        var newVersion = new FileHistory
+        foreach (var item in list)
         {
-            Username = username,
-            FilePath = filename,
-            Version = nextVersion,
-            StoragePath = GetRelativeHistoryPath(versionFilePath),
-            SizeBytes = versionFileInfo.Length,
-            CreatedAt = DateTime.UtcNow
-        };
+            if (ShouldIgnoreFile(item.Name))
+                continue;
 
-        _dbContext.FileHistories.Add(newVersion);
-        await _dbContext.SaveChangesAsync(cts);
-        await transaction.CommitAsync(cts);
+            var ext = item.IsFile ? Path.GetExtension(item.Name) : null;
+            dict[item.Name] = new FileMetadata
+            {
+                IsFile = item.IsFile,
+                Bytes = item.Bytes,
+                Extension = ext,
+                Created = (item.Created ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = (item.Modified ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+        }
+
+        return dict;
+    }
+
+    public async Task<FileMetadata?> GetFileMetadataAsync(string username, string filename)
+    {
+        filename = NormalizePath(filename);
+
+        if (ShouldIgnoreFile(filename))
+            return null;
+
+        var (stream, props) = await _blob.DownloadAsync(username, filename);
+        if (stream != null && props != null)
+        {
+            await stream.DisposeAsync();
+            return new FileMetadata
+            {
+                IsFile = true,
+                Bytes = props.ContentLength,
+                Extension = Path.GetExtension(filename),
+                Created = props.CreatedOn.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = props.LastModified.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+        }
+
+        var folderItems = await _blob.ListFolderAsync(username, filename);
+        if (folderItems.Count > 0)
+        {
+            long totalBytes = folderItems.Where(x => x.IsFile).Sum(x => x.Bytes);
+            var created = folderItems.Min(x => x.Created) ?? DateTimeOffset.UtcNow;
+            var changed = folderItems.Max(x => x.Modified) ?? created;
+
+            return new FileMetadata
+            {
+                IsFile = false,
+                Bytes = totalBytes,
+                Extension = null,
+                Created = created.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = changed.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+        }
+
+        return null;
+    }
+
+    public async Task<(Stream, string)> GetFileContentAsync(string username, string filename)
+    {
+        filename = NormalizePath(filename);
+
+        if (ShouldIgnoreFile(filename))
+            return (null!, null!);
+
+        var (stream, props) = await _blob.DownloadAsync(username, filename);
+        if (stream == null)
+            return (null!, null!);
+
+        var contentType = GetContentType(filename);
+        return (stream, contentType);
+    }
+
+    public async Task<Dictionary<string, FileMetadata>?> GetFolderContentAsync(string username, string foldername)
+    {
+        foldername = NormalizePath(foldername);
+
+        if (ShouldIgnoreFolder(foldername))
+            return null;
+
+        var list = await _blob.ListFolderAsync(username, foldername);
+        if (list.Count == 0) return null;
+
+        var dict = new Dictionary<string, FileMetadata>();
+        foreach (var item in list)
+        {
+            if (ShouldIgnoreFile(item.Name))
+                continue;
+
+            var ext = item.IsFile ? Path.GetExtension(item.Name) : null;
+            dict[item.Name] = new FileMetadata
+            {
+                IsFile = item.IsFile,
+                Bytes = item.Bytes,
+                Extension = ext,
+                Created = (item.Created ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = (item.Modified ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+        }
+        return dict;
+    }
+
+    public async Task<bool> CreateFileAsync(string username, string filename, Stream content, CancellationToken cts = default)
+    {
+        filename = NormalizePath(filename);
+
+        if (ShouldIgnoreFile(filename))
+            return false;
+
+        if (await _blob.ExistsAsync(username, filename, cts))
+            return false;
+
+        await _blob.UploadAsync(username, filename, content, cts);
+        await SaveFileVersionAsync(username, filename, cts);
+        return true;
+    }
+
+    public Task<bool> CreateFolderAsync(string username, string foldername)
+    {
+        foldername = NormalizePath(foldername);
+
+        if (ShouldIgnoreFolder(foldername))
+            return Task.FromResult(false);
+
+        var placeholder = foldername.TrimEnd('/') + "/__folder_placeholder";
+
+        return Task.Run(async () =>
+        {
+            if (await _blob.ExistsAsync(username, placeholder))
+                return false;
+
+            using var ms = new MemoryStream(Array.Empty<byte>());
+            await _blob.UploadAsync(username, placeholder, ms);
+            return true;
+        });
+    }
+
+    public async Task SaveFileAsync(string username, string filename, Stream content, CancellationToken cts = default)
+    {
+        filename = NormalizePath(filename);
+
+        if (ShouldIgnoreFile(filename))
+            return;
+
+        string? oldHash = null;
+        bool fileExisted = await _blob.ExistsAsync(username, filename, cts);
+
+        if (fileExisted)
+        {
+            var (oldStream, _) = await _blob.DownloadAsync(username, filename, cts);
+            if (oldStream != null)
+            {
+                oldHash = ComputeSha256Hash(oldStream);
+                await oldStream.DisposeAsync();
+            }
+        }
+
+        using (var ms = new MemoryStream())
+        {
+            await content.CopyToAsync(ms, cts);
+            ms.Position = 0;
+            await _blob.UploadAsync(username, filename, ms, cts);
+
+            ms.Position = 0;
+            var newHash = ComputeSha256Hash(ms);
+
+            if (!fileExisted || oldHash != newHash)
+            {
+                await SaveFileVersionAsync(username, filename, cts);
+            }
+        }
+    }
+    private async Task SaveFileVersionAsync(string username, string filename, CancellationToken cts = default)
+    {
+        filename = NormalizePath(filename);
+
+        if (ShouldIgnoreFile(filename))
+            return;
+
+        var (currentStream, _) = await _blob.DownloadAsync(username, filename, cts);
+        if (currentStream == null) return;
+
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _dbContext.Database.BeginTransactionAsync(cts);
+
+            var lastVersion = await _dbContext.FileHistories
+                .Where(f => f.Username == username && f.FilePath == filename)
+                .OrderByDescending(f => f.Version)
+                .Select(f => f.Version)
+                .FirstOrDefaultAsync(cts);
+
+            var nextVersion = lastVersion + 1;
+            var historyBlobName = $"{username}/.history/{filename}/{nextVersion}.bin";
+
+            using (currentStream)
+            using (var copy = new MemoryStream())
+            {
+                await currentStream.CopyToAsync(copy, cts);
+                copy.Position = 0;
+                await _blob.UploadAsync(username, historyBlobName, copy, cts);
+
+                var newVersion = new FileHistory
+                {
+                    Username = username,
+                    FilePath = filename,
+                    Version = nextVersion,
+                    StoragePath = historyBlobName,
+                    SizeBytes = copy.Length,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _dbContext.FileHistories.Add(newVersion);
+                await _dbContext.SaveChangesAsync(cts);
+                await transaction.CommitAsync(cts);
+            }
+        });
     }
 
     public async Task<List<FileHistory>> GetFileHistoryAsync(string username, string filename, CancellationToken cts = default)
     {
+        filename = NormalizePath(filename);
         return await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename)
             .OrderByDescending(f => f.Version)
@@ -223,6 +317,8 @@ public class FileService
 
     public async Task<(Stream, string)> GetFileHistoryVersionContentAsync(string username, string filename, int version, CancellationToken cts = default)
     {
+        filename = NormalizePath(filename);
+
         var fileVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename && f.Version == version)
             .FirstOrDefaultAsync(cts);
@@ -230,41 +326,47 @@ public class FileService
         if (fileVersion == null)
             return (null!, null!);
 
-        var versionFilePath = GetAbsoluteHistoryPath(fileVersion.StoragePath);
-        if (!File.Exists(versionFilePath))
+        var blobName = fileVersion.StoragePath;
+        var (stream, _) = await _blob.DownloadAsync(username, blobName.Replace($"{username}/", ""), cts);
+        if (stream == null)
             return (null!, null!);
 
-        var fileStream = new FileStream(versionFilePath, FileMode.Open, FileAccess.Read);
-        return (fileStream, GetContentType(filename));
+        return (stream, GetContentType(filename));
     }
 
     public async Task RestoreFileHistoryAsync(string username, string filename, int version, CancellationToken cts = default)
     {
+        filename = NormalizePath(filename);
+
         var fileVersion = await _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == filename && f.Version == version)
             .FirstOrDefaultAsync(cts);
+
         if (fileVersion == null)
             throw new InvalidOperationException("File version not found.");
 
-        var userPath = GetSafePath(username, filename);
-        var directory = Path.GetDirectoryName(userPath);
-        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory!);
-
-        var versionFilePath = GetAbsoluteHistoryPath(fileVersion.StoragePath);
-        if (!File.Exists(versionFilePath))
+        var blobName = fileVersion.StoragePath;
+        var (versionStream, _) = await _blob.DownloadAsync(username, blobName.Replace($"{username}/", ""), cts);
+        if (versionStream == null)
             throw new InvalidOperationException("Stored file version not found.");
 
-        if (File.Exists(userPath))
+        using (versionStream)
+        using (var ms = new MemoryStream())
         {
-            await SaveFileVersionAsync(username, filename, userPath, cts);
+            await versionStream.CopyToAsync(ms, cts);
+            ms.Position = 0;
+            await _blob.UploadAsync(username, filename, ms, cts);
         }
 
-        await CopyFileAsync(versionFilePath, userPath, cts);
+        await SaveFileVersionAsync(username, filename, cts);
     }
-
-    public async Task<List<(string File, bool Success, string? Error)>> UploadFilesAsync(string username, IEnumerable<(string FileName, Stream Content)> files, CancellationToken cts = default)
+    public async Task<List<(string File, bool Success, string? Error)>> UploadFilesAsync(
+        string username,
+        IEnumerable<(string FileName, Stream Content)> files,
+        CancellationToken cts = default)
     {
         var results = new List<(string File, bool Success, string? Error)>();
+
         foreach (var (fileName, content) in files)
         {
             try
@@ -277,17 +379,22 @@ public class FileService
                 results.Add((fileName, false, ex.Message));
             }
         }
+
         return results;
     }
 
-    public Task<bool> RenameFileAsync(string username, string oldFilename, string newFilename)
+    public async Task<bool> RenameFileAsync(string username, string oldFilename, string newFilename)
     {
-        var oldPath = GetSafePath(username, oldFilename);
-        var newPath = GetSafePath(username, newFilename);
-        if (!File.Exists(oldPath) || File.Exists(newPath))
-            return Task.FromResult(false);
+        oldFilename = NormalizePath(oldFilename);
+        newFilename = NormalizePath(newFilename);
 
-        File.Move(oldPath, newPath);
+        if (!await _blob.ExistsAsync(username, oldFilename))
+            return false;
+
+        if (await _blob.ExistsAsync(username, newFilename))
+            return false;
+
+        await _blob.CopyAsync(username, oldFilename, newFilename);
 
         var histories = _dbContext.FileHistories
             .Where(f => f.Username == username && f.FilePath == oldFilename)
@@ -299,181 +406,167 @@ public class FileService
                 f.Username == username &&
                 f.FilePath == newFilename &&
                 f.Version == history.Version);
+
             if (duplicateExists)
-            {
-                if (File.Exists(newPath) && !File.Exists(oldPath))
-                {
-                    File.Move(newPath, oldPath);
-                }
-                throw new InvalidOperationException($"Det finns redan historik för '{newFilename}' med version {history.Version}. Bytet avbryts för att undvika dubbletter.");
-            }
+                throw new InvalidOperationException(
+                    $"Det finns redan historik för '{newFilename}' med version {history.Version}.");
         }
 
         foreach (var history in histories)
-        {
             history.FilePath = newFilename;
-        }
-        _dbContext.SaveChanges();
 
-        return Task.FromResult(true);
+        _dbContext.SaveChanges();
+        return true;
     }
 
-    public Task<bool> RenameFolderAsync(string username, string oldFoldername, string newFoldername)
+    public async Task<bool> RenameFolderAsync(string username, string oldFoldername, string newFoldername)
     {
-        var oldPath = GetSafePath(username, oldFoldername);
-        var newPath = GetSafePath(username, newFoldername);
-        if (!Directory.Exists(oldPath) || Directory.Exists(newPath) || File.Exists(newPath))
-            return Task.FromResult(false);
-        Directory.Move(oldPath, newPath);
-        return Task.FromResult(true);
+        oldFoldername = NormalizePath(oldFoldername);
+        newFoldername = NormalizePath(newFoldername);
+
+        var allBlobs = await _blob.ListAllFilesRecursiveAsync(username, oldFoldername);
+        if (allBlobs.Count == 0)
+            return false;
+
+        foreach (var fullName in allBlobs)
+        {
+            var relative = fullName.Substring($"{username}/".Length);
+            var newRelative = relative.Replace(
+                oldFoldername.TrimEnd('/') + "/",
+                newFoldername.TrimEnd('/') + "/");
+
+            await _blob.CopyAsync(username, relative, newRelative);
+        }
+
+        var histories = _dbContext.FileHistories
+            .Where(f => f.Username == username && f.FilePath.StartsWith(oldFoldername + "/"))
+            .ToList();
+
+        foreach (var history in histories)
+        {
+            history.FilePath =
+                newFoldername.TrimEnd('/') +
+                history.FilePath.Substring(oldFoldername.Length);
+        }
+
+        _dbContext.SaveChanges();
+        return true;
     }
 
     public async Task<Stream?> GetFolderAsZipAsync(string username, string foldername)
     {
-        var userPath = GetSafePath(username, foldername);
-        if (!Directory.Exists(userPath))
+        foldername = NormalizePath(foldername);
+
+        var allBlobs = await _blob.ListAllFilesRecursiveAsync(username, foldername);
+        if (allBlobs.Count == 0)
             return null;
 
         var zipStream = new MemoryStream();
+
         using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
         {
-            var baseFolder = new DirectoryInfo(userPath);
-            var basePathLength = baseFolder.FullName.Length + (baseFolder.FullName.EndsWith(Path.DirectorySeparatorChar) ? 0 : 1);
-            foreach (var filePath in Directory.GetFiles(userPath, "*", SearchOption.AllDirectories))
+            var prefix = $"{username}/{foldername.TrimEnd('/')}/";
+
+            foreach (var blobName in allBlobs)
             {
-                var entryName = filePath.Substring(basePathLength).Replace("\\", "/");
-                archive.CreateEntryFromFile(filePath, entryName);
+                if (!blobName.StartsWith(prefix))
+                    continue;
+
+                var entryName = blobName.Substring(prefix.Length);
+
+                var (stream, _) = await _blob.DownloadAsync(
+                    username,
+                    blobName.Substring($"{username}/".Length));
+
+                if (stream == null)
+                    continue;
+
+                using (stream)
+                {
+                    var entry = archive.CreateEntry(entryName, CompressionLevel.Fastest);
+                    using var entryStream = entry.Open();
+                    await stream.CopyToAsync(entryStream);
+                }
             }
         }
+
         zipStream.Position = 0;
         return zipStream;
     }
-
     public async Task<bool> DeleteFileAsync(string username, string filename)
     {
-        var userPath = GetSafePath(username, filename);
+        filename = NormalizePath(filename);
 
-        if (!File.Exists(userPath))
+        if (!await _blob.ExistsAsync(username, filename))
             return false;
 
-        try
-        {
-            File.SetAttributes(userPath, FileAttributes.Normal);
-            File.Delete(userPath);
+        await _blob.DeleteAsync(username, filename);
 
-            await _hub.Clients.User(username).SendAsync("Event", (int)EventsType.FileDeleted, filename);
+        await _hub.Clients.User(username)
+            .SendAsync("Event", (int)EventsType.FileDeleted, filename);
 
-            return true;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException($"Access denied deleting '{userPath}': {ex.Message}", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException($"IO error deleting '{userPath}': {ex.Message}", ex);
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Unexpected error deleting '{userPath}': {ex.Message}", ex);
-        }
+        return true;
     }
 
     public async Task<bool> DeleteFolderAsync(string username, string foldername)
     {
-        var userPath = GetSafePath(username, foldername);
+        foldername = NormalizePath(foldername);
 
-        if (!Directory.Exists(userPath))
+        var allBlobs = await _blob.ListAllFilesRecursiveAsync(username, foldername);
+        if (allBlobs.Count == 0)
             return false;
 
-        try
+        foreach (var blobName in allBlobs)
         {
-            FileHelper.PrepareDirectoryForDelete(userPath);
-            Directory.Delete(userPath, recursive: true);
-
-            await _hub.Clients.User(username).SendAsync("Event", (int)EventsType.FolderDeleted, foldername);
-
-            return true;
+            var relative = blobName.Substring($"{username}/".Length);
+            await _blob.DeleteAsync(username, relative);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException($"Access denied deleting folder '{userPath}': {ex.Message}", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException($"IO error deleting folder '{userPath}': {ex.Message}", ex);
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Unexpected error deleting folder '{userPath}': {ex.Message}", ex);
-        }
+
+        await _hub.Clients.User(username)
+            .SendAsync("Event", (int)EventsType.FolderDeleted, foldername);
+
+        return true;
     }
 
-    public Task<bool> FileExistsAsync(string username, string filename)
+    public async Task<bool> FileExistsAsync(string username, string filename)
     {
-        var userPath = GetSafePath(username, filename);
-        return Task.FromResult(File.Exists(userPath));
+        filename = NormalizePath(filename);
+        return await _blob.ExistsAsync(username, filename);
     }
 
-    public Task<bool> FolderExistsAsync(string username, string foldername)
+    public async Task<bool> FolderExistsAsync(string username, string foldername)
     {
-        var userPath = GetSafePath(username, foldername);
-        return Task.FromResult(Directory.Exists(userPath));
-    }
-
-    private string GetSafePath(string username, string filename)
-    {
-        var userPath = Path.Combine(_storagePath, username);
-        var fullPath = Path.GetFullPath(Path.Combine(userPath, filename));
-        var fullUserPath = Path.GetFullPath(userPath);
-        if (fullPath != fullUserPath && !fullPath.StartsWith(fullUserPath + Path.DirectorySeparatorChar))
-            throw new InvalidOperationException("Invalid file path.");
-        return fullPath;
-    }
-
-    private string GetSafeHistoryDirectoryPath(string username, string filename)
-    {
-        var historyPath = Path.Combine(_historyStoragePath, username);
-        var fullPath = Path.GetFullPath(Path.Combine(historyPath, filename));
-        var fullHistoryPath = Path.GetFullPath(historyPath);
-        if (fullPath != fullHistoryPath && !fullPath.StartsWith(fullHistoryPath + Path.DirectorySeparatorChar))
-            throw new InvalidOperationException("Invalid history path.");
-        return fullPath;
-    }
-
-    private string GetRelativeHistoryPath(string absoluteHistoryPath)
-    {
-        return Path.GetRelativePath(_historyStoragePath, absoluteHistoryPath);
-    }
-
-    private string GetAbsoluteHistoryPath(string relativeHistoryPath)
-    {
-        var fullPath = Path.GetFullPath(Path.Combine(_historyStoragePath, relativeHistoryPath));
-        var fullHistoryPath = Path.GetFullPath(_historyStoragePath);
-        if (!fullPath.StartsWith(fullHistoryPath + Path.DirectorySeparatorChar) && fullPath != fullHistoryPath)
-            throw new InvalidOperationException("Invalid history path.");
-        return fullPath;
-    }
-
-    private static async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cts = default)
-    {
-        using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await sourceStream.CopyToAsync(destinationStream, cts);
+        foldername = NormalizePath(foldername);
+        var list = await _blob.ListFolderAsync(username, foldername);
+        return list.Count > 0;
     }
 
     private string GetContentType(string filename)
     {
         var ext = Path.GetExtension(filename).ToLowerInvariant();
-        if (ext == ".ts" || ext == ".tsx") return "text/plain";
-        if (ext == ".js" || ext == ".jsx") return "application/javascript";
+
+        if (ext == ".ts" || ext == ".tsx")
+            return "text/plain";
+
+        if (ext == ".js" || ext == ".jsx")
+            return "application/javascript";
 
         if (_contentTypeProvider.TryGetContentType(filename, out var contentType))
             return contentType;
 
-        string[] textExts = new[] {
-            ".txt", ".md", ".markdown", ".csv", ".log", ".json", ".xml", ".yml", ".yaml", ".ini", ".conf", ".config", ".env", ".bat", ".sh", ".ps1", ".cmd", ".c", ".cpp", ".h", ".hpp", ".cs", ".vb", ".java", ".py", ".rb", ".php", ".go", ".rs", ".swift", ".kt", ".kts", ".scala", ".clj", ".cljs", ".groovy", ".dart", ".sql", ".scss", ".sass", ".less", ".css", ".tex", ".r", ".m", ".pl", ".lua", ".fs", ".fsx", ".erl", ".ex", ".exs", ".f90", ".f", ".f77", ".f95", ".asm", ".s", ".mak", ".cmake", ".dockerfile", ".gitignore", ".gitattributes", ".editorconfig", ".properties", ".toml"
+        string[] textExts = new[]
+        {
+            ".txt", ".md", ".markdown", ".csv", ".log", ".json", ".xml", ".yml", ".yaml",
+            ".ini", ".conf", ".config", ".env", ".bat", ".sh", ".ps1", ".cmd",
+            ".c", ".cpp", ".h", ".hpp", ".cs", ".vb", ".java", ".py", ".rb", ".php",
+            ".go", ".rs", ".swift", ".kt", ".kts", ".scala", ".clj", ".cljs",
+            ".groovy", ".dart", ".sql", ".scss", ".sass", ".less", ".css",
+            ".tex", ".r", ".m", ".pl", ".lua", ".fs", ".fsx", ".erl", ".ex", ".exs",
+            ".f90", ".f", ".f77", ".f95", ".asm", ".s", ".mak", ".cmake",
+            ".dockerfile", ".gitignore", ".gitattributes", ".editorconfig",
+            ".properties", ".toml"
         };
+
         if (textExts.Contains(ext))
             return "text/plain";
 
