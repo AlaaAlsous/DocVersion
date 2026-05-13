@@ -57,8 +57,8 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<FileService>();
+builder.Services.AddScoped<BlobStorageService>();
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
-builder.Services.AddSingleton<BlobStorageService>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

@@ -1,5 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 
 namespace DocVersion.Server.Services
 {
@@ -9,13 +11,42 @@ namespace DocVersion.Server.Services
 
         public BlobStorageService(IConfiguration config)
         {
-            var conn = config["AzureBlob:ConnectionString"]
-                       ?? throw new InvalidOperationException("AzureBlob:ConnectionString missing.");
-            var containerName = config["AzureBlob:ContainerName"]
-                                ?? throw new InvalidOperationException("AzureBlob:ContainerName missing.");
+            string? keyVaultUrl = config["KeyVaultUrl"];
+            string? connFromKeyVault = null;
 
-            _container = new BlobContainerClient(conn, containerName);
+            if (!string.IsNullOrEmpty(keyVaultUrl))
+            {
+                try
+                {
+                    var client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+                    var secret = client.GetSecret("AzureBlob-ConnectionString");
+                    connFromKeyVault = secret.Value.Value;
+                }
+                catch { }
+            }
+
+            string? connFromEnv = Environment.GetEnvironmentVariable("AzureBlob__ConnectionString");
+
+            string? connFromConfig = config["AzureBlob:ConnectionString"];
+
+            string? connectionString =
+                FirstNonEmpty(connFromKeyVault, connFromEnv, connFromConfig)
+                ?? throw new InvalidOperationException("AzureBlob ConnectionString missing.");
+
+            string? containerName =
+                Environment.GetEnvironmentVariable("AzureBlob__ContainerName")
+                ?? config["AzureBlob:ContainerName"]
+                ?? throw new InvalidOperationException("AzureBlob ContainerName missing.");
+
+            _container = new BlobContainerClient(connectionString, containerName);
             _container.CreateIfNotExists();
+        }
+        private static string? FirstNonEmpty(params string?[] values)
+        {
+            foreach (var v in values)
+                if (!string.IsNullOrWhiteSpace(v))
+                    return v;
+            return null;
         }
 
         private static string NormalizeBlobName(string username, string? path)
