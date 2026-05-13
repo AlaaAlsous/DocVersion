@@ -1,4 +1,6 @@
 using System.Text;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,41 +17,64 @@ using DocVersion.Server.Data;
 
 
 var builder = WebApplication.CreateBuilder(args);
-var dataDirectory = Path.Combine(builder.Environment.ContentRootPath, "Data");
-Directory.CreateDirectory(dataDirectory);
-var dbPath = Path.Combine(dataDirectory, "DocVersion.db");
+var keyVaultUrl = builder.Configuration["KeyVaultUrl"]
+    ?? throw new InvalidOperationException("KeyVaultUrl missing.");
 
-builder.Services.AddControllers();
-builder.Services.AddSignalR();
-builder.Services.AddDbContext<AppDbContext>(Options => Options.UseSqlite($"Data Source={dbPath}"));
-builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
-builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<FileService>();
-builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, DocVersion.Server.Security.NameUserIdProvider>();
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("auth", limiterOptions =>
+var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+
+var sqlSecret = await secretClient.GetSecretAsync("SqlConnectionString");
+var connectionString = sqlSecret.Value.Value;
+
+var jwtSecret = await secretClient.GetSecretAsync("Jwt-Key");
+var jwtKey = jwtSecret.Value.Value;
+
+builder.Configuration["Jwt:Key"] = jwtKey;
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString, sqlOptions =>
     {
-        limiterOptions.PermitLimit = 10;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueLimit = 0;
+        sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+    }));
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .WithOrigins(
+                "https://docversion-app-hqeee2bdajfwe4ed.germanywestcentral-01.azurewebsites.net",
+                "https://localhost:5173",
+                "http://localhost:5173"
+            );
     });
 });
 
-var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
-             ?? builder.Configuration["Jwt:Key"]
-             ?? throw new InvalidOperationException("JWT key not found in environment variables or configuration.");
-if (string.IsNullOrWhiteSpace(jwtKey))
+builder.Services.AddControllers();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
+builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<FileService>();
+builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
+builder.Services.AddSingleton<BlobStorageService>();
+builder.Services.AddRateLimiter(options =>
 {
-    throw new InvalidOperationException("JWT key is empty. Set JWT_KEY environment variable or Jwt:Key in configuration.");
-}
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+});
 
-builder.Configuration["Jwt:Key"] = jwtKey;
 var jwtIssuer = builder.Configuration["Jwt:Issuer"]
-                ?? throw new InvalidOperationException("Jwt:Issuer is missing in configuration.");
+    ?? throw new InvalidOperationException("Jwt:Issuer missing.");
+
 var jwtAudience = builder.Configuration["Jwt:Audience"]
-                  ?? throw new InvalidOperationException("Jwt:Audience is missing in configuration.");
+    ?? throw new InvalidOperationException("Jwt:Audience missing.");
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
@@ -75,10 +100,13 @@ builder.Services
             {
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api/events/signalr"))
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/api/events/signalr"))
                 {
                     context.Token = accessToken;
                 }
+
                 return Task.CompletedTask;
             }
         };
@@ -101,23 +129,18 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 var fileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
-app.UseDefaultFiles(new DefaultFilesOptions
-{
-    FileProvider = fileProvider
-});
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = fileProvider
-});
+app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider });
+app.UseStaticFiles(new StaticFileOptions { FileProvider = fileProvider });
 
+app.UseCors();
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<EventsHub>("/api/events/signalr");
-app.Run("http://localhost:3000/");
+app.Run();
