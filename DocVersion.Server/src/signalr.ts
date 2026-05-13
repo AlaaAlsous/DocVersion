@@ -24,7 +24,7 @@ export async function startSignalR() {
   }
 
   const nextConnection = new (window as any).signalR.HubConnectionBuilder()
-    .withUrl("api/events/signalr", {
+    .withUrl("/api/events/signalr", {
       accessTokenFactory: () => localStorage.getItem("jwt") ?? "",
     })
     .withAutomaticReconnect()

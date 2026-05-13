@@ -36,21 +36,15 @@ public class LoginController : ControllerBase
     {
         var email = NormalizeEmail(request.Email);
         if (email is null || string.IsNullOrWhiteSpace(request.Password))
-        {
             return BadRequest(new { message = "Email and password are required." });
-        }
 
         var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Email == email);
         if (user is null)
-        {
             return Unauthorized();
-        }
 
         var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verifyResult == PasswordVerificationResult.Failed)
-        {
             return Unauthorized();
-        }
 
         return Ok(CreateAuthResponse(user));
     }
@@ -60,25 +54,19 @@ public class LoginController : ControllerBase
     {
         var email = NormalizeEmail(request.Email);
         if (email is null)
-        {
             return BadRequest(new { message = "Email must be a valid email address." });
-        }
 
         if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-        {
             return BadRequest(new { message = "Password must be at least 8 characters." });
-        }
 
         var exists = await _db.UserAccounts.AnyAsync(x => x.Email == email);
         if (exists)
-        {
             return Conflict(new { message = "User already exists." });
-        }
 
         var user = new UserAccount
         {
             Email = email,
-            PasswordHash = string.Empty
+            PasswordHash = ""
         };
 
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
@@ -94,39 +82,27 @@ public class LoginController : ControllerBase
     {
         var refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
-        {
             return Unauthorized();
-        }
 
         var principal = _jwtService.ValidateRefreshToken(refreshToken);
         if (principal is null)
-        {
             return Unauthorized();
-        }
 
         var tokenType = principal.FindFirstValue("token_type");
-        if (!string.Equals(tokenType, "refresh", StringComparison.Ordinal))
-        {
+        if (tokenType != "refresh")
             return Unauthorized();
-        }
 
         var email = NormalizeEmail(principal.FindFirstValue(ClaimTypes.Email));
         if (email is null)
-        {
             return Unauthorized();
-        }
 
         var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Email == email);
         if (user is null)
-        {
             return Unauthorized();
-        }
 
         var versionClaim = principal.FindFirstValue("rtv");
         if (!int.TryParse(versionClaim, out var tokenVersion) || tokenVersion != user.RefreshTokenVersion)
-        {
             return Unauthorized();
-        }
 
         return Ok(CreateAuthResponse(user));
     }
@@ -137,15 +113,11 @@ public class LoginController : ControllerBase
     {
         var email = NormalizeEmail(User.FindFirstValue(ClaimTypes.Email));
         if (email is null)
-        {
             return Unauthorized();
-        }
 
         var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Email == email);
         if (user is null)
-        {
             return Unauthorized();
-        }
 
         user.RefreshTokenVersion += 1;
         await _db.SaveChangesAsync();
@@ -166,10 +138,10 @@ public class LoginController : ControllerBase
         Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = HttpContext.Request.IsHttps,
+            Secure = true,
             SameSite = SameSiteMode.Strict,
             Expires = DateTimeOffset.UtcNow.AddDays(_jwtService.GetRefreshTokenDays()),
-            Path = "/api/login"
+            Path = "/"
         });
     }
 
@@ -177,32 +149,28 @@ public class LoginController : ControllerBase
     {
         Response.Cookies.Delete("refreshToken", new CookieOptions
         {
-            Path = "/api/login",
+            HttpOnly = true,
+            Secure = true,
             SameSite = SameSiteMode.Strict,
-            Secure = HttpContext.Request.IsHttps,
-            HttpOnly = true
+            Path = "/"
         });
     }
 
     private static string? NormalizeEmail(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             return null;
-        }
 
         var candidate = value.Trim();
         try
         {
             var parsed = new MailAddress(candidate);
             if (!string.Equals(parsed.Address, candidate, StringComparison.OrdinalIgnoreCase))
-            {
                 return null;
-            }
 
             return parsed.Address.ToLowerInvariant();
         }
-        catch (FormatException)
+        catch
         {
             return null;
         }
