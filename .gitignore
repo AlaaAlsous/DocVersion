@@ -39,6 +39,9 @@ DocVersion.Client/obj/
 # Mono auto generated files
 mono_crash.*
 
+DocVersion.Server/wwwroot/js/vendor/
+
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
