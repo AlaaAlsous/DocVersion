@@ -1,7 +1,7 @@
 import { dom, state } from "./state";
 import { getResponseContentType, isTextContentType } from "./utils";
 import { showSpinner, hideSpinner } from "./index";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 
 declare global {
   interface Window {

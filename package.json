@@ -14,7 +14,7 @@
   "type": "module",
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
-    "xlsx": "^0.18.5"
+    "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
