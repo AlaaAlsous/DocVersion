@@ -816,6 +816,58 @@ audio.file-preview-media {
   }
 }
 
+.excel-preview-content {
+  padding: 20px;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  color: #222;
+}
+
+.excel-sheet h3 {
+  margin: 20px 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #444;
+}
+
+.excel-preview-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 25px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.08);
+}
+
+.excel-preview-content table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.excel-preview-content table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.excel-preview-content table tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.excel-preview-content table tr:last-child td {
+  font-weight: 600;
+  background: #f0f7ff;
+  border-top: 2px solid #cde2ff;
+}
+
+.excel-preview-content td:nth-child(2),
+.excel-preview-content td:nth-child(3),
+.excel-preview-content td:nth-child(4) {
+  text-align: right;
+}
+
 #fileContentTextarea {
   margin: 0;
   min-height: 0;

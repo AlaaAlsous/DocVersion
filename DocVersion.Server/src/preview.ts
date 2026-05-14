@@ -1,6 +1,7 @@
 import { dom, state } from "./state";
 import { getResponseContentType, isTextContentType } from "./utils";
 import { showSpinner, hideSpinner } from "./index";
+import * as XLSX from "xlsx";
 
 declare global {
   interface Window {
@@ -382,6 +383,51 @@ export async function showWordPreview(blob: Blob) {
   }
 }
 
+export async function showExcelPreview(blob: Blob) {
+  resetPreviewSurface();
+
+  dom.fileContentBody.classList.add("excel-preview");
+  dom.fileContentTextarea.value = "";
+  state.currentFileIsEditable = false;
+  state.isEditMode = false;
+  dom.fileContentBody.style.display = "block";
+  dom.fileContentTextarea.style.display = "none";
+  updateEditorActions();
+
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+
+    const container = document.createElement("div");
+    container.className = "excel-preview-content";
+
+    workbook.SheetNames.forEach((sheetName) => {
+      const sheet = workbook.Sheets[sheetName];
+
+      if (!sheet) return;
+
+      const html = XLSX.utils.sheet_to_html(sheet);
+
+      const sheetContainer = document.createElement("div");
+      sheetContainer.className = "excel-sheet";
+      sheetContainer.innerHTML = `
+        <h3>${sheetName}</h3>
+        ${html}
+      `;
+
+      container.appendChild(sheetContainer);
+    });
+
+    dom.fileContentBody.appendChild(container);
+  } catch (err) {
+    console.error("Excel preview error:", err);
+    dom.fileContentBody.classList.remove("excel-preview");
+    dom.fileContentBody.classList.add("binary-preview");
+    dom.fileContentBody.textContent =
+      "Could not render this Excel document. Use Download instead.";
+  }
+}
+
 export function showPdfPreview(blob: Blob) {
   resetPreviewSurface();
 
@@ -443,6 +489,16 @@ export async function renderFilePreview(
   if ((wordTypes as string[]).includes(contentType)) {
     const blob = await response.blob();
     await showWordPreview(blob);
+    return;
+  }
+
+  const excelTypes = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+  ];
+  if (excelTypes.includes(contentType)) {
+    const blob = await response.blob();
+    await showExcelPreview(blob);
     return;
   }
 
