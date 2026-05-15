@@ -261,6 +261,7 @@ h1 {
   gap: 0.8rem;
   overflow-wrap: anywhere;
   user-select: none;
+  min-height: 850px;
 }
 
 #explorerPane,
@@ -438,6 +439,7 @@ h1 {
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
+  align-self: center;
 }
 
 .item-actions {
@@ -591,6 +593,7 @@ h1 {
   display: grid;
   grid-template-rows: auto 1fr;
   overflow: hidden;
+  min-height: 850px;
 }
 
 #file-content-header {
@@ -1363,6 +1366,7 @@ audio.file-preview-media {
   #treePane {
     height: auto;
     grid-template-rows: auto auto auto;
+    min-height: auto;
   }
 
   #historyPane,
@@ -1370,9 +1374,11 @@ audio.file-preview-media {
     display: block;
   }
 
-  #file-history-box {
+  #file-history-box,
+  #metadataPane,
+  #explorerPane {
     height: auto;
-    max-height: min(34vh, 260px);
+    max-height: min(45vh, 300px);
     overflow-y: auto;
   }
 
@@ -1382,7 +1388,7 @@ audio.file-preview-media {
 
   #file-content-box {
     height: min(var(--file-content-height), calc((100vh - 125px) * 1.5));
-    min-height: 320px;
+    min-height: 450px;
   }
 
   #file-list {
