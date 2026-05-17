@@ -37,7 +37,7 @@
 
 DocVersion är en komplett lösning för filhantering och versionshistorik. Systemet låter användare lagra, redigera och hantera dokument och filer på ett säkert sätt, där varje ändring automatiskt sparas som en ny version.
 
-**Funktioner:** Ladda upp och ladda ner filer och mappar samt redigera filer direkt i webbläsaren. Skapa, hantera, byta namn på och ta bort filer och mappar. Visa tidigare versioner och återställ dem. Förhandsgranska textfiler, bilder, video, ljud, PDF- och Word-dokument samt se ändringshistorik med möjlighet att navigera mellan versioner.
+**Funktioner:** Ladda upp och ladda ner filer och mappar samt redigera filer direkt i webbläsaren. Skapa, hantera, byta namn på och ta bort filer och mappar. Visa tidigare versioner och återställ dem. Förhandsgranska textfiler, bilder, video, ljud, PDF, Excel och Word-dokument samt se ändringshistorik med möjlighet att navigera mellan versioner.
 
 **Säkerhet:** Varje användare loggar in med e-post och lösenord. Du ser bara dina egna filer. Lösenord är hashade, sessioner förblir aktiva med automatisk tokenuppdatering, och inloggningar kan avslutas för att ta bort åtkomst.
 
@@ -138,6 +138,7 @@ Systemet använder följande Azure-tjänster:
 - Ljudpreview
 - PDF-preview
 - Word-preview
+- Excel-preview
 - Binary fallback-meddelande för ej previewbara typer
 
 ### Realtidsfunktioner
