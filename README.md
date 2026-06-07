@@ -345,4 +345,4 @@ The backend is hosted on Azure App Service and uses Azure SQL Database for stori
 
 ## Utvecklare
 
-Alaa Alsous
+**Alaa Alsous**
