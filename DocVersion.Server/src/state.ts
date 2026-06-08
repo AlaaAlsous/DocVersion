@@ -31,6 +31,9 @@ export const dom = {
   cancelBtn: document.getElementById("cancelBtn") as any,
   metadataBox: document.getElementById("file-info-box") as any,
   historyBox: document.getElementById("file-history-box") as any,
+  explorerSearchToggle: document.getElementById("explorerSearchToggle") as any,
+  explorerSearchInput: document.getElementById("explorerSearchInput") as any,
+  explorerSearchWrap: document.getElementById("explorerSearchWrap") as any,
 };
 
 export const state = {
@@ -47,6 +50,9 @@ export const state = {
   modalErrorTimeoutId: null as any,
   activePreviewObjectUrl: null as string | null,
   originalContent: null as string | null,
+  searchQuery: "",
+  searchVisible: false,
+  allFiles: {} as Record<string, { file: boolean }>,
 };
 
 export const MESSAGE_TIMEOUT_MS = 5000;
