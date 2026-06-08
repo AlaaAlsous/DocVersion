@@ -280,7 +280,7 @@ h1 {
 
 #explorerPane {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
 }
 
 #historyPane,
@@ -293,18 +293,103 @@ h1 {
   gap: 1rem;
 }
 
-#treePane h2 {
-  margin: 0;
+#explorerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.62rem 0.72rem 0 0.72rem;
+  background: var(--gh-subtle-bg);
+  border: 1px solid var(--gh-border);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+
+#explorerHeader h2 {
+  margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--gh-muted);
   text-transform: uppercase;
+}
+
+#explorerSearchToggle {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+    background: var(--gh-muted);
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+  }
+
+  &:hover {
+    background: var(--gh-button-hover);
+    border-color: var(--gh-border);
+  }
+
+  &.active::before {
+    background: var(--gh-accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gh-accent);
+    outline-offset: 1px;
+  }
+}
+
+#explorerSearchWrap {
+  padding: 0.4rem 0.5rem;
   background: var(--gh-subtle-bg);
   border: 1px solid var(--gh-border);
+  border-top: 0;
   border-bottom: 0;
-  border-radius: 8px 8px 0 0;
+}
+
+#explorerSearchInput {
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78rem;
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  background: var(--gh-input-bg);
+  color: var(--gh-text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: var(--gh-accent);
+    box-shadow: 0 0 0 3px #0969da26;
+  }
+
+  &::placeholder {
+    color: var(--gh-muted);
+  }
 }
 
 #explorerPath {
