@@ -16,7 +16,24 @@ import { getFilesHistory } from "./history";
 import { showSpinner, hideSpinner } from "./index";
 
 export function displayFiles(files: Record<string, { file: boolean }>) {
+  state.allFiles = files;
+  renderFileList();
+}
+
+function getSearchQuery(): string {
+  return state.searchQuery.toLowerCase().trim();
+}
+
+function matchesQuery(name: string, query: string): boolean {
+  if (!query) return true;
+  return name.toLowerCase().includes(query);
+}
+
+export function renderFileList() {
   dom.fileList.innerHTML = "";
+
+  const files = state.allFiles;
+  const query = getSearchQuery();
 
   const fileNames = Object.keys(files);
   const currentFilePath =
@@ -83,14 +100,18 @@ export function displayFiles(files: Record<string, { file: boolean }>) {
     dom.fileList.appendChild(backItem);
   }
 
-  if (Object.keys(files).length === 0) {
+  const filteredEntries = Object.entries(files).filter(([name]) =>
+    matchesQuery(name, query),
+  );
+
+  if (filteredEntries.length === 0) {
     const emptyItem = document.createElement("li");
-    emptyItem.textContent = "No files found";
+    emptyItem.textContent = query ? "No results found" : "No files found";
     dom.fileList.appendChild(emptyItem);
     return;
   }
 
-  const sortedItems = Object.entries(files).sort(
+  const sortedItems = filteredEntries.sort(
     (a: [string, { file: boolean }], b: [string, { file: boolean }]) => {
       const aIsFile = a[1].file;
       const bIsFile = b[1].file;
