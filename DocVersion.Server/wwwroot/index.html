@@ -88,7 +88,18 @@
     <main id="workspaceLayout">
       <aside id="treePane">
         <section id="explorerPane">
-          <h2>Explorer</h2>
+          <div id="explorerHeader">
+            <h2>Explorer</h2>
+            <button id="explorerSearchToggle" type="button" aria-label="Toggle search" title="Search files"></button>
+          </div>
+          <div id="explorerSearchWrap" style="display: none">
+            <input
+              id="explorerSearchInput"
+              type="text"
+              placeholder="Search files..."
+              autocomplete="off"
+            />
+          </div>
           <p id="explorerPath">/</p>
           <ul id="file-list"></ul>
         </section>
