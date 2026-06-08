@@ -58,6 +58,7 @@ import {
 } from "./history";
 import { startSignalR } from "./signalr";
 import { displayFiles } from "./display";
+import { renderFileList } from "./display";
 
 dom.uploadBtn.addEventListener("click", uploadFile);
 dom.createFolderBtn.addEventListener("click", createFolder);
@@ -68,6 +69,24 @@ dom.logoutBtn.addEventListener("click", logout);
 dom.editBtn.addEventListener("click", editFile);
 dom.saveBtn.addEventListener("click", saveFile);
 dom.cancelBtn.addEventListener("click", cancelEdit);
+
+dom.explorerSearchToggle.addEventListener("click", () => {
+  state.searchVisible = !state.searchVisible;
+  dom.explorerSearchWrap.style.display = state.searchVisible ? "block" : "none";
+  dom.explorerSearchToggle.classList.toggle("active", state.searchVisible);
+  if (state.searchVisible) {
+    dom.explorerSearchInput.focus();
+  } else {
+    state.searchQuery = "";
+    dom.explorerSearchInput.value = "";
+    renderFileList();
+  }
+});
+
+dom.explorerSearchInput.addEventListener("input", () => {
+  state.searchQuery = dom.explorerSearchInput.value;
+  renderFileList();
+});
 
 dom.fileInput.addEventListener("change", function () {
   if (dom.fileInput.files && dom.fileInput.files.length > 0) {
