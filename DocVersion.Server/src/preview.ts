@@ -167,6 +167,7 @@ export async function editFile() {
 
     window.monaco.editor.setTheme("vs-dark");
 
+    dom.shareBtn.style.display = "none";
     dom.editBtn.style.display = "none";
     dom.saveBtn.style.display = "inline-block";
     dom.cancelBtn.style.display = "inline-block";
@@ -195,6 +196,7 @@ export function cancelEdit() {
     }
 
     dom.editBtn.style.display = "inline-block";
+    dom.shareBtn.style.display = state.currentFileName ? "inline-block" : "none";
     dom.saveBtn.style.display = "none";
     dom.cancelBtn.style.display = "none";
   } finally {
@@ -233,6 +235,7 @@ export function updateEditorActions() {
   dom.editBtn.style.visibility = state.currentFileIsEditable
     ? "visible"
     : "hidden";
+  dom.shareBtn.style.display = state.currentFileName ? "inline-block" : "none";
   dom.saveBtn.style.display = "none";
   dom.cancelBtn.style.display = "none";
 }

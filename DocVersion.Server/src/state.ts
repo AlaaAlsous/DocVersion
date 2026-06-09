@@ -27,6 +27,7 @@ export const dom = {
   fileContentPath: document.getElementById("fileContentPath") as any,
   fileContentTextarea: document.getElementById("fileContentTextarea") as any,
   editBtn: document.getElementById("editBtn") as any,
+  shareBtn: document.getElementById("shareBtn") as any,
   saveBtn: document.getElementById("saveBtn") as any,
   cancelBtn: document.getElementById("cancelBtn") as any,
   metadataBox: document.getElementById("file-info-box") as any,

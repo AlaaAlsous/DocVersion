@@ -326,7 +326,9 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.18s ease, border-color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
 
   &::before {
     content: "";
@@ -379,7 +381,9 @@ h1 {
   background: var(--gh-input-bg);
   color: var(--gh-text);
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   box-sizing: border-box;
 
   &:focus {
@@ -771,6 +775,43 @@ h1 {
   }
 }
 
+#shareBtn {
+  &.icon-btn {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    min-width: 30px;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translate(-50%, -50%);
+      background: var(--gh-icon-color);
+      -webkit-mask-image: var(--icon-url);
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      -webkit-mask-size: contain;
+      mask-image: var(--icon-url);
+      mask-repeat: no-repeat;
+      mask-position: center;
+      mask-size: contain;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--gh-accent);
+      outline-offset: 1px;
+    }
+
+    &-share {
+      --icon-url: url("/Assets/Share.png");
+    }
+  }
+}
 #editBtn {
   color: #ffffff;
   border-color: color-mix(in srgb, var(--gh-accent) 78%, #00000022);
