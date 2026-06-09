@@ -22,6 +22,7 @@ import {
   renderFilePreview,
 } from "./preview";
 import {
+  fetchWithAuth,
   handleUnauthorizedResponse,
   submitAuthForm,
   toggleAuthMode,
@@ -67,6 +68,7 @@ dom.modalModeToggle.addEventListener("click", toggleAuthMode);
 dom.logoutBtn.addEventListener("click", logout);
 
 dom.editBtn.addEventListener("click", editFile);
+dom.shareBtn.addEventListener("click", shareFile);
 dom.saveBtn.addEventListener("click", saveFile);
 dom.cancelBtn.addEventListener("click", cancelEdit);
 
@@ -167,6 +169,57 @@ window.addEventListener("storage", (event) => {
     setCurrentUser(event.newValue ?? "");
   }
 });
+
+export async function shareFile() {
+  if (!state.currentFileName) return;
+
+  showSpinner();
+
+  try {
+    const filePath = state.currentPath
+      ? `${state.currentPath}/${state.currentFileName}`
+      : state.currentFileName;
+
+    const res = await fetchWithAuth("/api/files/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filePath }),
+    });
+
+    if (!res.ok) {
+      showErrorMessage("Could not create share link");
+      hideSpinner();
+      return;
+    }
+
+    const { url } = await res.json();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: state.currentFileName,
+          text: "Shared file",
+          url,
+        });
+        hideSpinner();
+        return;
+      } catch (err: any) {
+        if (err.name === "AbortError") {
+          hideSpinner();
+          return;
+        }
+      }
+    }
+
+    await navigator.clipboard.writeText(url);
+    showSuccessMessage("Share link copied to clipboard");
+    hideSpinner();
+
+  } catch (error) {
+    hideSpinner();
+    showErrorMessage("Error sharing file");
+  }
+}
 
 export function showSpinner() {
   const spinner = document.getElementById("spinner-overlay");
