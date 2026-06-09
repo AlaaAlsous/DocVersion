@@ -528,6 +528,31 @@ public class FileService
         return true;
     }
 
+    public async Task<ShareLink> CreateShareLinkAsync(string username, string filePath)
+    {
+        filePath = NormalizePath(filePath);
+
+        var token = Guid.NewGuid().ToString("N");
+        var shareLink = new ShareLink
+        {
+            Token = token,
+            Username = username,
+            FilePath = filePath,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _dbContext.ShareLinks.Add(shareLink);
+        await _dbContext.SaveChangesAsync();
+
+        return shareLink;
+    }
+
+    public async Task<ShareLink?> GetShareLinkByTokenAsync(string token)
+    {
+        return await _dbContext.ShareLinks
+            .FirstOrDefaultAsync(s => s.Token == token);
+    }
+
     public async Task<bool> FileExistsAsync(string username, string filename)
     {
         filename = NormalizePath(filename);
