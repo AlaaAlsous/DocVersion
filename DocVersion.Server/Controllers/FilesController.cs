@@ -384,5 +384,25 @@ public class FilesController : ControllerBase
         return File(zipStream, "application/zip", zipFileName);
     }
 
+    [HttpPost("share")]
+    public async Task<IActionResult> CreateShareLink([FromBody] ShareRequest request)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.FilePath))
+            return BadRequest("filePath is required.");
+
+        var fileExists = await _fileService.FileExistsAsync(username, request.FilePath);
+        if (!fileExists)
+            return NotFound("File not found.");
+
+        var shareLink = await _fileService.CreateShareLinkAsync(username, request.FilePath);
+
+        var url = $"{Request.Scheme}://{Request.Host}/api/shared/{shareLink.Token}";
+        return Ok(new { url });
+    }
+
     public record RenameRequest(string OldName, string NewName, bool IsFolder);
+    public record ShareRequest(string FilePath);
 }
