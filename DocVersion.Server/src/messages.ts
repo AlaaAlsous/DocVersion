@@ -23,7 +23,7 @@ export function clearErrorMessage() {
     clearTimeout(state.errorMessageTimeoutId);
     state.errorMessageTimeoutId = null;
   }
-  dom.errorMessage.textContent = "";
+  dom.errorMessage.innerHTML = "";
   dom.errorMessage.classList.add("hidden");
   dom.errorMessage.style.color = "";
   dom.errorMessage.style.backgroundColor = "";
@@ -31,7 +31,11 @@ export function clearErrorMessage() {
 }
 
 export function showErrorMessage(message: string) {
-  clearErrorMessage();
+  if (state.errorMessageTimeoutId) {
+    clearTimeout(state.errorMessageTimeoutId);
+    state.errorMessageTimeoutId = null;
+  }
+  dom.errorMessage.innerHTML = "";
   dom.errorMessage.textContent = message;
   dom.errorMessage.style.color = "var(--gh-danger)";
   dom.errorMessage.style.backgroundColor = "var(--gh-danger-bg)";
@@ -43,7 +47,11 @@ export function showErrorMessage(message: string) {
 }
 
 export function showSuccessMessage(message: string) {
-  clearErrorMessage();
+  if (state.errorMessageTimeoutId) {
+    clearTimeout(state.errorMessageTimeoutId);
+    state.errorMessageTimeoutId = null;
+  }
+  dom.errorMessage.innerHTML = "";
   dom.errorMessage.textContent = message;
   dom.errorMessage.style.color = "var(--gh-success-text)";
   dom.errorMessage.style.backgroundColor = "var(--gh-success-bg)";

@@ -484,7 +484,11 @@ h1 {
       padding: 0;
 
       &:hover {
-        border-color: color-mix(in srgb, var(--gh-accent) 50%, var(--gh-border));
+        border-color: color-mix(
+          in srgb,
+          var(--gh-accent) 50%,
+          var(--gh-border)
+        );
       }
 
       &::before {
@@ -1505,8 +1509,8 @@ audio.file-preview-media {
   min-height: 2.5em;
   overflow: hidden;
   margin: 0.5rem auto 1rem auto;
-  padding: 0.3rem;
   border-radius: 6px;
+  border: 1px solid transparent;
   font-size: clamp(0.7rem, 2vw, 0.9rem);
   transition:
     opacity 0.2s,
@@ -1516,13 +1520,15 @@ audio.file-preview-media {
   box-sizing: border-box;
   min-width: 250px;
   user-select: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.2rem 0.6rem 0.2rem 0.4rem;
 }
 
 #errorMessage span {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  padding: 0.2rem 0.6rem 0.2rem 0.4rem;
 }
 
 #errorMessage.hidden {

@@ -471,9 +471,7 @@ export async function deleteItem(item: string) {
     resetDetailsPanels();
     await getFiles(state.currentPath);
     hideSpinner();
-    setTimeout(() => {
-      showSuccessMessage(`Deleted: ${item.split("/").pop()}`);
-    }, 200);
+    showSuccessMessage(`Deleted: ${item.split("/").pop()}`);
   } catch (error) {
     hideSpinner();
     console.error("Error deleting item:", error);
@@ -529,7 +527,7 @@ export function showDeleteConfirmation(itemName: string, itemPath: string) {
   dom.errorMessage.textContent = "";
   dom.errorMessage.style.color = "#b38600";
   dom.errorMessage.style.backgroundColor = "#fef3ba44";
-  dom.errorMessage.style.borderColor = "#ffe066";
+  dom.errorMessage.style.borderColor = "#b38600";
 
   const question = document.createElement("span");
   question.textContent = `Delete \"${itemName}\"?`;
