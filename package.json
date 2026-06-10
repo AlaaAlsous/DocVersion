@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "npm run sync:monaco && esbuild DocVersion.Server/src/index.ts --bundle --outfile=DocVersion.Server/wwwroot/js/index.js --format=esm --target=es2020",
-    "build:check": "tsc -p DocVersion.Server --noEmit",
-    "dev-css": "npx sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --watch --no-source-map",
-    "sync:monaco": "node DocVersion.Server/wwwroot/js/vendor/scripts/sync-monaco.mjs"
+    "sync:monaco": "node DocVersion.Server/wwwroot/js/vendor/scripts/sync-monaco.mjs",
+    "build-css": "sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --no-source-map",
+    "build-js": "esbuild DocVersion.Server/src/index.ts --bundle --outfile=DocVersion.Server/wwwroot/js/index.js --format=esm --target=es2020",
+    "build": "npm run sync:monaco && npm run build-css && npm run build-js && tsc -p DocVersion.Server --noEmit",
+    "dev-css": "sass DocVersion.Server/src/styles.scss DocVersion.Server/wwwroot/css/styles.css --watch --no-source-map",
+    "dev-js": "npm run sync:monaco && esbuild DocVersion.Server/src/index.ts --bundle --outfile=DocVersion.Server/wwwroot/js/index.js --format=esm --target=es2020 --watch",
+    "dev-dotnet": "dotnet watch run --project DocVersion.Server",
+    "dev": "concurrently \"npm run dev-css\" \"npm run dev-js\" \"npm run dev-dotnet\""
   },
   "keywords": [],
   "author": "",
@@ -17,6 +21,7 @@
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
+    "concurrently": "^10.0.3",
     "esbuild": "^0.28.0",
     "monaco-editor": "0.45.0",
     "sass": "^1.99.0",

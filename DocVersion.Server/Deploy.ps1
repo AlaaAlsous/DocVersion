@@ -10,6 +10,9 @@ Set-StrictMode -Version Latest
 Write-Host "🧹 Cleaning..."
 Remove-Item ".\bin\Release" -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
 
+Write-Host "🎨 Building frontend (SCSS + JS + Monaco)..."
+npm run build
+
 Write-Host "📦 Publishing..."
 dotnet publish -c Release -o $PUBLISH_DIR
 
