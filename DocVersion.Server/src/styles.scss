@@ -6,6 +6,7 @@
   --gh-text: #1f2328;
   --gh-muted: #57606a;
   --gh-border: #d0d7de;
+  --gh-border-2: #2ea043;
   --gh-accent: #0969da;
   --gh-accent-hover: #0860ca;
   --gh-success: #1f883d;
@@ -482,6 +483,10 @@ h1 {
       height: 30px;
       padding: 0;
 
+      &:hover {
+        border-color: color-mix(in srgb, var(--gh-accent) 50%, var(--gh-border));
+      }
+
       &::before {
         content: "";
         position: absolute;
@@ -567,11 +572,14 @@ h1 {
   input[type="text"] {
     width: 100%;
     min-width: 0;
+    height: 2.25rem;
     border: 1px solid var(--gh-border);
     border-radius: 6px;
     padding: 0.45rem 0.62rem;
     background: var(--gh-input-bg);
     color: var(--gh-text);
+    font-size: 0.95em;
+    box-sizing: border-box;
     transition:
       border-color 0.2s ease,
       box-shadow 0.2s ease;
@@ -657,7 +665,7 @@ h1 {
 #uploadFolderBtn,
 #createFileBtn,
 #createFolderBtn {
-  border: 1px solid #1a7f37;
+  border: 3px solid var(--gh-border-2);
   background: var(--gh-success);
   color: #ffffff;
   border-radius: 6px;
@@ -678,6 +686,7 @@ h1 {
 #createFileBtn:hover,
 #uploadFolderBtn:hover {
   background: #2ea043;
+  border-color: #1f883d;
   box-shadow: 0 4px 12px #1f883d33;
   transform: translateY(-1px);
 }
@@ -867,7 +876,7 @@ h1 {
 .file-preview-lines {
   margin: 0;
   min-height: 0;
-  white-space: pre;
+  white-space: wrap;
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
   font-family: "Fira Mono", "Consolas", "Menlo", "Monaco", monospace;
@@ -1496,7 +1505,7 @@ audio.file-preview-media {
   min-height: 2.5em;
   overflow: hidden;
   margin: 0.5rem auto 1rem auto;
-  padding: 0.55rem 0.7rem;
+  padding: 0.3rem;
   border-radius: 6px;
   font-size: clamp(0.7rem, 2vw, 0.9rem);
   transition:
@@ -1509,6 +1518,13 @@ audio.file-preview-media {
   user-select: none;
 }
 
+#errorMessage span {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0.2rem 0.6rem 0.2rem 0.4rem;
+}
+
 #errorMessage.hidden {
   opacity: 0;
   visibility: hidden;
@@ -1517,17 +1533,16 @@ audio.file-preview-media {
 
 .confirm-actions {
   display: inline-flex;
-  gap: 0.7rem;
-  margin-left: 0.7rem;
+  gap: 0.5rem;
+  margin-left: auto;
   vertical-align: middle;
-  min-width: 120px;
   min-height: 1.8em;
 
   button {
     border-radius: 6px;
-    padding: 0.2rem 0.65rem;
-    font-size: 0.7rem;
-    font-weight: 600;
+    padding: 0.1rem;
+    font-size: 0.65rem;
+    font-weight: 500;
     text-align: center;
     cursor: pointer;
     width: 3rem;
@@ -1540,19 +1555,18 @@ audio.file-preview-media {
 .confirm-yes-btn {
   background: var(--gh-success);
   color: #ffffff;
-  border: 2px solid #2ea043;
+  border: 2px solid var(--gh-border-2);
   &:hover {
-    filter: brightness(0.75);
+    filter: brightness(1.25);
   }
 }
 
 .confirm-no-btn {
   background: var(--gh-btn-bg);
   color: var(--gh-text);
-  border: 2px solid var(--gh-border);
-
+  border: 2px solid #5f6873;
   &:hover {
-    filter: brightness(0.75);
+    filter: brightness(1.25);
   }
 }
 
@@ -1648,6 +1662,10 @@ audio.file-preview-media {
 
   #currentUser {
     display: none !important;
+  }
+
+  .action-group {
+    overflow: hidden;
   }
 
   #file-content-actions {
