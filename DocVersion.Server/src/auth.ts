@@ -182,14 +182,20 @@ export function handleUnauthorizedResponse(response: Response): boolean {
 }
 
 export function setCurrentUser(username: string) {
+  const avatar = document.getElementById("userAvatar");
+  const userName = document.getElementById("userName");
+
   if (!username) {
-    dom.currentUser.textContent = "";
     dom.currentUser.style.display = "none";
+    if (avatar) avatar.textContent = "";
+    if (userName) userName.textContent = "";
     return;
   }
 
-  dom.currentUser.textContent = username;
-  dom.currentUser.style.display = "inline-block";
+  const initial = username.charAt(0).toUpperCase();
+  if (avatar) avatar.textContent = initial;
+  if (userName) userName.textContent = username;
+  dom.currentUser.style.display = "inline-flex";
 }
 
 export function setExplorerPath(path = "") {

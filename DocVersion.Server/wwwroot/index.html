@@ -18,12 +18,31 @@
   <body>
     <div id="topBar">
       <img
+        class="typing-svg"
         src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=1000&pause=5000&vCenter=true&width=132&height=24&lines=DocVersion"
         alt="Typing SVG"
       />
       <div id="sessionControls">
-        <span id="currentUser" style="display: none"></span>
-        <button id="logoutBtn" type="button">Log Out</button>
+        <div id="currentUser" style="display: none">
+          <span id="userAvatar"></span>
+          <span id="userName"></span>
+        </div>
+        <button id="logoutBtn" type="button">
+          <svg
+            class="logout-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span class="logout-text">Log Out</span>
+        </button>
       </div>
     </div>
 
@@ -130,7 +149,13 @@
             </div>
             <div id="file-content-actions">
               <button id="editBtn" style="display: none">Edit</button>
-              <button id="shareBtn" style="display: none" class="icon-btn icon-btn-share" aria-label="Share file" title="Share file"></button>
+              <button
+                id="shareBtn"
+                style="display: none"
+                class="icon-btn icon-btn-share"
+                aria-label="Share file"
+                title="Share file"
+              ></button>
               <button id="saveBtn" style="display: none">Save</button>
               <button id="cancelBtn" style="display: none">Cancel</button>
             </div>

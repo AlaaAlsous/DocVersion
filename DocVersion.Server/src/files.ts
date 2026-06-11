@@ -21,7 +21,7 @@ import { showSpinner, hideSpinner } from "./index";
 export async function getFiles(path = "") {
   state.currentPath = path || "";
   setExplorerPath(state.currentPath);
-  dom.logoutBtn.style.display = "inline-block";
+  dom.logoutBtn.style.display = "inline-flex";
 
   showSpinner();
   try {
