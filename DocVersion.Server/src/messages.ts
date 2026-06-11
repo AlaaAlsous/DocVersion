@@ -36,7 +36,9 @@ export function showErrorMessage(message: string) {
     state.errorMessageTimeoutId = null;
   }
   dom.errorMessage.innerHTML = "";
-  dom.errorMessage.textContent = message;
+  const span = document.createElement("span");
+  span.textContent = message;
+  dom.errorMessage.appendChild(span);
   dom.errorMessage.style.color = "var(--gh-danger)";
   dom.errorMessage.style.backgroundColor = "var(--gh-danger-bg)";
   dom.errorMessage.style.borderColor = "var(--gh-danger-border)";
@@ -52,7 +54,9 @@ export function showSuccessMessage(message: string) {
     state.errorMessageTimeoutId = null;
   }
   dom.errorMessage.innerHTML = "";
-  dom.errorMessage.textContent = message;
+  const span = document.createElement("span");
+  span.textContent = message;
+  dom.errorMessage.appendChild(span);
   dom.errorMessage.style.color = "var(--gh-success-text)";
   dom.errorMessage.style.backgroundColor = "var(--gh-success-bg)";
   dom.errorMessage.style.borderColor = "var(--gh-success-border)";
