@@ -9,4 +9,6 @@ public enum EventsType
     FolderDeleted = 7,
     FolderRenamed = 8,
     FileRenamed = 9,
+    BinRestored = 10,
+    BinPermanentDeleted = 11,
 }
