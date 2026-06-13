@@ -35,6 +35,10 @@ export const dom = {
   explorerSearchToggle: document.getElementById("explorerSearchToggle") as any,
   explorerSearchInput: document.getElementById("explorerSearchInput") as any,
   explorerSearchWrap: document.getElementById("explorerSearchWrap") as any,
+  binBtn: document.getElementById("binBtn") as any,
+  binPanel: document.getElementById("binPanel") as any,
+  binCloseBtn: document.getElementById("binCloseBtn") as any,
+  binItemsList: document.getElementById("binItemsList") as any,
 };
 
 export const state = {

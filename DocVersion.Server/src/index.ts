@@ -1,6 +1,7 @@
 import { createFile } from "./files";
 dom.createFileBtn.addEventListener("click", createFile);
 import { dom, state, MESSAGE_TIMEOUT_MS, DEFAULT_PREVIEW_TEXT } from "./state";
+import { openBinPanel, closeBinPanel } from "./bin";
 import { toApiPath, getResponseContentType, isTextContentType } from "./utils";
 import {
   clearErrorMessage,
@@ -71,6 +72,9 @@ dom.editBtn.addEventListener("click", editFile);
 dom.shareBtn.addEventListener("click", shareFile);
 dom.saveBtn.addEventListener("click", saveFile);
 dom.cancelBtn.addEventListener("click", cancelEdit);
+
+dom.binBtn.addEventListener("click", openBinPanel);
+dom.binCloseBtn.addEventListener("click", closeBinPanel);
 
 dom.explorerSearchToggle.addEventListener("click", () => {
   state.searchVisible = !state.searchVisible;
