@@ -123,6 +123,9 @@ namespace DocVersion.Server.Services
                 if (relative.StartsWith(".history", StringComparison.OrdinalIgnoreCase))
                     continue;
 
+                if (relative.StartsWith(".bin", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 var slashIndex = relative.IndexOf('/');
                 if (slashIndex == -1)
                 {
@@ -138,6 +141,9 @@ namespace DocVersion.Server.Services
                     var folderName = relative[..slashIndex];
 
                     if (folderName.Equals(".history", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (folderName.Equals(".bin", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     if (string.IsNullOrWhiteSpace(folderName))
@@ -182,6 +188,22 @@ namespace DocVersion.Server.Services
             }
 
             return list;
+        }
+
+        public async Task<BlobProperties?> GetPropertiesAsync(string username, string path, CancellationToken ct = default)
+        {
+            var blobName = NormalizeBlobName(username, path);
+            var blob = _container.GetBlobClient(blobName);
+
+            try
+            {
+                var props = await blob.GetPropertiesAsync(cancellationToken: ct);
+                return props.Value;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public async Task CopyAsync(string username, string sourcePath, string destPath, CancellationToken ct = default)
