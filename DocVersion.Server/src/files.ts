@@ -566,7 +566,7 @@ export function showMetadata(
     extension?: string;
   },
 ) {
-  dom.metadataBox.style.display = "block";
+  dom.metadataBox.style.display = "flex";
   dom.metadataBox.innerHTML = "";
 
   const header = document.createElement("div");
@@ -585,13 +585,16 @@ export function showMetadata(
   header.append(title, closeBtn);
   dom.metadataBox.appendChild(header);
 
+  const content = document.createElement("div");
+  content.className = "metadata-content";
+
   const addRow = (label: string, value: string) => {
     const row = document.createElement("p");
     const strong = document.createElement("strong");
     strong.textContent = `${label}:`;
     row.appendChild(strong);
     row.append(` ${value}`);
-    dom.metadataBox.appendChild(row);
+    content.appendChild(row);
   };
 
   addRow("Name", file);
@@ -608,6 +611,7 @@ export function showMetadata(
   addRow("Modified", metadata.changed);
   addRow("Extension", metadata.extension || "-");
 
+  dom.metadataBox.appendChild(content);
   closeBtn.addEventListener("click", closeMetadata);
 }
 

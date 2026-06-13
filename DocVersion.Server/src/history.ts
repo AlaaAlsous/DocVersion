@@ -249,6 +249,6 @@ export function displayFileHistory(
     list.appendChild(li);
   });
 
-  dom.historyBox.style.display = "block";
+  dom.historyBox.style.display = "flex";
   updateHistoryNavigationUi();
 }
