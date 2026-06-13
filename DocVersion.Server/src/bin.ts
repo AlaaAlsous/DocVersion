@@ -69,25 +69,26 @@ function displayBinItems(items: BinItemData[]) {
     li.className = "bin-item";
     li.setAttribute("data-id", item.id.toString());
 
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "bin-item-info";
+
     const nameSpan = document.createElement("span");
     nameSpan.className = "bin-item-name";
     nameSpan.textContent = item.isFile
       ? `📄 ${item.originalPath}`
       : `📁 ${item.originalPath}`;
 
-    const sizeSpan = document.createElement("span");
-    sizeSpan.className = "bin-item-size";
-    sizeSpan.textContent = formatBytes(item.sizeBytes);
-
-    const dateSpan = document.createElement("span");
-    dateSpan.className = "bin-item-date";
+    const metaSpan = document.createElement("span");
+    metaSpan.className = "bin-item-meta";
     const deletedDate = new Date(item.deletedAt);
     const expiresDate = new Date(item.expiresAt);
     const daysLeft = Math.max(
       0,
       Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
     );
-    dateSpan.textContent = `Deleted ${deletedDate.toLocaleDateString()} (${daysLeft}d left)`;
+    metaSpan.textContent = `${formatBytes(item.sizeBytes)} · ${deletedDate.toLocaleDateString()} · ${daysLeft}d`;
+
+    infoDiv.append(nameSpan, metaSpan);
 
     const actions = document.createElement("div");
     actions.className = "bin-item-actions";
@@ -116,7 +117,7 @@ function displayBinItems(items: BinItemData[]) {
     });
 
     actions.append(restoreBtn, deleteBtn);
-    li.append(nameSpan, sizeSpan, dateSpan, actions);
+    li.append(infoDiv, actions);
     dom.binItemsList.appendChild(li);
   });
 }
