@@ -1,4 +1,4 @@
-import { state } from "./state";
+import { state, dom } from "./state";
 import { showErrorMessage } from "./messages";
 import { getFiles, showFileContent } from "./files";
 import { getFilesHistory } from "./history";
@@ -70,8 +70,13 @@ export async function startSignalR() {
       case 7:
       case 8:
       case 9:
+      case 10:
+      case 11:
         if (shouldRefreshCurrentPath(path)) {
           void getFiles(state.currentPath);
+        }
+        if (dom.binPanel && dom.binPanel.style.display !== "none") {
+          import("./bin").then((m) => m.openBinPanel());
         }
         break;
       default:
