@@ -102,6 +102,14 @@
       </div>
     </section>
 
+    <div id="binPanel" style="display: none">
+      <div class="bin-header">
+        <h3>Recycle Bin</h3>
+        <button id="binCloseBtn" type="button" class="bin-close-btn">X</button>
+      </div>
+      <ul id="binItemsList"></ul>
+    </div>
+
     <p id="errorMessage" class="hidden"></p>
 
     <main id="workspaceLayout">
@@ -109,12 +117,21 @@
         <section id="explorerPane">
           <div id="explorerHeader">
             <h2>Explorer</h2>
-            <button
-              id="explorerSearchToggle"
-              type="button"
-              aria-label="Toggle search"
-              title="Search files"
-            ></button>
+            <div class="explorer-header-actions">
+              <button
+                id="binBtn"
+                type="button"
+                class="explorer-bin-btn"
+                aria-label="Open bin"
+                title="Recycle Bin"
+              ></button>
+              <button
+                id="explorerSearchToggle"
+                type="button"
+                aria-label="Toggle search"
+                title="Search files"
+              ></button>
+            </div>
           </div>
           <div id="explorerSearchWrap" style="display: none">
             <input
