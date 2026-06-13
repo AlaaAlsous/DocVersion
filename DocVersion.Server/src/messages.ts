@@ -48,6 +48,45 @@ export function showErrorMessage(message: string) {
   }, MESSAGE_TIMEOUT_MS);
 }
 
+export function showConfirmationPrompt(
+  message: string,
+  onConfirm: () => Promise<void>
+) {
+  clearErrorMessage();
+  dom.errorMessage.classList.remove("hidden");
+  dom.errorMessage.textContent = "";
+  dom.errorMessage.style.color = "#b38600";
+  dom.errorMessage.style.backgroundColor = "#fef3ba44";
+  dom.errorMessage.style.borderColor = "#b38600";
+
+  const question = document.createElement("span");
+  question.textContent = message;
+  dom.errorMessage.appendChild(question);
+
+  const actions = document.createElement("div");
+  actions.className = "confirm-actions";
+
+  const yesBtn = document.createElement("button");
+  yesBtn.type = "button";
+  yesBtn.className = "confirm-yes-btn";
+  yesBtn.textContent = "Yes";
+  yesBtn.addEventListener("click", async () => {
+    clearErrorMessage();
+    await onConfirm();
+  });
+
+  const noBtn = document.createElement("button");
+  noBtn.type = "button";
+  noBtn.className = "confirm-no-btn";
+  noBtn.textContent = "No";
+  noBtn.addEventListener("click", () => {
+    clearErrorMessage();
+  });
+
+  actions.append(yesBtn, noBtn);
+  dom.errorMessage.appendChild(actions);
+}
+
 export function showSuccessMessage(message: string) {
   if (state.errorMessageTimeoutId) {
     clearTimeout(state.errorMessageTimeoutId);
