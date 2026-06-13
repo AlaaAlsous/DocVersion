@@ -58,6 +58,7 @@ builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAcco
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<FileService>();
 builder.Services.AddScoped<BlobStorageService>();
+builder.Services.AddHostedService<BinCleanupService>();
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 builder.Services.AddRateLimiter(options =>
 {

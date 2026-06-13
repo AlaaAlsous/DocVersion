@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using DocVersion.Server.Services;
 using DocVersion.Server.Hubs;
 using DocVersion.Core.Models;
+using DocVersion.Server.Models;
 
 namespace DocVersion.Server.Controllers;
 
@@ -401,6 +402,52 @@ public class FilesController : ControllerBase
 
         var url = $"{Request.Scheme}://{Request.Host}/api/shared/{shareLink.Token}";
         return Ok(new { url });
+    }
+
+    [HttpGet("bin")]
+    public async Task<IActionResult> GetBinItems()
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var items = await _fileService.GetBinItemsAsync(username);
+        return Ok(items);
+    }
+
+    [HttpPost("bin/restore/{binItemId:long}")]
+    public async Task<IActionResult> RestoreFromBin(long binItemId)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var restored = await _fileService.RestoreFromBinAsync(username, binItemId);
+        if (!restored)
+            return Conflict("Could not restore. The original location may already have a file/folder at that path.");
+
+        return Ok(new { Message = "Item restored from bin" });
+    }
+
+    [HttpDelete("bin/empty")]
+    public async Task<IActionResult> EmptyBin()
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        await _fileService.EmptyBinAsync(username);
+        return Ok(new { Message = "Bin emptied" });
+    }
+
+    [HttpDelete("bin/permanent/{binItemId:long}")]
+    public async Task<IActionResult> PermanentDeleteBinItem(long binItemId)
+    {
+        var username = GetUsername();
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var deleted = await _fileService.PermanentDeleteBinItemAsync(username, binItemId);
+        if (!deleted)
+            return NotFound("Bin item not found.");
+
+        return Ok(new { Message = "Item permanently deleted" });
     }
 
     public record RenameRequest(string OldName, string NewName, bool IsFolder);
