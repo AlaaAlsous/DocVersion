@@ -197,6 +197,11 @@ export async function emptyBin() {
 function showEmptyBinButton() {
   const existing = document.getElementById("emptyBinBtn");
   if (existing) return;
+
+  const footer = document.createElement("div");
+  footer.className = "bin-footer";
+  footer.id = "binFooter";
+
   const btn = document.createElement("button");
   btn.id = "emptyBinBtn";
   btn.className = "bin-empty-btn";
@@ -209,17 +214,16 @@ function showEmptyBinButton() {
       },
     );
   });
-  const closeBtn = dom.binPanel.querySelector(".bin-close-btn");
-  if (closeBtn && closeBtn.parentNode) {
-    closeBtn.parentNode.insertBefore(btn, closeBtn);
-  } else {
-    dom.binPanel.querySelector(".bin-header")?.appendChild(btn);
-  }
+
+  footer.appendChild(btn);
+  dom.binPanel.appendChild(footer);
 }
 
 function hideEmptyBinButton() {
   const btn = document.getElementById("emptyBinBtn");
   if (btn) btn.remove();
+  const footer = document.getElementById("binFooter");
+  if (footer) footer.remove();
 }
 
 export async function permanentlyDeleteBinItem(binItemId: number) {
