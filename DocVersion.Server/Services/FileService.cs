@@ -493,6 +493,14 @@ public class FileService
         zipStream.Position = 0;
         return zipStream;
     }
+    public async Task<List<BinItem>> GetBinItemsAsync(string username)
+    {
+        return await _dbContext.BinItems
+            .Where(b => b.Username == username)
+            .OrderByDescending(b => b.DeletedAt)
+            .ToListAsync();
+    }
+
     public async Task<bool> DeleteFileAsync(string username, string filename)
     {
         filename = NormalizePath(filename);
@@ -500,7 +508,27 @@ public class FileService
         if (!await _blob.ExistsAsync(username, filename))
             return false;
 
-        await _blob.DeleteAsync(username, filename);
+        var binId = Guid.NewGuid().ToString("N");
+        var binStoragePath = $".bin/{binId}/{filename}";
+
+        await _blob.CopyAsync(username, filename, binStoragePath);
+
+        var props = await _blob.GetPropertiesAsync(username, filename);
+        long bytes = props?.ContentLength ?? 0;
+
+        var binItem = new BinItem
+        {
+            Username = username,
+            OriginalPath = filename,
+            StoragePath = binStoragePath,
+            IsFile = true,
+            SizeBytes = bytes,
+            DeletedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(30)
+        };
+
+        _dbContext.BinItems.Add(binItem);
+        await _dbContext.SaveChangesAsync();
 
         await _hub.Clients.User(username)
             .SendAsync("Event", (int)EventsType.FileDeleted, filename);
@@ -516,16 +544,213 @@ public class FileService
         if (allBlobs.Count == 0)
             return false;
 
+        var binId = Guid.NewGuid().ToString("N");
+        long totalBytes = 0;
+
         foreach (var blobName in allBlobs)
         {
             var relative = blobName.Substring($"{username}/".Length);
-            await _blob.DeleteAsync(username, relative);
+            var binStoragePath = $".bin/{binId}/{relative}";
+
+            var props = await _blob.GetPropertiesAsync(username, relative);
+            totalBytes += props?.ContentLength ?? 0;
+
+            await _blob.CopyAsync(username, relative, binStoragePath);
         }
+
+        // Restore the history records for files inside the folder
+        var histories = await _dbContext.FileHistories
+            .Where(f => f.Username == username && f.FilePath.StartsWith(foldername + "/"))
+            .ToListAsync();
+
+        foreach (var history in histories)
+        {
+            history.FilePath = $".bin/{binId}/" + history.FilePath;
+        }
+
+        if (histories.Count > 0)
+            await _dbContext.SaveChangesAsync();
+
+        var binItem = new BinItem
+        {
+            Username = username,
+            OriginalPath = foldername,
+            StoragePath = $".bin/{binId}/",
+            IsFile = false,
+            SizeBytes = totalBytes,
+            DeletedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(30)
+        };
+
+        _dbContext.BinItems.Add(binItem);
+        await _dbContext.SaveChangesAsync();
 
         await _hub.Clients.User(username)
             .SendAsync("Event", (int)EventsType.FolderDeleted, foldername);
 
         return true;
+    }
+
+    public async Task<bool> RestoreFromBinAsync(string username, long binItemId)
+    {
+        var binItem = await _dbContext.BinItems
+            .FirstOrDefaultAsync(b => b.Id == binItemId && b.Username == username);
+
+        if (binItem == null)
+            return false;
+
+        if (binItem.IsFile)
+        {
+            if (await _blob.ExistsAsync(username, binItem.OriginalPath))
+                return false;
+
+            await _blob.CopyAsync(username, binItem.StoragePath, binItem.OriginalPath);
+        }
+        else
+        {
+            var allInBin = await _blob.ListAllFilesRecursiveAsync(username, binItem.StoragePath.TrimEnd('/'));
+            var prefix = binItem.StoragePath.TrimEnd('/') + "/";
+
+            foreach (var fullName in allInBin)
+            {
+                var relative = fullName.Substring($"{username}/".Length);
+                var originalRelative = relative.Substring(prefix.Length);
+
+                if (await _blob.ExistsAsync(username, originalRelative))
+                    continue;
+
+                await _blob.CopyAsync(username, relative, originalRelative);
+            }
+
+            var histories = await _dbContext.FileHistories
+                .Where(f => f.Username == username && f.FilePath.StartsWith(prefix))
+                .ToListAsync();
+
+            foreach (var history in histories)
+            {
+                history.FilePath = history.FilePath.Substring(prefix.Length);
+            }
+
+            if (histories.Count > 0)
+                await _dbContext.SaveChangesAsync();
+        }
+
+        _dbContext.BinItems.Remove(binItem);
+        await _dbContext.SaveChangesAsync();
+
+        await _hub.Clients.User(username)
+            .SendAsync("Event", (int)EventsType.BinRestored, binItem.OriginalPath);
+
+        return true;
+    }
+
+    public async Task<bool> PermanentDeleteBinItemAsync(string username, long binItemId)
+    {
+        var binItem = await _dbContext.BinItems
+            .FirstOrDefaultAsync(b => b.Id == binItemId && b.Username == username);
+
+        if (binItem == null)
+            return false;
+
+        if (binItem.IsFile)
+        {
+            await _blob.DeleteAsync(username, binItem.StoragePath);
+        }
+        else
+        {
+            var allInBin = await _blob.ListAllFilesRecursiveAsync(username, binItem.StoragePath.TrimEnd('/'));
+            foreach (var fullName in allInBin)
+            {
+                var relative = fullName.Substring($"{username}/".Length);
+                await _blob.DeleteAsync(username, relative);
+            }
+
+            var prefix = binItem.StoragePath.TrimEnd('/') + "/";
+            var histories = await _dbContext.FileHistories
+                .Where(f => f.Username == username && f.FilePath.StartsWith(prefix))
+                .ToListAsync();
+
+            _dbContext.FileHistories.RemoveRange(histories);
+        }
+
+        _dbContext.BinItems.Remove(binItem);
+        await _dbContext.SaveChangesAsync();
+
+        await _hub.Clients.User(username)
+            .SendAsync("Event", (int)EventsType.BinPermanentDeleted, binItem.OriginalPath);
+
+        return true;
+    }
+
+    public async Task EmptyBinAsync(string username)
+    {
+        var items = await _dbContext.BinItems
+            .Where(b => b.Username == username)
+            .ToListAsync();
+
+        foreach (var binItem in items)
+        {
+            if (binItem.IsFile)
+            {
+                await _blob.DeleteAsync(binItem.Username, binItem.StoragePath);
+            }
+            else
+            {
+                var allInBin = await _blob.ListAllFilesRecursiveAsync(binItem.Username, binItem.StoragePath.TrimEnd('/'));
+                foreach (var fullName in allInBin)
+                {
+                    var relative = fullName.Substring($"{binItem.Username}/".Length);
+                    await _blob.DeleteAsync(binItem.Username, relative);
+                }
+
+                var prefix = binItem.StoragePath.TrimEnd('/') + "/";
+                var histories = await _dbContext.FileHistories
+                    .Where(f => f.Username == binItem.Username && f.FilePath.StartsWith(prefix))
+                    .ToListAsync();
+                _dbContext.FileHistories.RemoveRange(histories);
+            }
+
+            _dbContext.BinItems.Remove(binItem);
+        }
+
+        if (items.Count > 0)
+            await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task CleanExpiredBinItemsAsync()
+    {
+        var expired = await _dbContext.BinItems
+            .Where(b => b.ExpiresAt <= DateTime.UtcNow)
+            .ToListAsync();
+
+        foreach (var binItem in expired)
+        {
+            if (binItem.IsFile)
+            {
+                await _blob.DeleteAsync(binItem.Username, binItem.StoragePath);
+            }
+            else
+            {
+                var allInBin = await _blob.ListAllFilesRecursiveAsync(binItem.Username, binItem.StoragePath.TrimEnd('/'));
+                foreach (var fullName in allInBin)
+                {
+                    var relative = fullName.Substring($"{binItem.Username}/".Length);
+                    await _blob.DeleteAsync(binItem.Username, relative);
+                }
+
+                var prefix = binItem.StoragePath.TrimEnd('/') + "/";
+                var histories = await _dbContext.FileHistories
+                    .Where(f => f.Username == binItem.Username && f.FilePath.StartsWith(prefix))
+                    .ToListAsync();
+
+                _dbContext.FileHistories.RemoveRange(histories);
+            }
+
+            _dbContext.BinItems.Remove(binItem);
+        }
+
+        if (expired.Count > 0)
+            await _dbContext.SaveChangesAsync();
     }
 
     public async Task<ShareLink> CreateShareLinkAsync(string username, string filePath)
