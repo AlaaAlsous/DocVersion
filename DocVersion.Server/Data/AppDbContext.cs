@@ -10,5 +10,6 @@ public class AppDbContext : DbContext
     public DbSet<FileHistory> FileHistories { get; set; }
     public DbSet<UserAccount> UserAccounts { get; set; }
     public DbSet<ShareLink> ShareLinks { get; set; }
+    public DbSet<BinItem> BinItems { get; set; }
 
 }
