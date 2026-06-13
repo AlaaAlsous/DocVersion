@@ -76,7 +76,7 @@ export async function startSignalR() {
           void getFiles(state.currentPath);
         }
         if (dom.binPanel && dom.binPanel.style.display !== "none") {
-          import("./bin").then((m) => m.openBinPanel());
+          import("./bin").then((m) => m.refreshBinPanel());
         }
         break;
       default:

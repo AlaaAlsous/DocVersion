@@ -25,6 +25,16 @@ export function closeBinPanel() {
   dom.binPanel.style.display = "none";
 }
 
+export async function refreshBinPanel() {
+  try {
+    const response = await fetchWithAuth("/api/files/bin");
+    if (handleUnauthorizedResponse(response)) return;
+    if (!response.ok) return;
+    const items: BinItemData[] = await response.json();
+    displayBinItems(items);
+  } catch {}
+}
+
 export async function openBinPanel() {
   showSpinner();
   try {
