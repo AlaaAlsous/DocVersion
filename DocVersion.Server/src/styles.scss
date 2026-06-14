@@ -303,6 +303,8 @@ body,
 #historyPane,
 #metadataPane {
   display: flex;
+  min-width: 0;
+  overflow: hidden;
 }
 
 #fileView {
@@ -523,7 +525,8 @@ body,
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--gh-text);
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .bin-item-meta {
@@ -866,11 +869,19 @@ body,
   align-self: center;
 }
 
+.item-label-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .item-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 #quickActions {
@@ -1419,7 +1430,8 @@ audio.file-preview-media {
 
   h3 {
     margin: 0;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--gh-muted);
@@ -1436,15 +1448,8 @@ audio.file-preview-media {
   font-size: 0.84rem;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
   overflow-y: auto;
-
-  h3 {
-    margin: 0;
-    font-size: 0.84rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--gh-muted);
-  }
 }
 
 .history-header {
@@ -1459,7 +1464,8 @@ audio.file-preview-media {
 
   h3 {
     margin: 0;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--gh-muted);
@@ -2030,11 +2036,6 @@ audio.file-preview-media {
   #file-content-actions {
     justify-self: start;
     flex-wrap: wrap;
-  }
-
-  #file-list li {
-    flex-wrap: wrap;
-    align-items: flex-start;
   }
 
   .item-actions {

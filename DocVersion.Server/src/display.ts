@@ -132,6 +132,11 @@ export function renderFileList() {
     const itemPath = state.currentPath ? `${state.currentPath}/${name}` : name;
 
     itemLabel.classList.add("item-label");
+
+    const labelText = document.createElement("span");
+    labelText.className = "item-label-text";
+    itemLabel.appendChild(labelText);
+
     buttonGroup.classList.add("item-actions");
 
     delBtn.textContent = "";
@@ -208,9 +213,16 @@ export function renderFileList() {
         if (e.key === "Enter") {
           input.blur();
         } else if (e.key === "Escape") {
-          itemLabel.textContent = currentName;
+          restoreLabelText();
         }
       });
+      function restoreLabelText() {
+        itemLabel.innerHTML = "";
+        const restored = document.createElement("span");
+        restored.className = "item-label-text";
+        restored.textContent = currentName;
+        itemLabel.appendChild(restored);
+      }
       input.addEventListener("blur", () => {
         const newName = input.value.trim();
         if (newName && newName !== currentName) {
@@ -224,8 +236,7 @@ export function renderFileList() {
             m.renameItem(oldPath, newPath, isFolder, currentName, newName),
           );
         }
-        itemLabel.textContent =
-          newName && newName !== currentName ? newName : currentName;
+        restoreLabelText();
       });
     });
 
@@ -241,7 +252,7 @@ export function renderFileList() {
 
     if (metadata.file) {
       listItem.classList.add("file");
-      itemLabel.textContent = name;
+      labelText.textContent = name;
       listItem.style.cursor = "pointer";
       listItem.addEventListener("click", async () => {
         showSpinner();
@@ -256,7 +267,7 @@ export function renderFileList() {
       buttonGroup.append(downloadBtn, historyBtn, renameBtn, delBtn);
     } else {
       listItem.classList.add("folder");
-      itemLabel.textContent = name;
+      labelText.textContent = name;
       listItem.style.cursor = "pointer";
       listItem.style.background = "rgba(188, 153, 56, 0.10)";
       listItem.addEventListener("click", async () => {
