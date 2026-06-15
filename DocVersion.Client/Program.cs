@@ -661,6 +661,74 @@ class Program
                             break;
                         }
 
+                    case EventsType.BinRestored:
+                        {
+                            filePath = GetString(payload);
+
+                            if (string.IsNullOrWhiteSpace(filePath))
+                                break;
+
+                            if (IsEcho(filePath))
+                                break;
+
+                            var localPath = Path.Combine(Directory.GetCurrentDirectory(), filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                            MessageColor($"[Server] Bin restored: {filePath}", ConsoleColor.DarkCyan);
+
+                            try
+                            {
+                                var headResp = await client.SendAsync(new HttpRequestMessage(
+                                    HttpMethod.Head, $"{serverUrl}/api/files/{EncodePathForApi(filePath)}"));
+                                var itemType = headResp.Headers.GetValues("X-Type").FirstOrDefault();
+
+                                if (itemType == "folder")
+                                {
+                                    Directory.CreateDirectory(localPath);
+                                    MessageColor($"[Server] Folder restored from bin: {filePath}", ConsoleColor.Green);
+                                }
+                                else
+                                {
+                                    var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(filePath)}");
+                                    response.EnsureSuccessStatusCode();
+                                    EnsureDirectoryExists(localPath, Directory.GetCurrentDirectory());
+                                    var content = await response.Content.ReadAsByteArrayAsync();
+                                    await File.WriteAllBytesAsync(localPath, content);
+                                    MessageColor($"[Server] File restored from bin: {filePath}", ConsoleColor.Green);
+                                }
+
+                                MarkEcho(filePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageColor($"[Server] Bin restore download failed, adding to queue: {ex.Message}", ConsoleColor.Yellow);
+
+                                var capturedPath = filePath;
+                                var capturedLocal = localPath;
+                                EnqueueFailed(async () =>
+                                {
+                                    var headResp = await client.SendAsync(new HttpRequestMessage(
+                                        HttpMethod.Head, $"{serverUrl}/api/files/{EncodePathForApi(capturedPath)}"));
+                                    var itemType = headResp.Headers.GetValues("X-Type").FirstOrDefault();
+
+                                    if (itemType == "folder")
+                                    {
+                                        Directory.CreateDirectory(capturedLocal);
+                                    }
+                                    else
+                                    {
+                                        var response = await client.GetAsync($"{serverUrl}/api/files/{EncodePathForApi(capturedPath)}");
+                                        response.EnsureSuccessStatusCode();
+                                        EnsureDirectoryExists(capturedLocal, Directory.GetCurrentDirectory());
+                                        var content = await response.Content.ReadAsByteArrayAsync();
+                                        await File.WriteAllBytesAsync(capturedLocal, content);
+                                    }
+
+                                    MarkEcho(capturedPath);
+                                }, capturedPath);
+                            }
+
+                            break;
+                        }
+
                     case EventsType.FolderCreated:
                         {
                             var data = GetString(payload);
@@ -878,6 +946,13 @@ class Program
                         }
                         else if (Directory.Exists(fullPath))
                         {
+                            if (type == WatcherChangeTypes.Created)
+                            {
+                                await Task.Delay(1000);
+                                if (!Directory.Exists(fullPath))
+                                    return;
+                            }
+
                             var folderAction = type == WatcherChangeTypes.Created ? "New folder" : "Updated folder";
                             var folderColor = type == WatcherChangeTypes.Created ? ConsoleColor.Green : ConsoleColor.Magenta;
                             MessageColor($"[Local] {folderAction}: {relative}", folderColor);
@@ -977,6 +1052,7 @@ class Program
                 {
                     var oldPathRel = Path.GetRelativePath(Directory.GetCurrentDirectory(), e.OldFullPath).Replace("\\", "/");
                     var newPathRel = Path.GetRelativePath(Directory.GetCurrentDirectory(), e.FullPath).Replace("\\", "/");
+                    var isFolder = Directory.Exists(e.FullPath);
 
                     Interlocked.Exchange(ref ignoringLocalChanges, 1);
 
@@ -984,55 +1060,55 @@ class Program
                     {
                         MessageColor($"[Local] Rename: {oldPathRel} → {newPathRel}", ConsoleColor.White);
 
-                        var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(oldPathRel)}");
-                        if (deleteResponse.IsSuccessStatusCode || deleteResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        var renamePayload = JsonContent.Create(new
+                        {
+                            OldName = oldPathRel,
+                            NewName = newPathRel,
+                            IsFolder = isFolder
+                        });
+
+                        var renameResp = await client.PostAsync(
+                            $"{serverUrl}/api/files/rename", renamePayload);
+
+                        if (renameResp.IsSuccessStatusCode)
                         {
                             MarkEcho(oldPathRel);
-                        }
-
-                        if (Directory.Exists(e.FullPath))
-                        {
-                            using var folderRequest = new HttpRequestMessage(HttpMethod.Put,
-                                $"{serverUrl}/api/files/{EncodePathForApi(newPathRel)}");
-                            folderRequest.Headers.Add("X-Type", "folder");
-                            var content = new ByteArrayContent(Array.Empty<byte>());
-                            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                            folderRequest.Content = content;
-                            var folderResp = await client.SendAsync(folderRequest);
-                            if (!folderResp.IsSuccessStatusCode)
-                                throw new Exception($"Server returned {folderResp.StatusCode} for folder rename");
                             MarkEcho(newPathRel);
-
-                            foreach (var file in Directory.GetFiles(e.FullPath, "*", SearchOption.AllDirectories))
+                            MessageColor($"[Local] Renamed on server: {oldPathRel} → {newPathRel}", ConsoleColor.Green);
+                        }
+                        else
+                        {
+                            var body = await renameResp.Content.ReadAsStringAsync();
+                            MessageColor($"[Local] Server rename failed ({(int)renameResp.StatusCode}): {body}. Falling back to delete+create.", ConsoleColor.Yellow);
+                            var deleteResponse = await client.DeleteAsync($"{serverUrl}/api/files/{EncodePathForApi(oldPathRel)}");
+                            if (deleteResponse.IsSuccessStatusCode || deleteResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
                             {
-                                var relFile = Path.GetRelativePath(Directory.GetCurrentDirectory(), file).Replace("\\", "/");
+                                MarkEcho(oldPathRel);
+                            }
 
-                                using var stream = File.OpenRead(file);
+                            if (isFolder)
+                            {
+                                using var folderRequest = new HttpRequestMessage(HttpMethod.Put,
+                                    $"{serverUrl}/api/files/{EncodePathForApi(newPathRel)}");
+                                folderRequest.Headers.Add("X-Type", "folder");
+                                var content = new ByteArrayContent(Array.Empty<byte>());
+                                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                                folderRequest.Content = content;
+                                await client.SendAsync(folderRequest);
+                                MarkEcho(newPathRel);
+                            }
+                            else if (File.Exists(e.FullPath))
+                            {
+                                using var stream = File.OpenRead(e.FullPath);
                                 using var fileRequest = new HttpRequestMessage(HttpMethod.Put,
-                                    $"{serverUrl}/api/files/{EncodePathForApi(relFile)}");
+                                    $"{serverUrl}/api/files/{EncodePathForApi(newPathRel)}");
                                 fileRequest.Headers.Add("X-Type", "file");
                                 var streamContent = new StreamContent(stream);
                                 streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                                 fileRequest.Content = streamContent;
-                                var fileResp = await client.SendAsync(fileRequest);
-                                if (!fileResp.IsSuccessStatusCode)
-                                    throw new Exception($"Server returned {fileResp.StatusCode} for file rename upload");
-                                MarkEcho(relFile);
+                                await client.SendAsync(fileRequest);
+                                MarkEcho(newPathRel);
                             }
-                        }
-                        else if (File.Exists(e.FullPath))
-                        {
-                            using var stream = File.OpenRead(e.FullPath);
-                            using var fileRequest = new HttpRequestMessage(HttpMethod.Put,
-                                $"{serverUrl}/api/files/{EncodePathForApi(newPathRel)}");
-                            fileRequest.Headers.Add("X-Type", "file");
-                            var streamContent = new StreamContent(stream);
-                            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                            fileRequest.Content = streamContent;
-                            var fileResp = await client.SendAsync(fileRequest);
-                            if (!fileResp.IsSuccessStatusCode)
-                                throw new Exception($"Server returned {fileResp.StatusCode} for file rename");
-                            MarkEcho(newPathRel);
                         }
                     }
                     catch (Exception ex)
