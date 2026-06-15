@@ -214,6 +214,7 @@ export function resetDetailsPanels() {
 
   dom.fileContentTextarea.value = "";
   dom.fileContentTextarea.style.display = "none";
+  dom.shareBtn.style.display = "none";
 
   state.currentFileIsEditable = false;
   updateEditorActions();

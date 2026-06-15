@@ -68,6 +68,23 @@ export async function startSignalR() {
       case 2:
       case 5:
       case 7:
+        {
+          const fileName = getFileNameFromPath(path);
+          const parentPath = getParentPath(path);
+
+          if (shouldRefreshCurrentPath(path)) {
+            void getFiles(state.currentPath);
+          }
+
+          if (parentPath === state.currentPath && fileName === state.currentFileName) {
+            import("./auth").then((m) => m.resetDetailsPanels());
+          }
+
+          if (dom.binPanel && dom.binPanel.style.display !== "none") {
+            import("./bin").then((m) => m.refreshBinPanel());
+          }
+        }
+        break;
       case 8:
       case 9:
       case 10:
