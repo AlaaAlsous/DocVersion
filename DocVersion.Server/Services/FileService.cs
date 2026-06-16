@@ -89,11 +89,22 @@ public class FileService
             if (ShouldIgnoreFile(item.Name))
                 continue;
 
+            long bytes = item.Bytes;
+            if (!item.IsFile)
+            {
+                var allInFolder = await _blob.ListAllFilesRecursiveAsync(username, item.Name);
+                bytes = 0;
+                foreach (var blobName in allInFolder)
+                {
+                    var blobProps = await _blob.GetPropertiesAsync(username, blobName.Substring($"{username}/".Length));
+                    bytes += blobProps?.ContentLength ?? 0;
+                }
+            }
             var ext = item.IsFile ? Path.GetExtension(item.Name) : null;
             dict[item.Name] = new FileMetadata
             {
                 IsFile = item.IsFile,
-                Bytes = item.Bytes,
+                Bytes = bytes,
                 Extension = ext,
                 Created = (item.Created ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
                 Changed = (item.Modified ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
@@ -124,20 +135,34 @@ public class FileService
             };
         }
 
-        var folderItems = await _blob.ListFolderAsync(username, filename);
-        if (folderItems.Count > 0)
+        var allInFolder = await _blob.ListAllFilesRecursiveAsync(username, filename);
+        if (allInFolder.Count > 0)
         {
-            long totalBytes = folderItems.Where(x => x.IsFile).Sum(x => x.Bytes);
-            var created = folderItems.Min(x => x.Created) ?? DateTimeOffset.UtcNow;
-            var changed = folderItems.Max(x => x.Modified) ?? created;
+            long totalBytes = 0;
+            DateTimeOffset? created = null;
+            DateTimeOffset? modified = null;
+            foreach (var blobName in allInFolder)
+            {
+                var blobProps = await _blob.GetPropertiesAsync(username, blobName.Substring($"{username}/".Length));
+                totalBytes += blobProps?.ContentLength ?? 0;
+                if (blobProps != null)
+                {
+                    if (created == null || blobProps.CreatedOn < created)
+                        created = blobProps.CreatedOn;
+                    if (modified == null || blobProps.LastModified > modified)
+                        modified = blobProps.LastModified;
+                }
+            }
+            var folderCreated = created ?? DateTimeOffset.UtcNow;
+            var folderChanged = modified ?? folderCreated;
 
             return new FileMetadata
             {
                 IsFile = false,
                 Bytes = totalBytes,
                 Extension = null,
-                Created = created.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                Changed = changed.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+                Created = folderCreated.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                Changed = folderChanged.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
             };
         }
 
@@ -175,11 +200,23 @@ public class FileService
             if (ShouldIgnoreFile(item.Name))
                 continue;
 
+            long bytes = item.Bytes;
+            if (!item.IsFile)
+            {
+                var fullPath = foldername + "/" + item.Name;
+                var allInSubfolder = await _blob.ListAllFilesRecursiveAsync(username, fullPath);
+                bytes = 0;
+                foreach (var blobName in allInSubfolder)
+                {
+                    var blobProps = await _blob.GetPropertiesAsync(username, blobName.Substring($"{username}/".Length));
+                    bytes += blobProps?.ContentLength ?? 0;
+                }
+            }
             var ext = item.IsFile ? Path.GetExtension(item.Name) : null;
             dict[item.Name] = new FileMetadata
             {
                 IsFile = item.IsFile,
-                Bytes = item.Bytes,
+                Bytes = bytes,
                 Extension = ext,
                 Created = (item.Created ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
                 Changed = (item.Modified ?? DateTimeOffset.UtcNow).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
@@ -473,6 +510,9 @@ public class FileService
                     continue;
 
                 var entryName = blobName.Substring(prefix.Length);
+
+                if (Path.GetFileName(entryName).Equals("__folder_placeholder", StringComparison.OrdinalIgnoreCase))
+                    continue;
 
                 var (stream, _) = await _blob.DownloadAsync(
                     username,
