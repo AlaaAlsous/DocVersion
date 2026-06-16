@@ -754,7 +754,11 @@ public class FileService
         }
 
         if (items.Count > 0)
+        {
             await _dbContext.SaveChangesAsync();
+            await _hub.Clients.User(username)
+                .SendAsync("Event", (int)EventsType.BinEmptied, username);
+        }
     }
 
     public async Task CleanExpiredBinItemsAsync()

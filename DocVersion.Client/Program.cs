@@ -729,6 +729,12 @@ class Program
                             break;
                         }
 
+                    case EventsType.BinEmptied:
+                        {
+                            MessageColor("[Server] Bin was emptied", ConsoleColor.DarkCyan);
+                            break;
+                        }
+
                     case EventsType.FolderCreated:
                         {
                             var data = GetString(payload);

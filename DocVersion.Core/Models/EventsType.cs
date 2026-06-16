@@ -11,4 +11,5 @@ public enum EventsType
     FileRenamed = 9,
     BinRestored = 10,
     BinPermanentDeleted = 11,
+    BinEmptied = 12,
 }

@@ -89,6 +89,7 @@ export async function startSignalR() {
       case 9:
       case 10:
       case 11:
+      case 12:
         if (shouldRefreshCurrentPath(path)) {
           void getFiles(state.currentPath);
         }
