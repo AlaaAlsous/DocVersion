@@ -29,6 +29,14 @@
 </p>
 
 <p align="center">
+	<img src="DocVersion.Server/wwwroot/Assets/DocVersion-edit.png" alt="DocVersion-Startsida" width="600"/>
+</p>
+
+<p align="center">
+	<img src="DocVersion.Server/wwwroot/Assets/DocVersion-bin.png" alt="DocVersion-Startsida" width="600"/>
+</p>
+
+<p align="center">
 	<img src="DocVersion.Server/wwwroot/Assets/DocVersion-Sync.png" alt="DocVersion-Sync" width="600"/>
 </p>
 
