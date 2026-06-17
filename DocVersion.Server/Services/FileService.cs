@@ -548,13 +548,13 @@ public class FileService
         if (!await _blob.ExistsAsync(username, filename))
             return false;
 
+        var props = await _blob.GetPropertiesAsync(username, filename);
+        long bytes = props?.ContentLength ?? 0;
+
         var binId = Guid.NewGuid().ToString("N");
         var binStoragePath = $".bin/{binId}/{filename}";
 
         await _blob.CopyAsync(username, filename, binStoragePath);
-
-        var props = await _blob.GetPropertiesAsync(username, filename);
-        long bytes = props?.ContentLength ?? 0;
 
         var binItem = new BinItem
         {

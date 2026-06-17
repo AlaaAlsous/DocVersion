@@ -21,6 +21,8 @@ export interface BinItemData {
   expiresAt: string;
 }
 
+const binItemCache = new Map<number, { name: string; isFile: boolean }>();
+
 export function closeBinPanel() {
   dom.binPanel.style.display = "none";
 }
@@ -75,6 +77,7 @@ function displayBinItems(items: BinItemData[]) {
   showEmptyBinButton();
 
   items.forEach((item) => {
+    binItemCache.set(item.id, { name: item.originalPath, isFile: item.isFile });
     const li = document.createElement("li");
     li.className = "bin-item";
     li.setAttribute("data-id", item.id.toString());
@@ -156,8 +159,11 @@ export async function restoreBinItem(binItemId: number) {
 
     await openBinPanel();
     await getFiles(state.currentPath);
+    const cached = binItemCache.get(binItemId);
+    const typeLabel = cached?.isFile ? "file" : "folder";
+    const name = cached?.name ?? `#${binItemId}`;
     hideSpinner();
-    showSuccessMessage("Item restored from bin");
+    showSuccessMessage(`Restored ${typeLabel}: ${name}`);
   } catch (error) {
     hideSpinner();
     showErrorMessage("Error restoring item");
@@ -261,8 +267,11 @@ export async function permanentlyDeleteBinItem(binItemId: number) {
     }
 
     await getFiles(state.currentPath);
+    const cached = binItemCache.get(binItemId);
+    const typeLabel = cached?.isFile ? "file" : "folder";
+    const name = cached?.name ?? `#${binItemId}`;
     hideSpinner();
-    showSuccessMessage("Item permanently deleted");
+    showSuccessMessage(`Permanently deleted ${typeLabel}: ${name}`);
   } catch (error) {
     hideSpinner();
     showErrorMessage("Error deleting item");
