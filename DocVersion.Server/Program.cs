@@ -20,7 +20,14 @@ var builder = WebApplication.CreateBuilder(args);
 var keyVaultUrl = builder.Configuration["KeyVaultUrl"]
     ?? throw new InvalidOperationException("KeyVaultUrl missing.");
 
-var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+var credential = builder.Environment.IsDevelopment()
+    ? new DefaultAzureCredential(new DefaultAzureCredentialOptions
+    {
+        ExcludeManagedIdentityCredential = true
+    })
+    : new DefaultAzureCredential();
+
+var secretClient = new SecretClient(new Uri(keyVaultUrl), credential);
 
 var sqlSecret = await secretClient.GetSecretAsync("SqlConnectionString");
 var connectionString = sqlSecret.Value.Value;

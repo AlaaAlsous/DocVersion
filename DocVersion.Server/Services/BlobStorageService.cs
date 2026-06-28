@@ -18,7 +18,11 @@ namespace DocVersion.Server.Services
             {
                 try
                 {
-                    var client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+                    var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                    {
+                        ExcludeManagedIdentityCredential = true
+                    });
+                    var client = new SecretClient(new Uri(keyVaultUrl), credential);
                     var secret = client.GetSecret("AzureBlob-ConnectionString");
                     connFromKeyVault = secret.Value.Value;
                 }
